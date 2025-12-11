@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>404 — Page introuvable</title>
+  <style>
+    body{
+      margin:0;
+      padding:0;
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:#ff79a8;
+      font-family: Arial, sans-serif;
+      color:white;
+    }
+
+    .container{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:40px;
+      padding:20px;
+      max-width:1100px;
+      width:100%;
+    }
+
+    .text-zone{
+      max-width:420px;
+      text-align:left;
+    }
+
+    h1{
+      font-size:80px;
+      margin:0 0 10px;
+    }
+
+    p{
+      margin:0 0 20px;
+      font-size:22px;
+      line-height:1.4;
+    }
+
+    a.btn{
+      display:inline-block;
+      padding:12px 22px;
+      background:white;
+      color:#ff79a8;
+      font-weight:bold;
+      border-radius:12px;
+      text-decoration:none;
+      font-size:18px;
+    }
+
+    img{
+      width:400px;
+      height:400px;
+      object-fit:contain;
+    }
+
+    @media (max-width:800px){
+      .container{
+        flex-direction:column-reverse;
+        text-align:center;
+      }
+      .text-zone{text-align:center;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="text-zone">
+      <h1>404</h1>
+      <p>Oups… la page que tu cherches s'est enfuie.<br>Rondoudou l'a remplacée avec un câlin rose.</p>
+      <a href="/" class="btn">Retour à l'accueil</a>
+    </div>
+
+    <img src="rondoudou.webp" alt="Rondoudou kawaii">
+  </div>
+</body>
+</html>

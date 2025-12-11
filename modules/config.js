@@ -32,7 +32,10 @@ export const CONFIG = {
     
     // ERLC Configuration
     ERLC_API_URL: 'https://api.policeroleplay.community/v1/server',
-    ERLC_API: 'jlmQqlbnYaYYGbHGPMuX-XhpdlwcePGzBmakHyNyEyHvAMYWSIIjLhEHLCyDP',
+    // Key moved to .env. 
+    // Ensure your bundler defines process.env.ERLC_API_KEY or this will be undefined.
+    // Ideally, rely on Supabase RPC get_erlc_api_key in services.js for security.
+    ERLC_API_KEY: (typeof process !== 'undefined' && process.env) ? process.env.ERLC_API_KEY : '',
     
     // Game Rules
     MAX_SLOTS: 42,
