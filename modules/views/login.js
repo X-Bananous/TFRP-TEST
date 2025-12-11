@@ -1,9 +1,7 @@
 
-
-
-
 import { CONFIG } from '../config.js';
 import { state } from '../state.js';
+import { router } from '../utils.js';
 
 export const LoginView = () => {
     // 1. SORT STAFF: Founders First
@@ -145,6 +143,13 @@ export const LoginView = () => {
                             <div class="flex gap-3 overflow-x-auto snap-x custom-scrollbar pb-4">
                                 ${staffHtml}
                             </div>
+                        </div>
+
+                        <!-- Legal Links -->
+                        <div class="mt-8 pt-8 border-t border-white/5 flex justify-center gap-6 text-xs text-gray-500">
+                            <button onclick="router('terms')" class="hover:text-white transition-colors">Conditions d'utilisation</button>
+                            <button onclick="router('privacy')" class="hover:text-white transition-colors">Politique de confidentialité</button>
+                            <span>&copy; 2024 TFRP</span>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,4 @@
 
-
-
 /**
  * TFRP Core Application
  * Entry Point & Aggregator
@@ -28,6 +26,7 @@ import { LoginView, AccessDeniedView } from './modules/views/login.js';
 import { CharacterSelectView } from './modules/views/select.js';
 import { CharacterCreateView } from './modules/views/create.js';
 import { HubView } from './modules/views/hub.js';
+import { TermsView, PrivacyView } from './modules/views/legal.js';
 
 // --- Combine Actions into Window ---
 window.actions = {
@@ -52,6 +51,8 @@ const appRenderer = () => {
         case 'select': htmlContent = CharacterSelectView(); break;
         case 'create': htmlContent = CharacterCreateView(); break;
         case 'hub': htmlContent = HubView(); break;
+        case 'terms': htmlContent = TermsView(); break;
+        case 'privacy': htmlContent = PrivacyView(); break;
         default: htmlContent = LoginView();
     }
 

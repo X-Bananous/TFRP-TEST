@@ -1,15 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
 import { state } from './state.js';
 import { showToast, showModal } from './ui.js';
 import { HEIST_DATA } from './views/illicit.js';
@@ -273,6 +262,19 @@ export const fetchGlobalHeists = async () => {
         .in('status', ['active', 'pending_review']);
     
     state.globalActiveHeists = heists || [];
+};
+
+export const fetchLastFinishedHeist = async () => {
+    // Get the most recently finished heist to check cooldown
+    const { data } = await state.supabase
+        .from('heist_lobbies')
+        .select('end_time')
+        .eq('status', 'finished')
+        .order('end_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+    return data ? new Date(data.end_time) : null;
 };
 
 // --- GAME SESSIONS ---

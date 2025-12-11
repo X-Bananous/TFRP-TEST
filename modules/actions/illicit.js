@@ -4,6 +4,7 @@ import { render } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
 import * as services from '../services.js';
 import { DRUG_DATA, HEIST_DATA, HEIST_LOCATIONS } from '../views/illicit.js';
+import { CONFIG } from '../config.js';
 
 export const setIllicitTab = async (tab) => {
     state.activeIllicitTab = tab;
@@ -597,6 +598,17 @@ export const createLobby = async (heistId) => {
     if (!state.activeGameSession) {
          ui.showToast("Impossible: Aucune session active.", 'error');
          return;
+    }
+
+    // --- COOLDOWN CHECK ---
+    const lastHeistTime = await services.fetchLastFinishedHeist();
+    if (lastHeistTime) {
+        const diffMs = Date.now() - lastHeistTime.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < CONFIG.HEIST_COOLDOWN_MINUTES) {
+            ui.showToast(`Zone sous surveillance policière. Attendez ${CONFIG.HEIST_COOLDOWN_MINUTES - diffMins} min.`, 'error');
+            return;
+        }
     }
 
     const heist = HEIST_DATA.find(h => h.id === heistId);

@@ -1,9 +1,8 @@
 
-
-
 import { CONFIG } from '../config.js';
 import { state } from '../state.js';
-import { hasPermission } from '../utils.js';
+import { hasPermission, router } from '../utils.js';
+import { ui } from '../ui.js';
 
 export const CharacterSelectView = () => {
     const charsHtml = state.characters.map(char => {
@@ -84,6 +83,17 @@ export const CharacterSelectView = () => {
         `;
     }).join('');
 
+    // Request Slot Modal Logic
+    window.openSlotRequest = () => {
+        ui.showModal({
+            title: "Demande de Slot",
+            content: "Pour obtenir un 2ème, 3ème ou 4ème personnage, vous devez ouvrir un ticket 'Support' sur le Discord.",
+            confirmText: "Ouvrir Discord",
+            cancelText: "Fermer",
+            onConfirm: () => window.open(CONFIG.INVITE_URL, '_blank')
+        });
+    };
+
     return `
         <div class="flex-1 flex flex-col p-8 animate-fade-in overflow-hidden relative h-full">
             <div class="flex justify-between items-center mb-10 z-10 px-4">
@@ -114,7 +124,16 @@ export const CharacterSelectView = () => {
                             <span class="text-gray-300 font-semibold group-hover:text-white">Créer un citoyen</span>
                             <span class="text-xs text-gray-600 mt-1 uppercase tracking-widest">Slot Disponible (${state.characters.length}/${CONFIG.MAX_CHARS})</span>
                         </button>
-                    ` : ''}
+                    ` : `
+                        <button onclick="window.openSlotRequest()" class="group w-full md:w-[340px] h-[380px] rounded-[30px] border-2 border-dashed border-yellow-500/20 hover:border-yellow-500/50 hover:bg-yellow-500/5 flex flex-col items-center justify-center transition-all cursor-pointer relative overflow-hidden">
+                            <div class="absolute inset-0 bg-yellow-500/5 animate-pulse"></div>
+                            <div class="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-yellow-500/20 transition-all relative z-10">
+                                <i data-lucide="lock" class="w-8 h-8 text-yellow-500"></i>
+                            </div>
+                            <span class="text-yellow-200 font-bold group-hover:text-yellow-100 relative z-10">Slot Supplémentaire</span>
+                            <span class="text-xs text-yellow-500/60 mt-2 uppercase tracking-widest relative z-10 px-6 text-center">Faire une demande au staff</span>
+                        </button>
+                    `}
                 </div>
             </div>
         </div>

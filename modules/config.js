@@ -1,15 +1,20 @@
 
-
-
-
-
 export const CONFIG = {
     SUPABASE_URL: 'https://nitlrwmgoddqabasavrg.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdGxyd21nb2RkcWFiYXNhdnJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3Mzg3NTIsImV4cCI6MjA3OTMxNDc1Mn0.Y5BFeTuv-dxLpf9ocqyhaWMLLCwlKf-bPDgpWq0o8oU',
     
     // Discord Configuration
     DISCORD_CLIENT_ID: '1448414660343890083',
-    REDIRECT_URI: 'https://x-bananous.github.io/TFRP-TEST/',
+    // Dynamic Redirect URI based on current hostname
+    get REDIRECT_URI() {
+        const origin = window.location.origin;
+        if (origin.includes('teamfrenchroleplay.ct.ws')) {
+            return 'https://teamfrenchroleplay.ct.ws';
+        }
+        // Fallback or Dev
+        return 'https://x-bananous.github.io/TFRP-TEST/';
+    },
+    
     REQUIRED_GUILD_ID: '1279455759414857759', // Main Server
     INVITE_URL: 'https://discord.gg/eBU7KKKGD5',
     
@@ -28,7 +33,8 @@ export const CONFIG = {
     
     // Game Rules
     MAX_SLOTS: 42,
-    MAX_CHARS: 2,
+    MAX_CHARS: 1, // Changed to 1 per request
+    HEIST_COOLDOWN_MINUTES: 5,
     
     // Hardcoded Admins (Discord IDs) - LA FONDATION
     ADMIN_IDS: [

@@ -1,18 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { state } from '../state.js';
 import { BankView } from './bank.js';
 import { StaffView } from './staff.js';
@@ -20,7 +6,7 @@ import { AssetsView } from './assets.js';
 import { IllicitView } from './illicit.js';
 import { ServicesView } from './services.js';
 import { EnterpriseView } from './enterprise.js';
-import { hasPermission } from '../utils.js';
+import { hasPermission, router } from '../utils.js';
 import { ui } from '../ui.js';
 import { HEIST_DATA } from './illicit.js';
 import { CONFIG } from '../config.js';
@@ -569,7 +555,11 @@ export const HubView = () => {
                     </div>
                 </div>
 
-                <div class="p-4 bg-black/20 border-t border-white/5 shrink-0">
+                <div class="p-4 bg-black/20 border-t border-white/5 shrink-0 space-y-2">
+                        <div class="flex justify-center gap-4 text-[10px] text-gray-600">
+                            <button onclick="router('terms')" class="hover:text-white">CGU</button>
+                            <button onclick="router('privacy')" class="hover:text-white">Confidentialité</button>
+                        </div>
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="actions.backToSelect()" class="w-full glass-btn-secondary py-2 rounded-lg text-xs text-gray-300 hover:bg-white/10 cursor-pointer flex items-center justify-center gap-1" title="Changer de personnage">
                             <i data-lucide="users" class="w-3 h-3"></i> Persos
