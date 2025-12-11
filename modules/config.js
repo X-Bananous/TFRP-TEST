@@ -32,7 +32,7 @@ export const CONFIG = {
     
     // ERLC Configuration
     ERLC_API_URL: 'https://api.policeroleplay.community/v1/server',
-    ERLC_API: 'jlmQqlbnYaYYGbHGPMuX-XhpdlwcePGzBmakHyNyEyHvAMYWSIIjLhEHLCyDP'
+    ERLC_API: 'jlmQqlbnYaYYGbHGPMuX-XhpdlwcePGzBmakHyNyEyHvAMYWSIIjLhEHLCyDP',
     
     // Game Rules
     MAX_SLOTS: 42,
