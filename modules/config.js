@@ -32,11 +32,13 @@ export const CONFIG = {
     
     // ERLC Configuration
     ERLC_API_URL: 'https://api.policeroleplay.community/v1/server',
-    ERLC_API: 'jlmQqlbnYaYYGbHGPMuX-XhpdlwcePGzBmakHyNyEyHvAMYWSIIjLhEHLCyDP',
+
+    ERLC_API_KEY: 'jlmQqlbnYaYYGbHGPMuX-XhpdlwcePGzBmakHyNyEyHvAMYWSIIjLhEHLCyDP',
     
     // Game Rules
     MAX_SLOTS: 42,
     MAX_CHARS: 1, // Changed to 1 per request
+    MAX_ENTERPRISES: 2,
     HEIST_COOLDOWN_MINUTES: 5,
     
     // Hardcoded Admins (Discord IDs) - LA FONDATION

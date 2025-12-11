@@ -36,6 +36,7 @@ export const setupRealtimeListener = () => {
                 // Force refresh of current panel to unlock buttons
                 if (state.activeHubPanel) {
                      if (state.activeHubPanel === 'illicit') setIllicitTab(state.activeIllicitTab); // Refresh illicit
+                     if (state.activeHubPanel === 'enterprise') fetchEnterpriseMarket();
                      render();
                 }
             }
@@ -99,6 +100,14 @@ export const setupRealtimeListener = () => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_calls' }, async () => {
             if(state.activeHubPanel === 'services') {
                 await fetchEmergencyCalls();
+                render();
+            }
+        })
+        
+        // 6. ENTERPRISE MARKET
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'enterprise_items' }, async () => {
+            if (state.activeHubPanel === 'enterprise') {
+                await fetchEnterpriseMarket();
                 render();
             }
         })
@@ -790,6 +799,147 @@ export const resolveBounty = async (bountyId, winnerId) => {
         showToast('Contrat honoré.', 'success');
     }
     await fetchBounties();
+};
+
+// --- ENTERPRISE SERVICES (NEW) ---
+
+export const fetchEnterprises = async () => {
+    const { data } = await state.supabase.from('enterprises').select('*');
+    state.enterprises = data || [];
+};
+
+export const fetchMyEnterprises = async (charId) => {
+    const { data: memberships } = await state.supabase
+        .from('enterprise_members')
+        .select('*, enterprises(*)')
+        .eq('character_id', charId);
+    
+    if (memberships) {
+        state.myEnterprises = memberships.map(m => ({
+            ...m.enterprises,
+            myRank: m.rank,
+            myStatus: m.status
+        }));
+    } else {
+        state.myEnterprises = [];
+    }
+};
+
+export const createEnterprise = async (name, leaderId) => {
+    const { data: ent, error } = await state.supabase.from('enterprises').insert({
+        name, leader_id: leaderId, balance: 0
+    }).select().single();
+    
+    if (error) { showToast('Erreur création: ' + error.message, 'error'); return; }
+
+    await state.supabase.from('enterprise_members').insert({ 
+        enterprise_id: ent.id, character_id: leaderId, rank: 'leader', status: 'accepted' 
+    });
+    
+    showToast('Entreprise créée avec succès', 'success');
+};
+
+export const joinEnterprise = async (entId, charId) => {
+    await state.supabase.from('enterprise_members').insert({
+        enterprise_id: entId, character_id: charId, rank: 'employee', status: 'pending'
+    });
+    showToast('Candidature envoyée', 'success');
+};
+
+export const fetchEnterpriseMarket = async () => {
+    const { data } = await state.supabase
+        .from('enterprise_items')
+        .select('*, enterprises(name)')
+        .gt('quantity', 0); // Only available items
+    state.enterpriseMarket = data || [];
+};
+
+export const createEnterpriseItem = async (entId, name, price, quantity, paymentType, description) => {
+    if (price > 1000000) return showToast("Prix maximum 1 Million $.", 'error');
+    
+    await state.supabase.from('enterprise_items').insert({
+        enterprise_id: entId,
+        name,
+        price,
+        quantity,
+        payment_type: paymentType,
+        description
+    });
+    showToast("Article mis en vente.", 'success');
+};
+
+export const buyEnterpriseItem = async (itemId) => {
+    if (!state.activeGameSession) {
+        showToast("Impossible : Session fermée.", 'error');
+        return;
+    }
+
+    const { data: item } = await state.supabase.from('enterprise_items').select('*, enterprises(id, balance)').eq('id', itemId).single();
+    if(!item || item.quantity < 1) return showToast("Article indisponible.", 'error');
+
+    const charId = state.activeCharacter.id;
+    const { data: bank } = await state.supabase.from('bank_accounts').select('*').eq('character_id', charId).single();
+
+    // Check Funds
+    let canPay = false;
+    let paySource = ''; // 'bank' or 'cash'
+
+    if (item.payment_type === 'cash_only' || item.payment_type === 'both') {
+        if (bank.cash_balance >= item.price) { canPay = true; paySource = 'cash'; }
+    }
+    
+    // If couldn't pay with cash, try bank if allowed
+    if (!canPay && (item.payment_type === 'bank_only' || item.payment_type === 'both')) {
+        if (bank.bank_balance >= item.price) { canPay = true; paySource = 'bank'; }
+    }
+
+    if (!canPay) return showToast(`Fonds insuffisants (${item.payment_type === 'both' ? 'Espèces ou Banque' : item.payment_type === 'cash_only' ? 'Espèces' : 'Banque'}).`, 'error');
+
+    // Execute Transaction
+    const updateBank = {};
+    if (paySource === 'cash') updateBank.cash_balance = bank.cash_balance - item.price;
+    else updateBank.bank_balance = bank.bank_balance - item.price;
+
+    await state.supabase.from('bank_accounts').update(updateBank).eq('character_id', charId);
+    
+    // Add Item to Inventory
+    const { data: existingInv } = await state.supabase.from('inventory').select('*').eq('character_id', charId).eq('name', item.name).maybeSingle();
+    if (existingInv) {
+        await state.supabase.from('inventory').update({ quantity: existingInv.quantity + 1 }).eq('id', existingInv.id);
+    } else {
+        await state.supabase.from('inventory').insert({ character_id: charId, name: item.name, quantity: 1, estimated_value: item.price });
+    }
+
+    // Update Enterprise Balance
+    await state.supabase.from('enterprises').update({ balance: (item.enterprises.balance || 0) + item.price }).eq('id', item.enterprise_id);
+
+    // Update Market Item Quantity
+    if (item.quantity === 1) {
+        await state.supabase.from('enterprise_items').delete().eq('id', itemId);
+    } else {
+        await state.supabase.from('enterprise_items').update({ quantity: item.quantity - 1 }).eq('id', itemId);
+    }
+
+    showToast(`Achat effectué : ${item.name}`, 'success');
+    await fetchBankData(charId);
+    await fetchEnterpriseMarket();
+};
+
+export const fetchEnterpriseDetails = async (entId) => {
+    const { data: ent } = await state.supabase.from('enterprises').select('*').eq('id', entId).single();
+    if(!ent) return;
+    
+    const { data: members } = await state.supabase.from('enterprise_members').select('*, characters(first_name, last_name)').eq('enterprise_id', entId);
+    const { data: items } = await state.supabase.from('enterprise_items').select('*').eq('enterprise_id', entId);
+    
+    const myMember = members.find(m => m.character_id === state.activeCharacter.id);
+
+    state.activeEnterpriseManagement = {
+        ...ent,
+        members: members || [],
+        items: items || [],
+        myRank: myMember ? myMember.rank : null
+    };
 };
 
 // Economy Services

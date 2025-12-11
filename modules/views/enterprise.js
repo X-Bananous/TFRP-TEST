@@ -1,52 +1,252 @@
 
+import { state } from '../state.js';
+import { CONFIG } from '../config.js';
+
 export const EnterpriseView = () => {
+    const tabs = [
+        { id: 'market', label: 'Marché', icon: 'shopping-cart' },
+        { id: 'my_companies', label: 'Mes Entreprises', icon: 'building' },
+        { id: 'create', label: 'Créer', icon: 'plus-circle' }
+    ];
+
+    let content = '';
+
+    // --- MARKET TAB ---
+    if (state.activeEnterpriseTab === 'market') {
+        const items = state.enterpriseMarket || [];
+        content = `
+            <div class="space-y-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="store" class="w-5 h-5 text-blue-400"></i> Place de Marché</h3>
+                    <div class="text-xs text-gray-400">Achats disponibles uniquement durant une session active.</div>
+                </div>
+                
+                ${items.length === 0 ? '<div class="text-center text-gray-500 py-10 bg-white/5 rounded-xl border border-white/5">Aucune offre disponible.</div>' : `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${items.map(item => `
+                            <div class="glass-panel p-5 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all flex flex-col justify-between h-full">
+                                <div>
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-bold text-white text-lg">${item.name}</h4>
+                                        <span class="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">x${item.quantity}</span>
+                                    </div>
+                                    <div class="text-xs text-blue-300 mb-4 font-bold uppercase tracking-wider">${item.enterprises?.name || 'Entreprise'}</div>
+                                    ${item.description ? `<p class="text-sm text-gray-400 mb-4 bg-black/20 p-2 rounded italic">"${item.description}"</p>` : ''}
+                                    
+                                    <div class="flex gap-2 mb-4 text-[10px] text-gray-500 uppercase font-bold">
+                                        ${item.payment_type === 'cash_only' ? '<span class="text-green-400 border border-green-500/30 px-1.5 rounded">Espèces</span>' : ''}
+                                        ${item.payment_type === 'bank_only' ? '<span class="text-blue-400 border border-blue-500/30 px-1.5 rounded">Banque</span>' : ''}
+                                        ${item.payment_type === 'both' ? '<span class="text-purple-400 border border-purple-500/30 px-1.5 rounded">Tout Paiement</span>' : ''}
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-auto">
+                                    <div class="text-2xl font-mono font-bold text-white mb-2">$${item.price.toLocaleString()}</div>
+                                    <button onclick="actions.buyItem('${item.id}', ${item.price})" class="glass-btn w-full py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                                        <i data-lucide="shopping-bag" class="w-4 h-4"></i> Acheter
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    // --- MY COMPANIES TAB ---
+    else if (state.activeEnterpriseTab === 'my_companies') {
+        content = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                ${state.myEnterprises.length === 0 ? '<div class="col-span-2 text-center text-gray-500 py-10">Vous n\'êtes dans aucune entreprise.</div>' : ''}
+                ${state.myEnterprises.map(ent => `
+                    <div class="glass-panel p-6 rounded-2xl border border-blue-500/20 hover:border-blue-500/50 transition-all">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold text-xl">
+                                ${ent.name[0]}
+                            </div>
+                            <span class="px-3 py-1 bg-white/5 rounded-full text-xs uppercase font-bold text-gray-300 border border-white/10">${ent.myRank}</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-6">${ent.name}</h3>
+                        
+                        <div class="flex gap-2">
+                            ${ent.myStatus === 'accepted' ? `
+                                <button onclick="actions.openEnterpriseManagement('${ent.id}')" class="glass-btn flex-1 py-2 rounded-xl font-bold text-sm">Gérer</button>
+                            ` : `
+                                <div class="flex-1 text-center text-sm text-gray-500 py-2 bg-black/20 rounded-xl">En attente...</div>
+                            `}
+                            <button onclick="actions.quitEnterprise('${ent.id}')" class="glass-btn-secondary px-3 rounded-xl text-red-400 hover:bg-red-500/10 border-red-500/20"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // --- CREATE TAB ---
+    else if (state.activeEnterpriseTab === 'create') {
+        const slotsLeft = CONFIG.MAX_ENTERPRISES - state.myEnterprises.length;
+        if (slotsLeft <= 0) {
+            content = `
+                <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                    <i data-lucide="ban" class="w-16 h-16 mb-4 opacity-50 text-red-500"></i>
+                    <h2 class="text-xl font-bold text-white mb-2">Limite Atteinte</h2>
+                    <p>Vous avez rejoint le maximum de ${CONFIG.MAX_ENTERPRISES} entreprises.</p>
+                </div>
+            `;
+        } else {
+            content = `
+                <div class="max-w-md mx-auto glass-panel p-8 rounded-2xl">
+                    <h3 class="text-xl font-bold text-white mb-6 text-center">Enregistrer une Société</h3>
+                    <form onsubmit="actions.createNewEnterprise(event)" class="space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-500 uppercase font-bold ml-1">Nom de l'entreprise</label>
+                            <input type="text" name="name" class="glass-input w-full p-3 rounded-xl" placeholder="ex: Taxi Los Santos" required>
+                        </div>
+                        <button type="submit" class="glass-btn w-full py-3 rounded-xl font-bold">Créer et Devenir Patron</button>
+                    </form>
+                </div>
+            `;
+        }
+    }
+
+    // --- MANAGEMENT VIEW (Sub-view) ---
+    else if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) {
+        const ent = state.activeEnterpriseManagement;
+        const isLeader = ent.myRank === 'leader';
+        const canManage = ent.myRank === 'leader' || ent.myRank === 'co_leader' || ent.myRank === 'employee'; // All accepted members can see basics
+
+        return `
+            <div class="h-full flex flex-col animate-fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="actions.setEnterpriseTab('my_companies')" class="text-gray-400 hover:text-white flex items-center gap-2 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i> Retour</button>
+                    <h2 class="text-2xl font-bold text-white">${ent.name}</h2>
+                    <div class="text-xs text-gray-500 uppercase font-bold tracking-widest">Interface de Gestion</div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
+                    
+                    <!-- LEFT COL: STATS & SAFE -->
+                    <div class="space-y-6">
+                        <div class="glass-panel p-6 rounded-2xl bg-gradient-to-br from-blue-900/20 to-black border-blue-500/20">
+                            <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="vault" class="w-5 h-5 text-blue-400"></i> Coffre Entreprise</h3>
+                            <div class="text-3xl font-mono font-bold text-white mb-6 text-center">$ ${(ent.balance || 0).toLocaleString()}</div>
+                            
+                            <div class="space-y-3">
+                                <form onsubmit="actions.entDeposit(event)" class="flex gap-2">
+                                    <input type="number" name="amount" placeholder="Dépôt" class="glass-input flex-1 p-2 rounded-lg text-sm" min="1" required>
+                                    <button class="glass-btn-secondary px-3 rounded-lg text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"><i data-lucide="arrow-down" class="w-4 h-4"></i></button>
+                                </form>
+                                ${isLeader ? `
+                                    <form onsubmit="actions.entWithdraw(event)" class="flex gap-2">
+                                        <input type="number" name="amount" placeholder="Retrait" class="glass-input flex-1 p-2 rounded-lg text-sm" min="1" required>
+                                        <button class="glass-btn-secondary px-3 rounded-lg text-red-400 border-red-500/30 hover:bg-red-500/10"><i data-lucide="arrow-up" class="w-4 h-4"></i></button>
+                                    </form>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl">
+                            <h3 class="font-bold text-white mb-4">Employés (${ent.members.length})</h3>
+                            <div class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                                ${ent.members.map(m => `
+                                    <div class="flex justify-between items-center text-sm p-2 bg-white/5 rounded-lg">
+                                        <span class="text-gray-300">${m.characters?.first_name} ${m.characters?.last_name}</span>
+                                        <span class="text-[10px] uppercase font-bold text-blue-300">${m.rank}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COL: CREATE ITEM & LIST -->
+                    <div class="lg:col-span-2 glass-panel p-6 rounded-2xl flex flex-col overflow-hidden">
+                        <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="package-plus" class="w-5 h-5 text-blue-400"></i> Gestion des Ventes</h3>
+                        
+                        <form onsubmit="actions.addItemToMarket(event)" class="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Nom Article</label>
+                                    <input type="text" name="name" class="glass-input w-full p-2 rounded-lg text-sm" required>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Prix Unitaire ($)</label>
+                                    <input type="number" name="price" class="glass-input w-full p-2 rounded-lg text-sm" max="1000000" required>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Quantité</label>
+                                    <input type="number" name="quantity" class="glass-input w-full p-2 rounded-lg text-sm" min="1" required>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Type Paiement</label>
+                                    <select name="payment_type" class="glass-input w-full p-2 rounded-lg text-sm bg-black/40">
+                                        <option value="both">Espèces & Banque</option>
+                                        <option value="cash_only">Espèces Uniquement</option>
+                                        <option value="bank_only">Banque Uniquement</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Description (Optionnel)</label>
+                                <input type="text" name="description" class="glass-input w-full p-2 rounded-lg text-sm">
+                            </div>
+                            <button type="submit" class="glass-btn w-full py-2 rounded-lg text-sm font-bold">Mettre en Vente</button>
+                        </form>
+
+                        <div class="flex-1 overflow-y-auto custom-scrollbar">
+                            <table class="w-full text-left text-sm">
+                                <thead class="text-gray-500 uppercase text-xs sticky top-0 bg-[#151515]">
+                                    <tr>
+                                        <th class="pb-2">Article</th>
+                                        <th class="pb-2">Prix</th>
+                                        <th class="pb-2">Stock</th>
+                                        <th class="pb-2 text-right">Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5">
+                                    ${ent.items.map(i => `
+                                        <tr>
+                                            <td class="py-3 text-white">${i.name}</td>
+                                            <td class="py-3 font-mono text-emerald-400">$${i.price.toLocaleString()}</td>
+                                            <td class="py-3 text-gray-400">${i.quantity}</td>
+                                            <td class="py-3 text-right"><span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold">En Vente</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        `;
+    }
+
     return `
-        <div class="h-full w-full flex flex-col items-center justify-center p-8 animate-fade-in relative overflow-hidden">
-            <!-- Background Decorative Elements -->
-            <div class="absolute top-0 left-0 w-full h-full pointer-events-none">
-                <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
-                <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px]"></div>
+        <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
+            <!-- HEADER NAV -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="building-2" class="w-6 h-6 text-blue-500"></i>
+                        Espace Entreprises
+                    </h2>
+                    <p class="text-gray-400 text-sm">Gestion commerciale et services</p>
+                </div>
+                <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full">
+                    ${tabs.map(t => `
+                        <button onclick="actions.setEnterpriseTab('${t.id}')" 
+                            class="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${state.activeEnterpriseTab === t.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                            <i data-lucide="${t.icon}" class="w-4 h-4"></i> ${t.label}
+                        </button>
+                    `).join('')}
+                </div>
             </div>
 
-            <div class="glass-panel max-w-2xl w-full p-12 rounded-[40px] border-blue-500/20 shadow-[0_0_60px_rgba(59,130,246,0.1)] text-center relative z-10">
-                <div class="w-32 h-32 mx-auto bg-gradient-to-tr from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-inner">
-                    <i data-lucide="building-2" class="w-16 h-16 text-blue-400"></i>
-                </div>
-                
-                <h2 class="text-4xl font-bold text-white mb-4 tracking-tight">Gestion d'Entreprise</h2>
-                
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-8">
-                    <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-                    <span class="text-xs font-bold text-blue-300 uppercase tracking-widest">Bientôt Disponible</span>
-                </div>
-                
-                <p class="text-gray-400 text-lg leading-relaxed max-w-lg mx-auto mb-10">
-                    Le module de gestion d'entreprise est en cours de développement. Vous pourrez bientôt créer votre société, gérer vos employés, vos factures et vos actifs immobiliers.
-                </p>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <i data-lucide="users" class="w-6 h-6 text-gray-500 mb-2"></i>
-                        <h4 class="font-bold text-white text-sm">Recrutement</h4>
-                        <p class="text-xs text-gray-500">Gérez votre équipe</p>
-                    </div>
-                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <i data-lucide="receipt" class="w-6 h-6 text-gray-500 mb-2"></i>
-                        <h4 class="font-bold text-white text-sm">Facturation</h4>
-                        <p class="text-xs text-gray-500">Encaissez vos clients</p>
-                    </div>
-                    <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <i data-lucide="pie-chart" class="w-6 h-6 text-gray-500 mb-2"></i>
-                        <h4 class="font-bold text-white text-sm">Comptabilité</h4>
-                        <p class="text-xs text-gray-500">Suivi trésorerie</p>
-                    </div>
-                </div>
-                
-                <div class="mt-8 pt-8 border-t border-white/5">
-                    <button onclick="actions.setHubPanel('main')" class="text-sm text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2 mx-auto">
-                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Retour au tableau de bord
-                    </button>
-                </div>
+            <div class="flex-1 overflow-hidden relative overflow-y-auto custom-scrollbar">
+                ${content}
             </div>
         </div>
     `;

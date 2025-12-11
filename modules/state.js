@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export const state = {
     user: null, 
     accessToken: null,
@@ -137,6 +132,13 @@ export const state = {
         selected: null,
         bountyId: null
     },
+    
+    // Enterprises (NEW)
+    activeEnterpriseTab: 'market', // market, my_companies, create
+    enterprises: [],
+    myEnterprises: [], // Companies I am part of
+    enterpriseMarket: [], // Items for sale
+    activeEnterpriseManagement: null, // The specific company being managed in UI
     
     // Services Publics
     activeServicesTab: 'directory', 

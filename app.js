@@ -12,13 +12,13 @@ import { ui } from './modules/ui.js';
 // Import Actions
 import * as AuthActions from './modules/actions/auth.js';
 import * as NavActions from './modules/actions/navigation.js';
-// New Split Actions
 import * as CharacterActions from './modules/actions/character.js';
 import * as EconomyActions from './modules/actions/economy.js';
 import * as IllicitActions from './modules/actions/illicit.js';
 import * as ServicesActions from './modules/actions/services.js';
-
+import * as EnterpriseActions from './modules/actions/enterprise.js'; // NEW
 import * as StaffActions from './modules/actions/staff.js';
+
 import { setupRealtimeListener, fetchERLCData, fetchActiveHeistLobby, fetchDrugLab, fetchGlobalHeists, fetchOnDutyStaff, loadCharacters, fetchPublicLandingData, fetchActiveSession } from './modules/services.js';
 
 // Views
@@ -36,8 +36,12 @@ window.actions = {
     ...EconomyActions,
     ...IllicitActions,
     ...ServicesActions,
-    ...StaffActions
+    ...StaffActions,
+    ...EnterpriseActions
 };
+
+// --- FIX: Expose router globally for HTML onclick events ---
+window.router = router;
 
 // --- Core Renderer ---
 const appRenderer = () => {
@@ -58,14 +62,15 @@ const appRenderer = () => {
 
     app.innerHTML = htmlContent;
     
-    // Inject Bypass for Admins
+    // Inject Bypass Trigger for Admins (Icon only)
     if (state.currentView === 'select' && state.user && CONFIG.ADMIN_IDS.includes(state.user.id)) {
         const header = app.querySelector('.flex.items-center.gap-4');
         if (header) {
              const btn = document.createElement('button');
-             btn.onclick = window.actions.bypassLogin;
-             btn.className = 'bg-purple-500/20 text-purple-300 px-3 py-1 rounded text-xs hover:bg-purple-500/40 font-bold border border-purple-500/20';
-             btn.innerHTML = '<i data-lucide="key" class="w-3 h-3 inline mr-1"></i> Fondation';
+             btn.onclick = window.actions.openFoundationModal;
+             btn.className = 'w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 hover:bg-purple-500/20 hover:scale-110 transition-all';
+             btn.innerHTML = '<i data-lucide="key" class="w-4 h-4"></i>';
+             btn.title = "Accès Fondation";
              header.prepend(btn);
         }
     }

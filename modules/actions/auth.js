@@ -17,6 +17,25 @@ export const login = async () => {
     window.location.href = url;
 };
 
+export const openFoundationModal = () => {
+    if (!state.user || !CONFIG.ADMIN_IDS.includes(state.user.id)) return;
+
+    ui.showModal({
+        title: "Accès Fondation",
+        content: `
+            <div class="text-center">
+                <div class="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-400">
+                    <i data-lucide="shield-alert" class="w-8 h-8"></i>
+                </div>
+                <p class="mb-4">Vous êtes sur le point d'utiliser un accès administrateur critique.</p>
+                <p class="text-xs text-gray-500 mb-2">Cela chargera le profil 'Fondation'.</p>
+            </div>
+        `,
+        confirmText: "Confirmer l'accès",
+        onConfirm: () => bypassLogin()
+    });
+};
+
 export const bypassLogin = async () => {
     if (!state.user || !CONFIG.ADMIN_IDS.includes(state.user.id)) return;
     
