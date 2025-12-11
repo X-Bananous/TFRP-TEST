@@ -1,6 +1,4 @@
 
-
-
 import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 import { router, render } from '../utils.js';
@@ -12,8 +10,11 @@ export const login = async () => {
     render();
 
     const scope = encodeURIComponent('identify guilds');
-    const url = `https://discord.com/api/oauth2/authorize?client_id=${CONFIG.DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(CONFIG.REDIRECT_URI)}&response_type=token&scope=${scope}`;
-    window.open(url, 'DiscordAuth', 'width=500,height=800,left=200,top=200');
+    const redirect = encodeURIComponent(CONFIG.REDIRECT_URI);
+    const url = `https://discord.com/api/oauth2/authorize?client_id=${CONFIG.DISCORD_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
+    
+    // Use direct redirect instead of popup to ensure hash is preserved on mobile/free hosts
+    window.location.href = url;
 };
 
 export const bypassLogin = async () => {

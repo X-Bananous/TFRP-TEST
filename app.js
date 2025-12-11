@@ -171,17 +171,37 @@ const initApp = async () => {
     // Auth Handling
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const popupToken = fragment.get('access_token');
+    const tokenType = fragment.get('token_type');
+    const expiresIn = fragment.get('expires_in');
+
+    // 1. Popup Callback Flow
     if (popupToken && window.opener) {
         window.opener.postMessage({ 
             type: 'DISCORD_AUTH_SUCCESS', 
             token: popupToken, 
-            tokenType: fragment.get('token_type'), 
-            expiresIn: fragment.get('expires_in') 
+            tokenType: tokenType, 
+            expiresIn: expiresIn
         }, window.location.origin);
         window.close();
         return;
     }
 
+    // 2. Direct Redirect Callback Flow (FIX for Landing Page issue)
+    if (popupToken) {
+        const expiryTime = new Date().getTime() + (parseInt(expiresIn) * 1000);
+        localStorage.setItem('tfrp_access_token', popupToken);
+        localStorage.setItem('tfrp_token_type', tokenType);
+        localStorage.setItem('tfrp_token_expiry', expiryTime.toString());
+        state.accessToken = popupToken;
+        
+        // Clean URL to remove token from address bar
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        
+        await handleDiscordCallback(popupToken, tokenType);
+        return; // Stop here, handled
+    }
+
+    // 3. Stored Token Flow
     const storedToken = localStorage.getItem('tfrp_access_token');
     const storedType = localStorage.getItem('tfrp_token_type');
     const storedExpiry = localStorage.getItem('tfrp_token_expiry');
@@ -198,6 +218,7 @@ const initApp = async () => {
         }, 800);
     }
 
+    // Listener for popup messages (if popup is used)
     window.addEventListener('message', async (event) => {
         if (event.origin !== window.location.origin) return;
         if (event.data.type === 'DISCORD_AUTH_SUCCESS') {
@@ -296,9 +317,12 @@ const handleDiscordCallback = async (token, type) => {
         window.actions.logout();
     }
     
-    if(loadingScreen) loadingScreen.style.opacity = '0';
-    appEl.classList.remove('opacity-0');
-    setTimeout(() => loadingScreen?.remove(), 700);
+    // Remove loading screen if still present
+    if(loadingScreen && loadingScreen.parentNode) {
+        loadingScreen.style.opacity = '0';
+        appEl.classList.remove('opacity-0');
+        setTimeout(() => loadingScreen.remove(), 700);
+    }
 };
 
 if (document.readyState === 'loading') {

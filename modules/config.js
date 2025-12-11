@@ -7,9 +7,11 @@ export const CONFIG = {
     DISCORD_CLIENT_ID: '1448414660343890083',
     // Dynamic Redirect URI based on current hostname
     get REDIRECT_URI() {
-        const origin = window.location.origin;
-        if (origin.includes('teamfrenchroleplay.ct.ws')) {
-            return 'https://teamfrenchroleplay.ct.ws';
+        const hostname = window.location.hostname;
+        if (hostname.includes('teamfrenchroleplay.ct.ws')) {
+            // Must match exactly what's in Discord Dev Portal.
+            // Using window.location.href.split('#')[0] ensures we keep ?i=2 if present
+            return window.location.href.split('#')[0];
         }
         // Fallback or Dev
         return 'https://x-bananous.github.io/TFRP-TEST/';
