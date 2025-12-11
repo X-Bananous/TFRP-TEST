@@ -1,13 +1,15 @@
 
 
 
+
+
 export const CONFIG = {
     SUPABASE_URL: 'https://nitlrwmgoddqabasavrg.supabase.co',
     SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdGxyd21nb2RkcWFiYXNhdnJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3Mzg3NTIsImV4cCI6MjA3OTMxNDc1Mn0.Y5BFeTuv-dxLpf9ocqyhaWMLLCwlKf-bPDgpWq0o8oU',
     
     // Discord Configuration
-    DISCORD_CLIENT_ID: '1442491338552512584',
-    REDIRECT_URI: 'https://teamfrenchroleplay.ct.ws/?i=2',
+    DISCORD_CLIENT_ID: '1448414660343890083',
+    REDIRECT_URI: 'https://x-bananous.github.io/TFRP-TEST/',
     REQUIRED_GUILD_ID: '1279455759414857759', // Main Server
     INVITE_URL: 'https://discord.gg/eBU7KKKGD5',
     
