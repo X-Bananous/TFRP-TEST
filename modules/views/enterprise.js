@@ -87,6 +87,7 @@ export const EnterpriseView = () => {
         const ent = state.activeEnterpriseManagement;
         const isLeader = ent.myRank === 'leader';
         const canManage = ent.myRank === 'leader' || ent.myRank === 'co_leader' || ent.myRank === 'employee'; // All accepted members can see basics
+        const circulation = ent.circulation || [];
 
         return `
             <div class="h-full flex flex-col animate-fade-in">
@@ -99,7 +100,7 @@ export const EnterpriseView = () => {
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
                     
                     <!-- LEFT COL: STATS & SAFE -->
-                    <div class="space-y-6">
+                    <div class="space-y-6 flex flex-col">
                         <div class="glass-panel p-6 rounded-2xl bg-gradient-to-br from-blue-900/20 to-black border-blue-500/20">
                             <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="vault" class="w-5 h-5 text-blue-400"></i> Coffre Entreprise</h3>
                             <div class="text-3xl font-mono font-bold text-white mb-6 text-center">$ ${(ent.balance || 0).toLocaleString()}</div>
@@ -118,9 +119,9 @@ export const EnterpriseView = () => {
                             </div>
                         </div>
 
-                        <div class="glass-panel p-6 rounded-2xl">
+                        <div class="glass-panel p-6 rounded-2xl flex-1 flex flex-col min-h-0">
                             <h3 class="font-bold text-white mb-4">Employés (${ent.members.length})</h3>
-                            <div class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <div class="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
                                 ${ent.members.map(m => `
                                     <div class="flex justify-between items-center text-sm p-2 bg-white/5 rounded-lg">
                                         <span class="text-gray-300">${m.characters?.first_name} ${m.characters?.last_name}</span>
@@ -133,7 +134,12 @@ export const EnterpriseView = () => {
 
                     <!-- RIGHT COL: CREATE ITEM & LIST -->
                     <div class="lg:col-span-2 glass-panel p-6 rounded-2xl flex flex-col overflow-hidden">
-                        <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="package-plus" class="w-5 h-5 text-blue-400"></i> Gestion des Ventes</h3>
+                        
+                        <!-- TABS INTERNAL -->
+                        <div class="flex gap-4 mb-4 border-b border-white/5 pb-2">
+                            <h3 class="font-bold text-white flex items-center gap-2 cursor-default"><i data-lucide="package-plus" class="w-5 h-5 text-blue-400"></i> Ventes & Stock</h3>
+                            ${isLeader ? `<div class="ml-auto text-xs text-gray-500 flex items-center gap-1"><i data-lucide="radar" class="w-3 h-3"></i> ${circulation.length} Items en circulation</div>` : ''}
+                        </div>
                         
                         <form onsubmit="actions.addItemToMarket(event)" class="bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
                             <div class="grid grid-cols-2 gap-4 mb-4">
@@ -168,11 +174,13 @@ export const EnterpriseView = () => {
                         </form>
 
                         <div class="flex-1 overflow-y-auto custom-scrollbar">
-                            <table class="w-full text-left text-sm">
+                            <!-- ITEM LIST -->
+                            <table class="w-full text-left text-sm mb-8">
                                 <thead class="text-gray-500 uppercase text-xs sticky top-0 bg-[#151515]">
                                     <tr>
                                         <th class="pb-2">Article</th>
                                         <th class="pb-2">Prix</th>
+                                        <th class="pb-2">Stock</th>
                                         <th class="pb-2">Statut</th>
                                         <th class="pb-2 text-right">Actions</th>
                                     </tr>
@@ -182,14 +190,17 @@ export const EnterpriseView = () => {
                                         const isHidden = i.is_hidden;
                                         const isPending = i.status === 'pending';
                                         const isApproved = i.status === 'approved';
+                                        const isSoldOut = i.quantity === 0;
                                         
                                         return `
-                                        <tr>
+                                        <tr class="${isSoldOut ? 'bg-red-500/5' : ''}">
                                             <td class="py-3 text-white">
                                                 ${i.name}
                                                 ${isHidden ? '<span class="text-[9px] bg-gray-600 px-1 rounded ml-2">Masqué</span>' : ''}
+                                                ${isSoldOut ? '<span class="text-[9px] bg-red-500 text-white px-1 rounded ml-2 font-bold uppercase">Rupture</span>' : ''}
                                             </td>
                                             <td class="py-3 font-mono text-emerald-400">$${i.price.toLocaleString()}</td>
+                                            <td class="py-3 text-gray-300 font-bold">${i.quantity}</td>
                                             <td class="py-3">
                                                 <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded ${isPending ? 'bg-orange-500/20 text-orange-400' : isApproved ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
                                                     ${isPending ? 'En Attente' : isApproved ? 'Approuvé' : 'Rejeté'}
@@ -197,6 +208,9 @@ export const EnterpriseView = () => {
                                             </td>
                                             <td class="py-3 text-right flex justify-end gap-2">
                                                 ${!isPending ? `
+                                                    <button onclick="actions.restockItem('${i.id}')" class="text-xs p-1 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20" title="Réapprovisionner">
+                                                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                                    </button>
                                                     <button onclick="actions.toggleItemVisibility('${i.id}', ${isHidden})" class="text-xs p-1 bg-white/10 rounded hover:bg-white/20" title="${isHidden ? 'Afficher' : 'Masquer'}">
                                                         <i data-lucide="${isHidden ? 'eye' : 'eye-off'}" class="w-4 h-4"></i>
                                                     </button>
@@ -210,6 +224,31 @@ export const EnterpriseView = () => {
                                     }).join('')}
                                 </tbody>
                             </table>
+
+                            <!-- CIRCULATION TABLE (Leaders Only) -->
+                            ${isLeader && circulation.length > 0 ? `
+                                <div class="border-t border-white/10 pt-4">
+                                    <h4 class="font-bold text-white mb-2 text-sm flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-purple-400"></i> Suivi des produits (Inventaires Citoyens)</h4>
+                                    <table class="w-full text-left text-xs bg-black/20 rounded-lg overflow-hidden">
+                                        <thead class="text-gray-500 uppercase bg-black/40">
+                                            <tr>
+                                                <th class="p-2">Produit</th>
+                                                <th class="p-2">Propriétaire</th>
+                                                <th class="p-2 text-right">Qté Possédée</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-white/5">
+                                            ${circulation.map(c => `
+                                                <tr>
+                                                    <td class="p-2 text-white font-medium">${c.name}</td>
+                                                    <td class="p-2 text-gray-400">${c.characters?.first_name} ${c.characters?.last_name}</td>
+                                                    <td class="p-2 text-right font-bold text-white">${c.quantity}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
 

@@ -464,8 +464,11 @@ export const executeServerCommand = async (command) => {
     const apiKey = await getERLCApiKey();
     if (!apiKey) return false;
 
+    // Use specific endpoint requested by user
+    const commandUrl = "https://api.policeroleplay.community/v1/server/command";
+
     try {
-        const res = await fetch(`${CONFIG.ERLC_API_URL}/command`, {
+        const res = await fetch(commandUrl, {
             method: 'POST',
             headers: {
                 'Server-Key': apiKey,
@@ -478,7 +481,9 @@ export const executeServerCommand = async (command) => {
             showToast(`Commande envoyée : ${command}`, 'success');
             return true;
         } else {
-            showToast("Erreur exécution ERLC.", 'error');
+            const errText = await res.text();
+            console.error("ERLC Cmd Error", errText);
+            showToast("Erreur exécution ERLC (API Reject).", 'error');
             return false;
         }
     } catch(e) {
@@ -984,6 +989,22 @@ export const buyEnterpriseItem = async (itemId) => {
     await fetchEnterpriseMarket();
 };
 
+export const fetchEnterpriseCirculation = async (entId) => {
+    // 1. Get Enterprise Item Names
+    const { data: items } = await state.supabase.from('enterprise_items').select('name').eq('enterprise_id', entId);
+    if(!items || items.length === 0) return [];
+    
+    const names = items.map(i => i.name);
+
+    // 2. Find who has them
+    const { data: inventory } = await state.supabase
+        .from('inventory')
+        .select('name, quantity, characters(first_name, last_name)')
+        .in('name', names);
+
+    return inventory || [];
+};
+
 export const fetchEnterpriseDetails = async (entId) => {
     const { data: ent } = await state.supabase.from('enterprises').select('*').eq('id', entId).single();
     if(!ent) return;
@@ -993,10 +1014,17 @@ export const fetchEnterpriseDetails = async (entId) => {
     
     const myMember = members.find(m => m.character_id === state.activeCharacter.id);
 
+    // Only fetch circulation if Leader or Co-Leader
+    let circulation = [];
+    if (myMember && (myMember.rank === 'leader' || myMember.rank === 'co_leader')) {
+        circulation = await fetchEnterpriseCirculation(entId);
+    }
+
     state.activeEnterpriseManagement = {
         ...ent,
         members: members || [],
         items: items || [],
+        circulation: circulation,
         myRank: myMember ? myMember.rank : null
     };
 };

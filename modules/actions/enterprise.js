@@ -65,6 +65,26 @@ export const toggleItemVisibility = async (itemId, isHidden) => {
     render();
 };
 
+export const restockItem = async (itemId) => {
+    ui.showModal({
+        title: "Réapprovisionnement",
+        content: `Entrez la quantité à ajouter au stock :<br><input type="number" id="restock-qty" class="glass-input w-full p-2 mt-2" min="1">`,
+        confirmText: "Ajouter",
+        onConfirm: async () => {
+            const val = parseInt(document.getElementById('restock-qty').value);
+            if(!val || val < 1) return;
+            
+            const item = state.activeEnterpriseManagement.items.find(i => i.id === itemId);
+            if(!item) return;
+            
+            await services.updateEnterpriseItem(itemId, { quantity: item.quantity + val });
+            ui.showToast(`Stock mis à jour (+${val}).`, 'success');
+            await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+            render();
+        }
+    });
+};
+
 export const updateItem = async (itemId, field, value) => {
     const item = state.activeEnterpriseManagement.items.find(i => i.id === itemId);
     if(item && item.status === 'pending') return ui.showToast("Modif. impossible en cours de validation.", 'error');
