@@ -331,10 +331,11 @@ export const StaffView = () => {
         `;
     } else if (state.activeStaffTab === 'economy' && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
          // ... (Economy content logic same as before) ...
-         const { totalMoney, totalCash, totalBank, totalGang } = state.serverStats;
+         const { totalMoney, totalCash, totalBank, totalGang, totalEnterprise } = state.serverStats;
          const bankPercent = totalMoney > 0 ? (totalBank / totalMoney) * 100 : 0;
          const cashPercent = totalMoney > 0 ? (totalCash / totalMoney) * 100 : 0;
          const gangPercent = totalMoney > 0 ? (totalGang / totalMoney) * 100 : 0;
+         const entPercent = totalMoney > 0 ? (totalEnterprise / totalMoney) * 100 : 0;
          const subTab = state.activeEconomySubTab || 'players';
          let subContent = '';
          
@@ -408,6 +409,35 @@ export const StaffView = () => {
                     </table>
                 </div>
              `;
+         } else if (subTab === 'enterprises') {
+             subContent = `
+                <div class="glass-panel overflow-hidden rounded-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-500">
+                            <tr>
+                                <th class="p-4">Nom de l'Entreprise</th>
+                                <th class="p-4">PDG</th>
+                                <th class="p-4 text-right">Coffre Fort</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 text-sm">
+                            ${state.enterprises.map(e => `
+                                <tr class="hover:bg-white/5">
+                                    <td class="p-4 font-bold text-white">${e.name}</td>
+                                    <td class="p-4 text-gray-400">${e.leader ? e.leader.first_name + ' ' + e.leader.last_name : 'N/A'}</td>
+                                    <td class="p-4 text-right font-mono text-blue-400">$${(e.balance || 0).toLocaleString()}</td>
+                                    <td class="p-4 text-right flex justify-end gap-2">
+                                        <button onclick="actions.adminManageEnterpriseBalance('${e.id}', 'add')" class="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30" title="Ajouter"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                        <button onclick="actions.adminManageEnterpriseBalance('${e.id}', 'remove')" class="px-2 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30" title="Retirer"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                            ${state.enterprises.length === 0 ? '<tr><td colspan="4" class="p-6 text-center text-gray-500">Aucune entreprise.</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+             `;
          } else if (subTab === 'stats') {
              if (!hasPermission('can_manage_economy')) {
                  subContent = `<div class="p-8 text-center text-gray-500">Accès restreint aux gestionnaires économiques.</div>`;
@@ -465,18 +495,21 @@ export const StaffView = () => {
                     <div style="width: ${bankPercent}%" class="h-full bg-emerald-500 transition-all duration-500 hover:bg-emerald-400" title="Banque: $${totalBank.toLocaleString()}"></div>
                     <div style="width: ${cashPercent}%" class="h-full bg-blue-500 transition-all duration-500 hover:bg-blue-400" title="Espèces: $${totalCash.toLocaleString()}"></div>
                     <div style="width: ${gangPercent}%" class="h-full bg-purple-500 transition-all duration-500 hover:bg-purple-400" title="Coffres Gang: $${totalGang.toLocaleString()}"></div>
+                    <div style="width: ${entPercent}%" class="h-full bg-indigo-600 transition-all duration-500 hover:bg-indigo-500" title="Entreprises: $${totalEnterprise.toLocaleString()}"></div>
                 </div>
-                <div class="flex justify-between text-xs text-gray-400">
+                <div class="flex justify-between text-xs text-gray-400 flex-wrap gap-2">
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div> Banque ($${totalBank.toLocaleString()})</div>
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div> Espèces ($${totalCash.toLocaleString()})</div>
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-purple-500 rounded-full"></div> Gangs ($${totalGang.toLocaleString()})</div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-indigo-600 rounded-full"></div> Entreprises ($${totalEnterprise.toLocaleString()})</div>
                 </div>
             </div>
             <!-- SUB TABS -->
-            <div class="flex gap-2 mb-6 border-b border-white/10 pb-1">
-                ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('players')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'players' ? 'text-white border-b-2 border-emerald-500' : 'text-gray-500 hover:text-white'}">Joueurs</button>` : ''}
-                <button onclick="actions.setEconomySubTab('gangs')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'gangs' ? 'text-white border-b-2 border-purple-500' : 'text-gray-500 hover:text-white'}">Gangs</button>
-                ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('stats')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'stats' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500 hover:text-white'}">Transactions & Stats</button>` : ''}
+            <div class="flex gap-2 mb-6 border-b border-white/10 pb-1 overflow-x-auto">
+                ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('players')" class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${subTab === 'players' ? 'text-white border-b-2 border-emerald-500' : 'text-gray-500 hover:text-white'}">Joueurs</button>` : ''}
+                <button onclick="actions.setEconomySubTab('gangs')" class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${subTab === 'gangs' ? 'text-white border-b-2 border-purple-500' : 'text-gray-500 hover:text-white'}">Gangs</button>
+                <button onclick="actions.setEconomySubTab('enterprises')" class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${subTab === 'enterprises' ? 'text-white border-b-2 border-indigo-500' : 'text-gray-500 hover:text-white'}">Entreprises</button>
+                ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('stats')" class="px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${subTab === 'stats' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500 hover:text-white'}">Transactions & Stats</button>` : ''}
             </div>
             ${subContent}
         `;

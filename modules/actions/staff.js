@@ -19,6 +19,9 @@ export const setStaffTab = async (tab) => {
         }
         if (tab === 'economy') {
             await services.fetchGangs();
+            if(state.activeEconomySubTab === 'enterprises') {
+                await services.fetchEnterprises();
+            }
             if(state.activeEconomySubTab === 'stats') {
                 await services.fetchGlobalTransactions();
                 await services.fetchDailyEconomyStats();
@@ -52,6 +55,9 @@ export const setEconomySubTab = async (subTab) => {
         if (subTab === 'stats') {
              await services.fetchGlobalTransactions();
              await services.fetchDailyEconomyStats();
+        }
+        if (subTab === 'enterprises') {
+            await services.fetchEnterprises();
         }
     } finally {
         state.isPanelLoading = false;
@@ -618,11 +624,38 @@ export const adminManageGangBalance = (gangId, action) => {
              
              await services.updateGangBalance(gangId, newBalance);
              
-             // Log via Transaction (System to null or dummy)
-             // Ideally we'd log this specifically for gangs, but for now we trust the action log
-             
              ui.showToast(`Coffre mis à jour : $${newBalance}`, 'success');
              await services.fetchGangs();
+             render();
+        }
+    });
+};
+
+export const adminManageEnterpriseBalance = (entId, action) => {
+    ui.showModal({
+        title: action === 'add' ? "Ajouter au Coffre Entreprise" : "Retirer du Coffre Entreprise",
+        content: `
+            <input type="number" id="ent-admin-amount" class="glass-input w-full p-2 mt-2" placeholder="Montant">
+            <textarea id="ent-admin-reason" class="glass-input w-full p-2 mt-2 h-20" placeholder="Raison (Admin Log)"></textarea>
+        `,
+        confirmText: "Valider",
+        onConfirm: async () => {
+             const amt = parseInt(document.getElementById('ent-admin-amount').value);
+             const reason = document.getElementById('ent-admin-reason').value || "Admin Adjustment";
+             
+             if(!amt || amt <= 0) return;
+             
+             const ent = state.enterprises.find(e => e.id === entId);
+             if(!ent) return;
+             
+             let newBalance = ent.balance || 0;
+             if(action === 'add') newBalance += amt;
+             else newBalance -= amt;
+             
+             await services.updateEnterpriseBalance(entId, newBalance);
+             
+             ui.showToast(`Coffre mis à jour : $${newBalance}`, 'success');
+             await services.fetchEnterprises();
              render();
         }
     });

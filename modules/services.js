@@ -475,7 +475,11 @@ export const resolveBounty = async (bountyId, winnerId) => {
 };
 
 // --- ENTERPRISE SERVICES ---
-export const fetchEnterprises = async () => { const { data } = await state.supabase.from('enterprises').select('*'); state.enterprises = data || []; };
+export const fetchEnterprises = async () => { 
+    // Join with leader to get name for admin table
+    const { data } = await state.supabase.from('enterprises').select('*, leader:characters!enterprises_leader_id_fkey(first_name, last_name)'); 
+    state.enterprises = data || []; 
+};
 
 export const fetchMyEnterprises = async (charId) => {
     const { data: memberships } = await state.supabase.from('enterprise_members').select('*, enterprises(*, items:enterprise_items(count))').eq('character_id', charId);
@@ -573,7 +577,7 @@ export const fetchEnterpriseDetails = async (entId) => {
     state.activeEnterpriseManagement = { ...ent, members: members || [], items: items || [], circulation: circulation, myRank: myMember ? myMember.rank : null };
 };
 
-// --- ADVENT CALENDAR ---
+// ... (Rest of file including advent calendar etc.) ...
 export const claimAdventReward = async (targetDay) => {
     const today = new Date();
     const currentDay = today.getDate();
