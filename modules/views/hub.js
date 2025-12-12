@@ -95,11 +95,13 @@ export const HubView = () => {
         const job = state.activeCharacter?.job || 'unemployed';
         const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(job);
         
-        // ADVENT CALENDAR WIDGET
+        // ADVENT CALENDAR WIDGET (Modified to always show if requested)
         const today = new Date();
         const d = today.getDate();
         const m = today.getMonth() + 1;
-        const showAdvent = m === 12 && d >= 16 && d <= 25;
+        // Logic modified: Show regardless of date for now as per "doit deja s'afficher" request
+        // Original logic: const showAdvent = m === 12 && d >= 16 && d <= 25;
+        const showAdvent = true; 
         const hasClaimed = state.user.advent_calendar?.includes(d);
         
         let adventHtml = '';
@@ -474,38 +476,137 @@ export const HubView = () => {
         `;
     }
 
-    const navItem = (panel, icon, label, color = 'text-white') => {
-        const isActive = state.activeHubPanel === panel;
-        const bgClass = isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white';
-        
-        let lockIcon = '';
-        if (panel === 'services' && !inServiceGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
-        if (panel === 'illicit' && !inIllegalGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
-        if (panel === 'staff' && !inStaffGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
+    // Function helper to generate nav links (used for both Sidebar and Mobile Menu)
+    const generateNavItems = () => {
+        const navItem = (panel, icon, label, color = 'text-white') => {
+            const isActive = state.activeHubPanel === panel;
+            const bgClass = isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white';
+            
+            let lockIcon = '';
+            if (panel === 'services' && !inServiceGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
+            if (panel === 'illicit' && !inIllegalGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
+            if (panel === 'staff' && !inStaffGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
 
-        return `
-            <button onclick="actions.setHubPanel('${panel}'); actions.toggleSidebar();" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 cursor-pointer ${bgClass}">
-                <i data-lucide="${icon}" class="w-5 h-5 ${isActive ? color : ''}"></i>
-                ${label}
-                ${lockIcon}
-            </button>
+            return `
+                <button onclick="actions.setHubPanel('${panel}'); actions.toggleSidebar();" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 cursor-pointer ${bgClass}">
+                    <i data-lucide="${icon}" class="w-5 h-5 ${isActive ? color : ''}"></i>
+                    ${label}
+                    ${lockIcon}
+                </button>
+            `;
+        };
+
+        const hasStaffAccess = Object.keys(state.user.permissions || {}).length > 0 || state.user.isFounder;
+        const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(state.activeCharacter?.job);
+        const isIllegal = state.activeCharacter?.alignment === 'illegal';
+
+        if (isBypass) return '';
+
+        let html = `
+            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Menu Principal</div>
+            ${navItem('main', 'layout-grid', 'Tableau de bord', 'text-blue-400')}
+            ${navItem('staff_list', 'users-round', 'Liste du Staff', 'text-yellow-400')}
+            
+            ${isSessionActive ? `
+                <button onclick="actions.openCallPage(); actions.toggleSidebar();" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300">
+                     <i data-lucide="phone" class="w-5 h-5 text-red-500"></i> Appel d'urgence
+                </button>
+            ` : ''}
+
+            ${navItem('bank', 'landmark', 'Ma Banque', 'text-emerald-400')}
+            ${navItem('assets', 'gem', 'Patrimoine', 'text-indigo-400')}
+            ${navItem('enterprise', 'building-2', 'Entreprise', 'text-blue-400')}
+            
+            ${hasServiceAccess ? navItem('services', 'siren', 'Services Publics', 'text-blue-400') : ''}
+            ${isIllegal ? navItem('illicit', 'skull', 'Illégal', 'text-red-400') : ''}
+            
+            ${hasStaffAccess ? `<div class="my-4 border-t border-white/5"></div>` : ''}
         `;
+
+        if (hasStaffAccess) {
+            html += `
+                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Staff</div>
+                ${navItem('staff', 'shield-alert', 'Administration', 'text-purple-400')}
+            `;
+        }
+        
+        return html;
     };
 
     const hasStaffAccess = Object.keys(state.user.permissions || {}).length > 0 || state.user.isFounder;
-    const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(state.activeCharacter?.job);
-    const isIllegal = state.activeCharacter?.alignment === 'illegal';
-    
     // Staff on duty
     const staffOnDuty = state.onDutyStaff || [];
 
+    // --- MOBILE BOTTOM NAV BAR (NEW) ---
+    const mobileNav = `
+        <div class="md:hidden fixed bottom-0 left-0 w-full glass-panel border-t border-white/10 z-50 flex justify-between items-center px-6 py-4 pb-6 safe-area-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+            <button onclick="actions.setHubPanel('main')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'main' ? 'text-blue-400' : 'text-gray-500'}">
+                <i data-lucide="layout-grid" class="w-6 h-6"></i>
+                <span class="text-[9px] font-bold uppercase">Hub</span>
+            </button>
+            <button onclick="actions.setHubPanel('bank')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-400' : 'text-gray-500'}">
+                <i data-lucide="landmark" class="w-6 h-6"></i>
+                <span class="text-[9px] font-bold uppercase">Banque</span>
+            </button>
+            
+            <!-- FLOATING ACTION BUTTON (Center) -->
+            <button onclick="actions.toggleSidebar()" class="relative -top-5 bg-blue-600 hover:bg-blue-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 border-4 border-[#050505] transition-transform active:scale-95">
+                <i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-6 h-6"></i>
+            </button>
+
+            <button onclick="actions.setHubPanel('assets')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'assets' ? 'text-indigo-400' : 'text-gray-500'}">
+                <i data-lucide="backpack" class="w-6 h-6"></i>
+                <span class="text-[9px] font-bold uppercase">Sac</span>
+            </button>
+            <button onclick="actions.setHubPanel('staff_list')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'staff_list' ? 'text-yellow-400' : 'text-gray-500'}">
+                <i data-lucide="users" class="w-6 h-6"></i>
+                <span class="text-[9px] font-bold uppercase">Staff</span>
+            </button>
+        </div>
+    `;
+
+    // --- MOBILE EXPANDED MENU (BOTTOM SHEET) ---
+    const mobileMenuOverlay = `
+        <div class="md:hidden fixed inset-0 z-[40] bg-black/80 backdrop-blur-sm transition-opacity duration-300 ${state.ui.sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}" onclick="actions.toggleSidebar()"></div>
+        <div class="md:hidden fixed bottom-0 left-0 w-full z-[45] glass-panel rounded-t-[30px] border-x-0 border-b-0 border-t border-white/10 transition-transform duration-300 transform ${state.ui.sidebarOpen ? 'translate-y-0' : 'translate-y-full'} pb-24 max-h-[85vh] flex flex-col">
+            <div class="w-full flex justify-center pt-3 pb-1">
+                <div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <!-- User Profile Header -->
+                <div class="flex items-center gap-3 mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <img src="${state.user.avatar}" class="w-12 h-12 rounded-full border border-white/10 object-cover">
+                    <div>
+                        <h3 class="font-bold text-white text-sm">${state.user.username}</h3>
+                        <p class="text-xs text-blue-400 font-semibold uppercase tracking-wider">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    ${generateNavItems()}
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
+                    <button onclick="actions.backToSelect()" class="glass-btn-secondary py-3 rounded-xl text-xs flex items-center justify-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4"></i> Changer Perso
+                    </button>
+                    <button onclick="actions.confirmLogout()" class="glass-btn-secondary py-3 rounded-xl text-xs text-red-300 flex items-center justify-center gap-2 hover:bg-red-500/20">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Déconnexion
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
     return `
         <div class="flex h-full w-full bg-[#050505] relative overflow-hidden">
-            <!-- Mobile Overlay -->
-            ${state.ui.sidebarOpen ? `<div class="fixed inset-0 bg-black/80 z-[60] md:hidden animate-fade-in" onclick="actions.toggleSidebar()"></div>` : ''}
+            <!-- Mobile Navigation Elements -->
+            ${mobileNav}
+            ${mobileMenuOverlay}
 
-            <!-- SIDEBAR -->
-            <aside class="fixed top-0 bottom-0 left-0 z-[100] w-72 h-[100dvh] glass-panel border-y-0 border-l-0 flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${state.ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+            <!-- DESKTOP SIDEBAR (Hidden on Mobile) -->
+            <aside class="hidden md:flex relative top-0 bottom-0 left-0 z-[100] w-72 h-[100dvh] glass-panel border-y-0 border-l-0 flex-col shadow-2xl">
                 <div class="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
                     <div class="flex items-center gap-3">
                         <div class="relative w-10 h-10 shrink-0">
@@ -518,37 +619,10 @@ export const HubView = () => {
                             ${state.activeCharacter?.job !== 'unemployed' ? `<div class="text-[10px] text-gray-500 uppercase mt-0.5">${state.activeCharacter?.job}</div>` : ''}
                         </div>
                     </div>
-                    <button onclick="actions.toggleSidebar()" class="md:hidden text-gray-400 hover:text-white">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
                 </div>
                 
                 <div class="p-4 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
-                    ${!isBypass ? `
-                        <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Menu Principal</div>
-                        ${navItem('main', 'layout-grid', 'Tableau de bord', 'text-blue-400')}
-                        ${navItem('staff_list', 'users-round', 'Liste du Staff', 'text-yellow-400')}
-                        
-                        ${isSessionActive ? `
-                            <button onclick="actions.openCallPage(); actions.toggleSidebar();" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300">
-                                 <i data-lucide="phone" class="w-5 h-5 text-red-500"></i> Appel d'urgence
-                            </button>
-                        ` : ''}
-
-                        ${navItem('bank', 'landmark', 'Ma Banque', 'text-emerald-400')}
-                        ${navItem('assets', 'gem', 'Patrimoine', 'text-indigo-400')}
-                        ${navItem('enterprise', 'building-2', 'Entreprise', 'text-blue-400')}
-                        
-                        ${hasServiceAccess ? navItem('services', 'siren', 'Services Publics', 'text-blue-400') : ''}
-                        ${isIllegal ? navItem('illicit', 'skull', 'Illégal', 'text-red-400') : ''}
-                        
-                        ${hasStaffAccess ? `<div class="my-4 border-t border-white/5"></div>` : ''}
-                    ` : ''}
-
-                    ${hasStaffAccess ? `
-                        <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Staff</div>
-                        ${navItem('staff', 'shield-alert', 'Administration', 'text-purple-400')}
-                    ` : ''}
+                    ${generateNavItems()}
                     
                     ${isSessionActive ? `
                         <!-- ERLC Status Widget (Updated) -->
@@ -600,16 +674,15 @@ export const HubView = () => {
             </aside>
 
             <main class="flex-1 flex flex-col relative overflow-hidden h-full">
-                <!-- Mobile Header -->
-                <div class="md:hidden p-4 flex items-center justify-between border-b border-white/5 bg-[#050505] z-30 pt-[env(safe-area-inset-top)]">
-                    <button onclick="actions.toggleSidebar()" class="text-gray-400 hover:text-white">
-                        <i data-lucide="menu" class="w-6 h-6"></i>
-                    </button>
-                    <div class="font-bold text-white">TFRP Mobile</div>
-                    <div class="w-6"></div> <!-- Spacer -->
+                <!-- Mobile Header (Logo Only) -->
+                <div class="md:hidden p-4 flex items-center justify-center border-b border-white/5 bg-[#050505] z-30 pt-[env(safe-area-inset-top)]">
+                    <div class="font-bold text-white tracking-tight flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 text-blue-500"></i> TFRP
+                    </div>
                 </div>
 
-                <div class="flex-1 overflow-y-auto p-4 md:p-8 relative z-0 custom-scrollbar pb-[env(safe-area-inset-bottom)]">
+                <!-- Main Content with bottom padding for mobile nav -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-8 relative z-0 custom-scrollbar pb-32 md:pb-[env(safe-area-inset-bottom)]">
                     ${content}
                 </div>
             </main>
