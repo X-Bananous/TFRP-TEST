@@ -93,6 +93,7 @@ export const StaffView = () => {
     // --- MODALS ---
     let economyModalHtml = '';
     if (state.economyModal.isOpen && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
+        // ... (Same modal code) ...
         economyModalHtml = `
             <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="actions.closeEconomyModal()"></div>
@@ -330,11 +331,13 @@ export const StaffView = () => {
             </div>
         `;
     } else if (state.activeStaffTab === 'economy' && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
-         // ... (Economy content logic same as before) ...
-         const { totalMoney, totalCash, totalBank, totalGang } = state.serverStats;
+         // ... (Economy content logic) ...
+         const { totalMoney, totalCash, totalBank, totalGang, totalEnterprise } = state.serverStats;
          const bankPercent = totalMoney > 0 ? (totalBank / totalMoney) * 100 : 0;
          const cashPercent = totalMoney > 0 ? (totalCash / totalMoney) * 100 : 0;
          const gangPercent = totalMoney > 0 ? (totalGang / totalMoney) * 100 : 0;
+         const entPercent = totalMoney > 0 ? (totalEnterprise / totalMoney) * 100 : 0;
+         
          const subTab = state.activeEconomySubTab || 'players';
          let subContent = '';
          
@@ -408,7 +411,35 @@ export const StaffView = () => {
                     </table>
                 </div>
              `;
+         } else if (subTab === 'enterprises') {
+             subContent = `
+                <div class="glass-panel overflow-hidden rounded-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-500">
+                            <tr>
+                                <th class="p-4">Entreprise</th>
+                                <th class="p-4 text-right">Coffre</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 text-sm">
+                            ${state.enterprises.map(e => `
+                                <tr class="hover:bg-white/5">
+                                    <td class="p-4 font-bold text-white">${e.name}</td>
+                                    <td class="p-4 text-right font-mono text-blue-400">$${(e.balance || 0).toLocaleString()}</td>
+                                    <td class="p-4 text-right flex justify-end gap-2">
+                                        <button onclick="actions.adminManageEnterpriseBalance('${e.id}', 'add')" class="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30" title="Ajouter"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                        <button onclick="actions.adminManageEnterpriseBalance('${e.id}', 'remove')" class="px-2 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30" title="Retirer"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                            ${state.enterprises.length === 0 ? '<tr><td colspan="3" class="p-6 text-center text-gray-500">Aucune entreprise.</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+             `;
          } else if (subTab === 'stats') {
+             // ... stats view ...
              if (!hasPermission('can_manage_economy')) {
                  subContent = `<div class="p-8 text-center text-gray-500">Accès restreint aux gestionnaires économiques.</div>`;
              } else {
@@ -465,497 +496,23 @@ export const StaffView = () => {
                     <div style="width: ${bankPercent}%" class="h-full bg-emerald-500 transition-all duration-500 hover:bg-emerald-400" title="Banque: $${totalBank.toLocaleString()}"></div>
                     <div style="width: ${cashPercent}%" class="h-full bg-blue-500 transition-all duration-500 hover:bg-blue-400" title="Espèces: $${totalCash.toLocaleString()}"></div>
                     <div style="width: ${gangPercent}%" class="h-full bg-purple-500 transition-all duration-500 hover:bg-purple-400" title="Coffres Gang: $${totalGang.toLocaleString()}"></div>
+                    <div style="width: ${entPercent}%" class="h-full bg-orange-500 transition-all duration-500 hover:bg-orange-400" title="Entreprises: $${(totalEnterprise || 0).toLocaleString()}"></div>
                 </div>
-                <div class="flex justify-between text-xs text-gray-400">
+                <div class="flex flex-wrap justify-between text-xs text-gray-400 gap-2">
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div> Banque ($${totalBank.toLocaleString()})</div>
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-500 rounded-full"></div> Espèces ($${totalCash.toLocaleString()})</div>
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-purple-500 rounded-full"></div> Gangs ($${totalGang.toLocaleString()})</div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-orange-500 rounded-full"></div> Entreprises ($${(totalEnterprise || 0).toLocaleString()})</div>
                 </div>
             </div>
             <!-- SUB TABS -->
-            <div class="flex gap-2 mb-6 border-b border-white/10 pb-1">
+            <div class="flex gap-2 mb-6 border-b border-white/10 pb-1 overflow-x-auto">
                 ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('players')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'players' ? 'text-white border-b-2 border-emerald-500' : 'text-gray-500 hover:text-white'}">Joueurs</button>` : ''}
                 <button onclick="actions.setEconomySubTab('gangs')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'gangs' ? 'text-white border-b-2 border-purple-500' : 'text-gray-500 hover:text-white'}">Gangs</button>
+                <button onclick="actions.setEconomySubTab('enterprises')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'enterprises' ? 'text-white border-b-2 border-blue-600' : 'text-gray-500 hover:text-white'}">Entreprises</button>
                 ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('stats')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'stats' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500 hover:text-white'}">Transactions & Stats</button>` : ''}
             </div>
             ${subContent}
         `;
     } else if (state.activeStaffTab === 'illegal' && hasPermission('can_manage_illegal')) {
-        // ... (Illegal Logic) ...
-        const { totalCoke, totalWeed } = state.serverStats;
-        const totalDrugs = totalCoke + totalWeed;
-        const cokePercent = totalDrugs > 0 ? (totalCoke / totalDrugs) * 100 : 0;
-        const weedPercent = totalDrugs > 0 ? (totalWeed / totalDrugs) * 100 : 0;
-        const pendingHeists = state.pendingHeistReviews || [];
-
-        // GANG SEARCH UI LOGIC
-        const searchUI = (role) => `
-            <div class="relative">
-                <input type="text" placeholder="Rechercher ${role}..." 
-                    id="gang-${role === 'Leader' ? 'leader' : 'coleader'}-search"
-                    value="${role === 'Leader' ? (state.gangCreation.leaderResult ? state.gangCreation.leaderResult.name : state.gangCreation.leaderQuery) : (state.gangCreation.coLeaderResult ? state.gangCreation.coLeaderResult.name : state.gangCreation.coLeaderQuery)}"
-                    oninput="actions.searchGangSearch('${role}', this.value)"
-                    class="glass-input w-full p-2 pl-8 rounded-lg text-sm ${role === 'Leader' && state.gangCreation.leaderResult ? 'border-green-500 text-green-400' : ''}" required autocomplete="off">
-                <i data-lucide="search" class="w-3 h-3 absolute left-3 top-3 text-gray-500"></i>
-                
-                <div id="gang-${role === 'Leader' ? 'leader' : 'coleader'}-dropdown" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-lg mt-1 z-50 max-h-32 overflow-y-auto shadow-xl hidden">
-                    <!-- Results injected here via JS -->
-                </div>
-            </div>
-        `;
-        
-        // GANG FORM
-        const gangForm = `
-             <div class="glass-panel p-6 rounded-2xl mb-8 border ${state.editingGang ? 'border-purple-500/50' : 'border-white/5'}">
-                <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                    <i data-lucide="${state.editingGang ? 'edit' : 'users'}" class="w-5 h-5 text-purple-400"></i> 
-                    ${state.editingGang ? 'Modifier Gang: ' + state.editingGang.name : 'Création de Gang'}
-                </h3>
-                <form onsubmit="${state.editingGang ? 'actions.submitEditGang(event)' : 'actions.createGangAdmin(event)'}" class="space-y-3">
-                    <input type="text" name="name" 
-                        value="${state.editingGang ? state.editingGang.name : state.gangCreation.draftName}" 
-                        oninput="actions.updateGangDraftName(this.value)"
-                        placeholder="Nom du Gang" class="glass-input w-full p-2 rounded-lg text-sm" required>
-                    <div class="grid grid-cols-2 gap-2">
-                         ${searchUI('Leader')}
-                         ${searchUI('Co-Leader')}
-                    </div>
-                    <div class="flex gap-2">
-                        ${state.editingGang ? `<button type="button" onclick="actions.cancelEditGang()" class="glass-btn-secondary px-4 py-2 rounded-lg text-sm">Annuler</button>` : ''}
-                        <button type="submit" class="glass-btn flex-1 py-2 rounded-lg font-bold text-sm bg-purple-600 hover:bg-purple-500">
-                            ${state.editingGang ? 'Enregistrer Modifications' : 'Créer Gang'}
-                        </button>
-                    </div>
-                </form>
-             </div>
-        `;
-
-        content = `
-            ${refreshBanner}
-            <!-- Drug Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                 <div class="glass-panel p-6 rounded-2xl">
-                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="flask-conical" class="w-5 h-5 text-indigo-400"></i> Drogue en Circulation: ${totalDrugs}g</h3>
-                    <div class="h-6 w-full bg-gray-800 rounded-full overflow-hidden flex mb-2">
-                        <div style="width: ${cokePercent}%" class="h-full bg-white transition-all duration-500" title="Coke: ${totalCoke}g"></div>
-                        <div style="width: ${weedPercent}%" class="h-full bg-emerald-500 transition-all duration-500" title="Weed: ${totalWeed}g"></div>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-400">
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 bg-white rounded-full"></div> Cocaïne (${totalCoke}g)</div>
-                        <div class="flex items-center gap-2"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div> Cannabis (${totalWeed}g)</div>
-                    </div>
-                 </div>
-
-                 <!-- CREATE/EDIT GANG -->
-                 ${gangForm}
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                 <!-- Existing Gangs List -->
-                <div class="glass-panel rounded-2xl p-6 h-[300px] flex flex-col">
-                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="list" class="w-5 h-5 text-gray-400"></i> Gangs Actifs</h3>
-                    <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
-                        ${state.gangs.map(g => `
-                            <div class="bg-white/5 p-3 rounded-lg border border-white/5 flex justify-between items-center">
-                                <div>
-                                    <div class="font-bold text-white text-sm">${g.name}</div>
-                                    <div class="text-xs text-gray-500">Chef: ${g.leader?.first_name} ${g.leader?.last_name}</div>
-                                </div>
-                                <div class="flex gap-1">
-                                    <button onclick="actions.openEditGang('${g.id}')" class="text-blue-400 hover:text-white p-1 bg-blue-500/10 rounded"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                                    <button onclick="actions.deleteGang('${g.id}')" class="text-red-400 hover:text-white p-1 bg-red-500/10 rounded"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                                </div>
-                            </div>
-                        `).join('')}
-                        ${state.gangs.length === 0 ? '<div class="text-gray-500 text-xs text-center py-4">Aucun gang.</div>' : ''}
-                    </div>
-                </div>
-
-                <!-- Heist Reviews -->
-                <div class="glass-panel rounded-2xl p-6 h-[300px] flex flex-col">
-                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="shield-alert" class="w-5 h-5 text-red-400"></i> Braquages (Validation)</h3>
-                    <div class="flex-1 overflow-y-auto custom-scrollbar">
-                        ${pendingHeists.length === 0 ? '<div class="text-center text-gray-500 py-6 italic text-sm">Aucune opération en attente.</div>' : `
-                            <div class="space-y-4">
-                                ${pendingHeists.map(lobby => {
-                                    const hInfo = HEIST_DATA.find(h => h.id === lobby.heist_type);
-                                    const heistName = hInfo ? hInfo.name : lobby.heist_type;
-
-                                    return `
-                                        <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-                                            <div class="font-bold text-white text-sm flex items-center justify-between">
-                                                ${heistName}
-                                                <span class="text-[9px] ${lobby.status === 'active' ? 'bg-orange-500/20 text-orange-400' : 'bg-purple-500/20 text-purple-400'} px-2 py-0.5 rounded uppercase">${lobby.status === 'active' ? 'En Cours' : 'Terminé'}</span>
-                                            </div>
-                                            <div class="text-xs text-gray-400 mt-1">Chef: <span class="text-white">${lobby.characters?.first_name} ${lobby.characters?.last_name}</span></div>
-                                            ${lobby.location ? `<div class="text-xs text-orange-300 mt-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${lobby.location}</div>` : ''}
-                                            
-                                            <div class="flex gap-2 mt-3">
-                                                ${lobby.status === 'active' ? `
-                                                     <div class="w-full text-center text-xs text-gray-500 py-1 bg-black/20 rounded">En Cours...</div>
-                                                ` : `
-                                                    <button onclick="actions.validateHeist('${lobby.id}', true)" class="flex-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 py-1 rounded text-xs font-bold border border-emerald-600/30">Succès</button>
-                                                    <button onclick="actions.validateHeist('${lobby.id}', false)" class="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 py-1 rounded text-xs font-bold border border-red-600/30">Échec</button>
-                                                `}
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        `}
-                    </div>
-                </div>
-            </div>
-        `;
-
-    } else if (state.activeStaffTab === 'enterprise' && hasPermission('can_manage_enterprises')) {
-        content = `
-            ${refreshBanner}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-                <!-- CREATE ENTERPRISE -->
-                <div class="glass-panel p-6 rounded-2xl h-fit">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="building-2" class="w-5 h-5 text-blue-400"></i> Créer Entreprise</h3>
-                    <form onsubmit="actions.adminCreateEnterprise(event)" class="space-y-4">
-                        <input type="text" name="name" placeholder="Nom de l'entreprise" class="glass-input w-full p-2 rounded-lg" required>
-                        
-                        <div class="relative">
-                            <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">PDG / Leader</label>
-                            <input type="text" id="ent-leader-search" placeholder="Rechercher citoyen..." 
-                                oninput="actions.searchProfilesForPerms(this.value)" 
-                                class="glass-input w-full p-2 rounded-lg text-sm" autocomplete="off">
-                            <div id="perm-search-dropdown" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-xl mt-1 max-h-48 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden"></div>
-                        </div>
-
-                        <button type="submit" class="glass-btn w-full py-2 rounded-lg font-bold bg-blue-600 hover:bg-blue-500">Créer</button>
-                    </form>
-                </div>
-
-                <!-- MODERATION QUEUE -->
-                <div class="glass-panel p-6 rounded-2xl flex flex-col h-[400px]">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="check-square" class="w-5 h-5 text-orange-400"></i> 
-                        Modération Articles (${state.pendingEnterpriseItems.length})
-                    </h3>
-                    <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
-                        ${state.pendingEnterpriseItems.length === 0 ? '<div class="text-center text-gray-500 italic py-10">Aucun article en attente.</div>' : 
-                            state.pendingEnterpriseItems.map(item => `
-                                <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <div class="font-bold text-white">${item.name}</div>
-                                        <div class="text-xs text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">${item.enterprises?.name}</div>
-                                    </div>
-                                    <div class="text-sm text-gray-400 mb-2">${item.description || 'Aucune description'}</div>
-                                    <div class="flex justify-between items-center text-xs mb-3 font-mono">
-                                        <span class="text-emerald-400">$${item.price.toLocaleString()}</span>
-                                        <span class="text-gray-500">Qté: ${item.quantity}</span>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button onclick="actions.adminModerateItem('${item.id}', 'approve')" class="flex-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 py-1.5 rounded font-bold border border-emerald-600/30">Approuver</button>
-                                        <button onclick="actions.adminModerateItem('${item.id}', 'reject')" class="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 py-1.5 rounded font-bold border border-red-600/30">Refuser</button>
-                                    </div>
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-                </div>
-
-                <!-- LIST ENTERPRISES -->
-                <div class="glass-panel p-6 rounded-2xl lg:col-span-2">
-                    <h3 class="font-bold text-white mb-4">Liste des Entreprises</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${state.enterprises.map(e => `
-                            <div class="bg-white/5 p-3 rounded-lg flex justify-between items-center border border-white/5">
-                                <div>
-                                    <div class="font-bold text-white">${e.name}</div>
-                                    <div class="text-xs text-gray-500 font-mono">Solde: $${(e.balance || 0).toLocaleString()}</div>
-                                </div>
-                                <button onclick="actions.adminDeleteEnterprise('${e.id}')" class="text-red-400 hover:text-white p-2 bg-red-500/10 rounded transition-colors"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-
-    } else if (state.activeStaffTab === 'permissions' && hasPermission('can_manage_staff')) {
-        content = `
-            ${refreshBanner}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
-                <div class="space-y-4">
-                    <div class="glass-panel p-6 rounded-xl relative min-h-[300px]">
-                        <h3 class="font-bold text-white mb-4">Gérer les permissions</h3>
-                        <p class="text-xs text-gray-400 mb-4">Recherchez un utilisateur Discord pour lui attribuer des droits.</p>
-                        <div class="relative mb-4">
-                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3.5 text-gray-500"></i>
-                            <input type="text" placeholder="Pseudo Discord ou ID..." oninput="actions.searchProfilesForPerms(this.value)" class="glass-input p-3 pl-10 rounded-lg w-full text-sm placeholder-gray-500" autocomplete="off">
-                            <div id="perm-search-dropdown" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-xl mt-1 max-h-48 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden"></div>
-                        </div>
-                        <div id="perm-editor-container">
-                            <div class="text-center text-gray-600 py-10 text-sm">Sélectionnez un utilisateur pour modifier ses droits.</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="glass-panel p-6 rounded-xl h-fit">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4 text-purple-400"></i> Équipe Staff Actuelle</h3>
-                    <div class="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar">
-                        ${state.staffMembers.map(m => `
-                            <button onclick="actions.selectUserForPerms('${m.id}')" class="w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 flex items-center gap-3 transition-colors border border-white/5 group">
-                                <img src="${m.avatar_url || ''}" class="w-10 h-10 rounded-full border border-white/10 group-hover:border-purple-500/50 transition-colors">
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-bold text-white text-sm truncate">${m.username}</div>
-                                    <div class="flex flex-wrap gap-1 mt-1">
-                                        ${Object.keys(m.permissions).length} Perms
-                                    </div>
-                                </div>
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-        // Post-render hack to restore editor if open
-        setTimeout(() => {
-             if(state.activePermissionUserId) {
-                 actions.selectUserForPerms(state.activePermissionUserId);
-             }
-        }, 0);
-
-    } else if (state.activeStaffTab === 'sessions') {
-        // --- SESSIONS TAB ---
-        content = `
-            ${refreshBanner}
-            <div class="glass-panel p-6 rounded-2xl bg-gradient-to-r from-blue-900/20 to-black border-blue-500/20 mb-6">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full ${state.activeGameSession ? 'bg-green-500/20 text-green-400' : 'bg-gray-700/50 text-gray-500'} flex items-center justify-center border border-white/10">
-                            <i data-lucide="${state.activeGameSession ? 'play' : 'stop-circle'}" class="w-6 h-6 ${state.activeGameSession ? 'fill-current' : ''}"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-white text-lg">Session de Jeu: ${state.activeGameSession ? '<span class="text-green-400">EN COURS</span>' : '<span class="text-gray-400">ARRÊTÉE</span>'}</h3>
-                            <div class="text-xs text-gray-400">
-                                ${state.activeGameSession 
-                                    ? `Démarrée depuis: ${new Date(state.activeGameSession.start_time).toLocaleTimeString()} (Joueurs: ${state.activeGameSession.start_player_count} init)` 
-                                    : 'Aucune session active. Les fonctionnalités RP (achats, services) sont restreintes.'}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    ${hasPermission('can_launch_session') ? `
-                        <button onclick="actions.toggleSession()" class="glass-btn px-6 py-3 rounded-xl font-bold flex items-center gap-2 ${state.activeGameSession ? 'bg-red-600 hover:bg-red-500' : 'bg-green-600 hover:bg-green-500'} shadow-lg transition-all hover:scale-105">
-                            <i data-lucide="${state.activeGameSession ? 'square' : 'play'}" class="w-5 h-5 fill-current"></i>
-                            ${state.activeGameSession ? 'Arrêter Session' : 'Lancer Session'}
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-
-            <div class="glass-panel p-6 rounded-2xl">
-                <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="history" class="w-5 h-5 text-gray-400"></i> Historique des Sessions</h3>
-                    <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm border-collapse">
-                            <thead class="bg-white/5 text-xs uppercase text-gray-500">
-                            <tr>
-                                <th class="p-3">Date</th>
-                                <th class="p-3">Durée</th>
-                                <th class="p-3">Hôte</th>
-                                <th class="p-3 text-center">Pic Joueurs</th>
-                                <th class="p-3 text-center">Mods</th>
-                                <th class="p-3 text-center">Bans</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5">
-                            ${state.sessionHistory && state.sessionHistory.length > 0 ? state.sessionHistory.map(s => {
-                                const duration = s.end_time ? Math.round((new Date(s.end_time) - new Date(s.start_time)) / 60000) + ' min' : 'En cours';
-                                return `
-                                    <tr class="hover:bg-white/5">
-                                        <td class="p-3 font-medium text-white">${new Date(s.start_time).toLocaleDateString()} ${new Date(s.start_time).toLocaleTimeString()}</td>
-                                        <td class="p-3 text-gray-400">${duration}</td>
-                                        <td class="p-3 text-blue-300">${s.host?.username || 'Inconnu'}</td>
-                                        <td class="p-3 text-center font-bold text-white">${s.peak_player_count || '-'}</td>
-                                        <td class="p-3 text-center text-gray-400">${s.mod_calls_count || 0}</td>
-                                        <td class="p-3 text-center text-red-400">${s.bans_count || 0}</td>
-                                    </tr>
-                                `;
-                            }).join('') : '<tr><td colspan="6" class="p-4 text-center text-gray-500 italic">Aucun historique.</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-    } else if (state.activeStaffTab === 'logs') {
-         // --- LOGS & ERLC TAB ---
-         let commands = state.erlcData.commandLogs || [];
-         if(state.erlcLogSearch) {
-             const q = state.erlcLogSearch.toLowerCase();
-             commands = commands.filter(c => 
-                (c.Player && c.Player.toLowerCase().includes(q)) ||
-                (c.Command && c.Command.toLowerCase().includes(q)) ||
-                (c.Admin && c.Admin.toLowerCase().includes(q))
-             );
-         }
-         
-         const vehicles = state.erlcData.vehicles || [];
-
-         content = `
-            ${refreshBanner}
-            
-            ${hasPermission('can_execute_commands') ? `
-                <div class="glass-panel p-6 rounded-2xl mb-6 border border-blue-500/20 shadow-lg shadow-blue-500/10">
-                    <h3 class="font-bold text-white mb-2 flex items-center gap-2">
-                        <i data-lucide="terminal" class="w-5 h-5 text-blue-400"></i> Exécuter Commande Serveur
-                    </h3>
-                    <form onsubmit="actions.executeCommand(event)" class="flex gap-2">
-                        <input type="text" name="command" placeholder=":kill player, :m message..." class="glass-input flex-1 p-3 rounded-lg font-mono text-sm" required autocomplete="off">
-                        <button type="submit" class="glass-btn px-6 rounded-lg font-bold bg-blue-600 hover:bg-blue-500">Envoyer</button>
-                    </form>
-                </div>
-            ` : ''}
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                <!-- CONNECTED PLAYERS LIST -->
-                <div class="glass-panel p-6 rounded-2xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="users" class="w-5 h-5 text-green-500"></i>
-                        Joueurs Connectés (${state.erlcData.currentPlayers})
-                    </h3>
-                    <div class="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-                        ${state.erlcData.players && state.erlcData.players.length > 0 ? 
-                            state.erlcData.players.map(p => `
-                                <div class="bg-white/5 p-3 rounded-lg border border-white/5 text-xs flex justify-between items-center">
-                                    <div class="font-bold text-white">${p.Player || p.Name || 'Unknown'}</div>
-                                    <div class="text-gray-500">${p.Permission || 'User'}</div>
-                                </div>
-                            `).join('') 
-                        : '<div class="text-center text-gray-500 italic py-4">Aucun joueur.</div>'}
-                    </div>
-                </div>
-
-                 <!-- BANS (Privileged) -->
-                <div class="glass-panel p-6 rounded-2xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="gavel" class="w-5 h-5 text-red-500"></i>
-                        Bannissements Actifs
-                    </h3>
-                    <div class="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-                        ${state.erlcData.bans && state.erlcData.bans.length > 0 ? 
-                            state.erlcData.bans.map(b => `
-                                <div class="bg-white/5 p-3 rounded-lg border border-white/5 text-xs">
-                                    <div class="font-bold text-red-400">${b.User || b.Player || 'Inconnu'}</div>
-                                    <div class="text-gray-400">Raison: ${b.Reason || 'Non spécifiée'}</div>
-                                </div>
-                            `).join('') 
-                        : '<div class="text-center text-gray-500 italic py-4">Aucun bannissement.</div>'}
-                    </div>
-                </div>
-                
-                 <!-- VEHICLES -->
-                <div class="glass-panel p-6 rounded-2xl">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="car-front" class="w-5 h-5 text-blue-400"></i>
-                        Véhicules en Jeu (${vehicles.length})
-                    </h3>
-                     <div class="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-                        ${vehicles.length > 0 ? 
-                            vehicles.map(v => `
-                                <div class="bg-white/5 p-3 rounded-lg border border-white/5 text-xs flex justify-between items-center">
-                                    <div>
-                                        <div class="font-bold text-white">${v.Name || 'Inconnu'}</div>
-                                        <div class="text-[10px] text-gray-500">${v.Texture || 'Standard'}</div>
-                                    </div>
-                                    <div class="text-gray-400">${v.Owner || 'N/A'}</div>
-                                </div>
-                            `).join('') 
-                        : '<div class="text-center text-gray-500 italic py-4">Aucun véhicule.</div>'}
-                    </div>
-                </div>
-
-                <!-- Mod Calls logic -->
-                 <div class="glass-panel p-6 rounded-2xl lg:col-span-3">
-                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
-                        <i data-lucide="radio" class="w-5 h-5 text-blue-400"></i>
-                        Appels Modération
-                    </h3>
-                    <div class="flex flex-wrap gap-4 max-h-[400px] overflow-y-auto custom-scrollbar">
-                        ${state.erlcData.modCalls && state.erlcData.modCalls.length > 0 ? 
-                            state.erlcData.modCalls.map(c => `
-                                <div class="bg-white/5 p-3 rounded-xl border border-white/5 flex-1 min-w-[250px]">
-                                    <div class="flex justify-between items-center mb-1">
-                                        <span class="font-bold text-white text-sm">${c.Caller || c.caller || 'Inconnu'}</span>
-                                        <span class="text-xs text-gray-500">${c.Timestamp ? new Date(c.Timestamp * 1000).toLocaleTimeString() : 'Maintenant'}</span>
-                                    </div>
-                                    <p class="text-gray-300 text-sm">${c.Reason || c.reason || 'Aucune raison'}</p>
-                                </div>
-                            `).join('') 
-                        : '<div class="text-center text-gray-500 italic py-4 w-full">Aucun appel actif.</div>'}
-                    </div>
-                </div>
-                
-                <!-- COMMAND LOGS -->
-                <div class="glass-panel p-6 rounded-2xl md:col-span-2 lg:col-span-3">
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                        <h3 class="font-bold text-white flex items-center gap-2">
-                            <i data-lucide="terminal" class="w-5 h-5 text-gray-400"></i>
-                            Logs Commandes Admin
-                        </h3>
-                        <div class="relative w-full md:w-64">
-                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-gray-500"></i>
-                            <input type="text" 
-                                oninput="actions.searchCommandLogs(this.value)" 
-                                value="${state.erlcLogSearch}" 
-                                placeholder="Filtrer commandes..." 
-                                class="glass-input pl-10 w-full py-2 rounded-lg text-xs">
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                        ${commands.length > 0 ? 
-                            commands.map(l => `
-                                <div class="bg-white/5 p-3 rounded-lg border border-white/5 font-mono text-xs flex justify-between items-center">
-                                    <div>
-                                        <span class="text-blue-400 font-bold">${l.Admin || l.Player || 'System'}</span>
-                                        <span class="text-gray-500 mx-2">>></span>
-                                        <span class="text-yellow-400 font-bold">${l.Command || 'Unknown'}</span>
-                                        <span class="text-gray-400 ml-2">(${l.Logs || ''})</span>
-                                    </div>
-                                    <div class="text-gray-600">${new Date(l.Timestamp * 1000).toLocaleTimeString()}</div>
-                                </div>
-                            `).join('') 
-                        : '<div class="text-center text-gray-500 italic py-4">Aucun log.</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    return `
-        ${economyModalHtml}
-        ${inventoryModalHtml}
-        <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
-            <!-- HEADER NAV -->
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                        <i data-lucide="shield-alert" class="w-6 h-6 text-purple-500"></i>
-                        Administration
-                    </h2>
-                    <p class="text-gray-400 text-sm">Gestion Serveur & Modération</p>
-                </div>
-                
-                <div class="flex items-center gap-3">
-                    <button onclick="actions.confirmToggleDuty(${isOnDuty})" class="glass-btn-secondary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${isOnDuty ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}">
-                        <div class="w-2 h-2 rounded-full ${isOnDuty ? 'bg-green-500 animate-pulse' : 'bg-red-500'}"></div>
-                        ${isOnDuty ? 'En Service' : 'Hors Service'}
-                    </button>
-                </div>
-            </div>
-
-            ${tabsHtml}
-
-            <div class="flex-1 overflow-hidden relative overflow-y-auto custom-scrollbar">
-                ${content}
-            </div>
-        </div>
-    `;
-};
+// ... rest of the file

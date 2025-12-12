@@ -14,7 +14,7 @@ export const loadCharacters = async () => {
     state.characters = error ? [] : data;
 };
 
-// --- REALTIME SYNC (THE HEART OF THE APP) ---
+// ... (Realtime setup skipped for brevity, assumes standard implementation) ...
 export const setupRealtimeListener = () => {
     if(!state.supabase) return;
 
@@ -111,7 +111,7 @@ export const setupRealtimeListener = () => {
         });
 };
 
-// ... (Discord Widget, Landing Data, Staff Profiles same as before) ...
+// ... (Other standard fetch functions) ...
 export const fetchDiscordWidgetData = async () => {
     try {
         const response = await fetch(`https://discord.com/api/guilds/${CONFIG.REQUIRED_GUILD_ID}/widget.json`);
@@ -335,10 +335,22 @@ export const fetchServerStats = async () => {
     const { data: accounts } = await state.supabase.from('bank_accounts').select('bank_balance, cash_balance');
     let tBank = 0, tCash = 0;
     if (accounts) accounts.forEach(a => { tBank += (a.bank_balance || 0); tCash += (a.cash_balance || 0); });
+    
     const { data: gangs } = await state.supabase.from('gangs').select('balance');
     let tGang = 0;
     if (gangs) gangs.forEach(g => tGang += (g.balance || 0));
-    state.serverStats.totalBank = tBank; state.serverStats.totalCash = tCash; state.serverStats.totalGang = tGang; state.serverStats.totalMoney = tBank + tCash + tGang;
+    
+    // NEW: Fetch Enterprise Balance
+    const { data: enterprises } = await state.supabase.from('enterprises').select('balance');
+    let tEnt = 0;
+    if (enterprises) enterprises.forEach(e => tEnt += (e.balance || 0));
+
+    state.serverStats.totalBank = tBank; 
+    state.serverStats.totalCash = tCash; 
+    state.serverStats.totalGang = tGang; 
+    state.serverStats.totalEnterprise = tEnt;
+    state.serverStats.totalMoney = tBank + tCash + tGang + tEnt;
+    
     const { data: labs } = await state.supabase.from('drug_labs').select('stock_coke_raw, stock_coke_pure, stock_weed_raw, stock_weed_pure');
     let tCoke = 0, tWeed = 0;
     if (labs) labs.forEach(l => { tCoke += (l.stock_coke_raw || 0) + (l.stock_coke_pure || 0); tWeed += (l.stock_weed_raw || 0) + (l.stock_weed_pure || 0); });
@@ -358,6 +370,12 @@ export const fetchDailyEconomyStats = async () => {
     state.dailyEconomyStats = Object.keys(stats).map(date => ({ date, amount: stats[date] }));
 };
 
+export const updateEnterpriseBalance = async (entId, newBalance) => {
+    const { error } = await state.supabase.from('enterprises').update({ balance: newBalance }).eq('id', entId);
+    if(error) console.error("Ent balance update failed", error);
+};
+
+// ... (Rest of existing functions) ...
 export const fetchPendingHeistReviews = async () => {
     const { data: lobbies } = await state.supabase.from('heist_lobbies').select('*, characters(first_name, last_name), heist_members(count)').in('status', ['pending_review', 'active']);
     state.pendingHeistReviews = lobbies || [];
@@ -586,6 +604,28 @@ export const claimAdventReward = async (targetDay) => {
     // Calculate Reward
     // 16th -> 1000, 17th -> 2000 ... 25th -> 10000. Sum = 55000.
     const reward = (targetDay - 15) * 1000; 
+    let extraItemMessage = "";
+    const charId = state.activeCharacter.id;
+
+    // EXTRA ITEMS LOGIC
+    if (targetDay === 16) {
+        await state.supabase.from('inventory').insert({
+            character_id: charId,
+            name: "Anniversaire de Bananous 2025",
+            quantity: 1,
+            estimated_value: 1000
+        });
+        extraItemMessage = `<br><span class="text-yellow-400 font-bold text-sm">+ Objet Spécial: Anniversaire de Bananous 2025</span>`;
+    }
+    if (targetDay === 24) {
+        await state.supabase.from('inventory').insert({
+            character_id: charId,
+            name: "Traineau de 2025",
+            quantity: 1,
+            estimated_value: 500
+        });
+        extraItemMessage = `<br><span class="text-yellow-400 font-bold text-sm">+ Objet Spécial: Traineau de 2025</span>`;
+    }
 
     // Update DB
     const newClaimed = [...claimedDays, targetDay];
@@ -597,7 +637,6 @@ export const claimAdventReward = async (targetDay) => {
     }
 
     // Give Money (Bank)
-    const charId = state.activeCharacter.id;
     const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
     await state.supabase.from('bank_accounts').update({ bank_balance: (bank.bank_balance || 0) + reward }).eq('character_id', charId);
     await state.supabase.from('transactions').insert({ sender_id: null, receiver_id: charId, amount: reward, type: 'deposit', description: `Calendrier Avent (Jour ${targetDay})` });
@@ -612,7 +651,7 @@ export const claimAdventReward = async (targetDay) => {
             <div class="text-center">
                 <div class="text-4xl mb-4">🎄</div>
                 <div class="text-xl font-bold text-white mb-2">Joyeux Noël !</div>
-                <p class="text-gray-300">Vous avez reçu un virement de <span class="text-emerald-400 font-bold">$${reward.toLocaleString()}</span>.</p>
+                <p class="text-gray-300">Vous avez reçu un virement de <span class="text-emerald-400 font-bold">$${reward.toLocaleString()}</span>.${extraItemMessage}</p>
             </div>
         `,
         confirmText: "Merci !"
