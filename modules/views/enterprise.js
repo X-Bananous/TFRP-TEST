@@ -12,45 +12,64 @@ export const EnterpriseView = () => {
 
     // --- MARKET TAB ---
     if (state.activeEnterpriseTab === 'market') {
-        const items = state.enterpriseMarket || [];
-        content = `
-            <div class="space-y-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="store" class="w-5 h-5 text-blue-400"></i> Place de Marché</h3>
-                    <div class="text-xs text-gray-400">Achats disponibles uniquement durant une session active.</div>
-                </div>
-                
-                ${items.length === 0 ? '<div class="text-center text-gray-500 py-10 bg-white/5 rounded-xl border border-white/5">Aucune offre disponible.</div>' : `
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${items.map(item => `
-                            <div class="glass-panel p-5 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all flex flex-col justify-between h-full">
-                                <div>
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h4 class="font-bold text-white text-lg">${item.name}</h4>
-                                        <span class="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">x${item.quantity}</span>
-                                    </div>
-                                    <div class="text-xs text-blue-300 mb-4 font-bold uppercase tracking-wider">${item.enterprises?.name || 'Entreprise'}</div>
-                                    ${item.description ? `<p class="text-sm text-gray-400 mb-4 bg-black/20 p-2 rounded italic">"${item.description}"</p>` : ''}
-                                    
-                                    <div class="flex gap-2 mb-4 text-[10px] text-gray-500 uppercase font-bold">
-                                        ${item.payment_type === 'cash_only' ? '<span class="text-green-400 border border-green-500/30 px-1.5 rounded">Espèces</span>' : ''}
-                                        ${item.payment_type === 'bank_only' ? '<span class="text-blue-400 border border-blue-500/30 px-1.5 rounded">Banque</span>' : ''}
-                                        ${item.payment_type === 'both' ? '<span class="text-purple-400 border border-purple-500/30 px-1.5 rounded">Tout Paiement</span>' : ''}
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-auto">
-                                    <div class="text-2xl font-mono font-bold text-white mb-2">$${item.price.toLocaleString()}</div>
-                                    <button onclick="actions.buyItem('${item.id}', ${item.price})" class="glass-btn w-full py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                                        <i data-lucide="shopping-bag" class="w-4 h-4"></i> Acheter
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')}
+        
+        // CHECK SESSION CLOSED
+        if (!state.activeGameSession) {
+            content = `
+                <div class="flex flex-col items-center justify-center h-full p-10 text-center animate-fade-in">
+                    <div class="w-24 h-24 bg-blue-900/20 rounded-full flex items-center justify-center text-blue-500 mb-6 border border-blue-500/20">
+                        <i data-lucide="store" class="w-12 h-12"></i>
                     </div>
-                `}
-            </div>
-        `;
+                    <h2 class="text-3xl font-bold text-white mb-4">Marché Fermé</h2>
+                    <p class="text-gray-400 max-w-md mx-auto leading-relaxed">
+                        Les échanges commerciaux et les achats d'entreprise sont suspendus en dehors des sessions de jeu actives.
+                    </p>
+                    <div class="mt-8 bg-white/5 px-4 py-2 rounded-lg text-sm text-gray-500 border border-white/5">
+                        Statut : <span class="text-red-400 font-bold uppercase">Fermé</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            const items = state.enterpriseMarket || [];
+            content = `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="store" class="w-5 h-5 text-blue-400"></i> Place de Marché</h3>
+                        <div class="text-xs text-gray-400">Achats disponibles.</div>
+                    </div>
+                    
+                    ${items.length === 0 ? '<div class="text-center text-gray-500 py-10 bg-white/5 rounded-xl border border-white/5">Aucune offre disponible.</div>' : `
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${items.map(item => `
+                                <div class="glass-panel p-5 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all flex flex-col justify-between h-full">
+                                    <div>
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h4 class="font-bold text-white text-lg">${item.name}</h4>
+                                            <span class="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">x${item.quantity}</span>
+                                        </div>
+                                        <div class="text-xs text-blue-300 mb-4 font-bold uppercase tracking-wider">${item.enterprises?.name || 'Entreprise'}</div>
+                                        ${item.description ? `<p class="text-sm text-gray-400 mb-4 bg-black/20 p-2 rounded italic">"${item.description}"</p>` : ''}
+                                        
+                                        <div class="flex gap-2 mb-4 text-[10px] text-gray-500 uppercase font-bold">
+                                            ${item.payment_type === 'cash_only' ? '<span class="text-green-400 border border-green-500/30 px-1.5 rounded">Espèces</span>' : ''}
+                                            ${item.payment_type === 'bank_only' ? '<span class="text-blue-400 border border-blue-500/30 px-1.5 rounded">Banque</span>' : ''}
+                                            ${item.payment_type === 'both' ? '<span class="text-purple-400 border border-purple-500/30 px-1.5 rounded">Tout Paiement</span>' : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-auto">
+                                        <div class="text-2xl font-mono font-bold text-white mb-2">$${item.price.toLocaleString()}</div>
+                                        <button onclick="actions.buyItem('${item.id}', ${item.price})" class="glass-btn w-full py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                                            <i data-lucide="shopping-bag" class="w-4 h-4"></i> Acheter
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
     }
 
     // --- MY COMPANIES TAB ---
@@ -86,7 +105,6 @@ export const EnterpriseView = () => {
     else if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) {
         const ent = state.activeEnterpriseManagement;
         const isLeader = ent.myRank === 'leader';
-        const canManage = ent.myRank === 'leader' || ent.myRank === 'co_leader' || ent.myRank === 'employee'; // All accepted members can see basics
         const circulation = ent.circulation || [];
 
         return `
@@ -145,7 +163,7 @@ export const EnterpriseView = () => {
                             <div class="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label class="text-[10px] text-gray-500 uppercase font-bold">Nom Article</label>
-                                    <input type="text" name="name" class="glass-input w-full p-2 rounded-lg text-sm" required>
+                                    <input type="text" name="name" class="glass-input w-full p-2 rounded-lg text-sm" placeholder="Unique" required>
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-gray-500 uppercase font-bold">Prix Unitaire ($)</label>

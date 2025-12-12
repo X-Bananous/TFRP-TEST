@@ -8,6 +8,7 @@ import { CONFIG } from './modules/config.js';
 import { state } from './modules/state.js';
 import { router, render } from './modules/utils.js';
 import { ui } from './modules/ui.js'; 
+import { initSecurity } from './modules/security.js'; // Import Security
 
 // Import Actions
 import * as AuthActions from './modules/actions/auth.js';
@@ -16,7 +17,7 @@ import * as CharacterActions from './modules/actions/character.js';
 import * as EconomyActions from './modules/actions/economy.js';
 import * as IllicitActions from './modules/actions/illicit.js';
 import * as ServicesActions from './modules/actions/services.js';
-import * as EnterpriseActions from './modules/actions/enterprise.js'; // NEW
+import * as EnterpriseActions from './modules/actions/enterprise.js'; 
 import * as StaffActions from './modules/actions/staff.js';
 
 import { setupRealtimeListener, fetchERLCData, fetchActiveHeistLobby, fetchDrugLab, fetchGlobalHeists, fetchOnDutyStaff, loadCharacters, fetchPublicLandingData, fetchActiveSession } from './modules/services.js';
@@ -133,7 +134,6 @@ const updateActiveTimers = () => {
         if (remaining <= 0) {
              if(heistDisplay.textContent !== "00:00") {
                  heistDisplay.textContent = "00:00";
-                 // removed render() to avoid infinite loop
              }
         } else {
             heistDisplay.textContent = `${Math.floor(remaining / 60)}:${(remaining % 60).toString().padStart(2, '0')}`;
@@ -160,6 +160,9 @@ document.addEventListener('render-view', appRenderer);
 
 // --- INIT ---
 const initApp = async () => {
+    // SECURITY INIT
+    initSecurity();
+
     const appEl = document.getElementById('app');
     const loadingScreen = document.getElementById('loading-screen');
     
@@ -275,7 +278,7 @@ const handleDiscordCallback = async (token, type) => {
             updated_at: new Date(),
         });
 
-        const { data: profile } = await state.supabase.from('profiles').select('permissions').eq('id', discordUser.id).maybeSingle();
+        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar').eq('id', discordUser.id).maybeSingle();
 
         state.user = {
             id: discordUser.id,
@@ -283,6 +286,7 @@ const handleDiscordCallback = async (token, type) => {
             avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
             avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null,
             permissions: profile?.permissions || {},
+            advent_calendar: profile?.advent_calendar || [], // Load Advent Calendar State
             isFounder: isFounder,
             guilds: guilds.map(g => g.id) // Store guild IDs for permission checks
         };

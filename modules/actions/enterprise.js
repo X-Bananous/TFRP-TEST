@@ -46,10 +46,14 @@ export const addItemToMarket = async (e) => {
     const payment = data.get('payment_type');
     const description = data.get('description');
 
-    await services.createEnterpriseItem(state.activeEnterpriseManagement.id, name, price, quantity, payment, description);
+    const success = await services.createEnterpriseItem(state.activeEnterpriseManagement.id, name, price, quantity, payment, description);
     
-    // Refresh Details
-    await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+    if(success) {
+        // Refresh Details only if successful
+        await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+        e.target.reset();
+    }
+    
     toggleBtnLoading(btn, false);
     render();
 };
@@ -179,4 +183,7 @@ export const entWithdraw = async (e) => {
     ui.showToast(`Retrait de $${amt} effectué.`, 'success');
     await services.fetchEnterpriseDetails(ent.id);
     render();
+};
+export const claimAdventReward = async () => {
+    await services.claimAdventReward();
 };

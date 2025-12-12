@@ -95,6 +95,34 @@ export const HubView = () => {
         const job = state.activeCharacter?.job || 'unemployed';
         const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(job);
         
+        // ADVENT CALENDAR WIDGET
+        const today = new Date();
+        const d = today.getDate();
+        const m = today.getMonth() + 1;
+        const showAdvent = m === 12 && d >= 16 && d <= 25;
+        const hasClaimed = state.user.advent_calendar?.includes(d);
+        
+        let adventHtml = '';
+        if (showAdvent) {
+            adventHtml = `
+                <div class="glass-panel p-4 mb-4 rounded-2xl bg-gradient-to-r from-red-900/40 via-green-900/40 to-black border-white/20 relative overflow-hidden flex items-center justify-between">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-white"><i data-lucide="gift" class="w-32 h-32"></i></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-2xl border border-white/20">🎄</div>
+                        <div>
+                            <div class="text-xs font-bold text-white uppercase tracking-widest mb-1">Calendrier de l'Avent</div>
+                            <div class="text-sm text-gray-300">Case du <span class="font-bold text-white">${d} Décembre</span> disponible !</div>
+                        </div>
+                    </div>
+                    ${hasClaimed ? `
+                        <button disabled class="glass-btn-secondary px-6 py-2 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed">Déjà Ouvert</button>
+                    ` : `
+                        <button onclick="actions.claimAdventReward()" class="glass-btn bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 relative z-10 animate-pulse">Ouvrir</button>
+                    `}
+                </div>
+            `;
+        }
+
         let newsHtml = '';
         if (state.globalActiveHeists && state.globalActiveHeists.length > 0) {
             const majorHeists = state.globalActiveHeists.filter(h => !['house', 'gas', 'atm'].includes(h.heist_type));
@@ -170,6 +198,7 @@ export const HubView = () => {
             <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
                  <!-- DASHBOARD HEADER & BANNER -->
                  ${refreshBanner}
+                 ${adventHtml}
                  
                 <div class="mb-6 relative rounded-3xl overflow-hidden h-48 group shadow-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-black border border-white/10">
                     <div class="absolute inset-0 p-8 flex flex-col justify-center">

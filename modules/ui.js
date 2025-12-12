@@ -84,14 +84,20 @@ export const showModal = ({ title, content, confirmText, cancelText, onConfirm, 
 
     const isConfirm = !!onConfirm;
     
+    // Improved mobile responsiveness: max-h-[85vh], flex-col, overflow-y-auto for content
     const html = `
         <div id="global-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
             <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="ui.closeModal()"></div>
-            <div class="glass-panel w-full max-w-md p-6 rounded-2xl relative z-10 transform transition-all scale-95 shadow-2xl">
-                <h3 class="text-xl font-bold text-white mb-2">${title || 'Notification'}</h3>
-                <div class="text-gray-300 text-sm mb-6 leading-relaxed">${content}</div>
+            <div class="glass-panel w-full max-w-md max-h-[85vh] flex flex-col p-6 rounded-2xl relative z-10 transform transition-all scale-95 shadow-2xl">
+                <div class="shrink-0 mb-4">
+                    <h3 class="text-xl font-bold text-white mb-1">${title || 'Notification'}</h3>
+                </div>
                 
-                <div class="flex justify-end gap-3">
+                <div class="text-gray-300 text-sm leading-relaxed overflow-y-auto custom-scrollbar flex-1 mb-6 pr-2">
+                    ${content}
+                </div>
+                
+                <div class="flex justify-end gap-3 shrink-0 pt-2 border-t border-white/5">
                     ${isConfirm || cancelText ? `
                         <button id="modal-cancel" class="glass-btn-secondary px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/10">
                             ${cancelText || 'Annuler'}
