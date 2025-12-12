@@ -131,6 +131,13 @@ export const buyItem = async (itemId, price) => {
 };
 
 export const quitEnterprise = async (entId) => {
+    // Check if user is leader
+    const ent = state.myEnterprises.find(e => e.id === entId);
+    if (ent && ent.myRank === 'leader') {
+        ui.showToast("Le PDG ne peut pas démissionner. Dissolvez l'entreprise ou transférez le leadership.", 'error');
+        return;
+    }
+
     ui.showModal({
         title: "Démissionner",
         content: "Quitter cette entreprise ?",
@@ -174,6 +181,7 @@ export const entWithdraw = async (e) => {
     // Only leaders
     if (ent.myRank !== 'leader') return ui.showToast("Réservé au patron.", 'error');
     if ((ent.balance || 0) < amt) return ui.showToast("Fonds insuffisants.", 'error');
+    if (amt > 100000) return ui.showToast("Retrait maximum: $100,000.", 'error');
 
     const { data: bank } = await state.supabase.from('bank_accounts').select('cash_balance').eq('character_id', state.activeCharacter.id).single();
     

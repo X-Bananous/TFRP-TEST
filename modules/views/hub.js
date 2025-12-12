@@ -25,10 +25,13 @@ const refreshBanner = `
 
 // --- ADVENT CALENDAR VIEW COMPONENT ---
 const AdventCalendarView = () => {
-    const today = new Date();
+    // FORCE FRENCH TIME FOR DISPLAY
+    const parisTime = new Date().toLocaleString("en-US", {timeZone: "Europe/Paris"});
+    const today = new Date(parisTime);
     const currentDay = today.getDate();
-    // Logic: 16 to 25
-    const startDay = 16;
+    
+    // Logic: 12 to 25 (Starts 12th)
+    const startDay = 12;
     const endDay = 25;
     const days = [];
     
@@ -39,7 +42,7 @@ const AdventCalendarView = () => {
     } else if (currentDay >= endDay) {
         nextUnlockStr = "Joyeuses Fêtes !";
     } else {
-        // Calculate time until next day (00:00)
+        // Calculate time until next day (00:00 Paris)
         const tomorrow = new Date(today);
         tomorrow.setDate(currentDay + 1);
         tomorrow.setHours(0,0,0,0);
@@ -79,9 +82,9 @@ const AdventCalendarView = () => {
                     <i data-lucide="snowflake" class="w-4 h-4"></i> Édition Spéciale Noël
                 </div>
                 <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Calendrier de l'Avent</h1>
-                <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 16 au 25 Décembre pour débloquer des récompenses exclusives.</p>
+                <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 12 au 25 Décembre pour débloquer des récompenses exclusives.</p>
                 <div class="mt-4 text-xs font-mono text-emerald-400 bg-black/40 inline-block px-3 py-1 rounded border border-emerald-500/20">
-                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${nextUnlockStr}
+                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${nextUnlockStr} (Heure Paris)
                 </div>
             </div>
 
@@ -110,7 +113,7 @@ const AdventCalendarView = () => {
                 <div class="mt-12 text-center">
                     <div class="inline-block p-4 bg-white/5 rounded-xl border border-white/5 max-w-md">
                         <h4 class="text-white font-bold mb-1 flex items-center justify-center gap-2"><i data-lucide="gift" class="w-4 h-4 text-yellow-400"></i> Récompense Finale</h4>
-                        <p class="text-xs text-gray-400">Cumulez jusqu'à <b>$55,000</b> en ouvrant toutes les cases.</p>
+                        <p class="text-xs text-gray-400">Cumulez des $ en ouvrant toutes les cases.</p>
                     </div>
                 </div>
             </div>
@@ -118,6 +121,7 @@ const AdventCalendarView = () => {
     `;
 };
 
+// ... (Rest of HubView remains unchanged) ...
 export const HubView = () => {
     // --- CHECK ALIGNMENT ---
     if (state.activeCharacter && !state.activeCharacter.alignment && !state.alignmentModalShown) {
@@ -430,6 +434,7 @@ export const HubView = () => {
     } else if (state.activeHubPanel === 'advent') {
         content = AdventCalendarView();
     } else if (state.activeHubPanel === 'staff_list') {
+        // ... (Rest of panel logic remains same) ...
         const staffList = state.staffMembers || [];
         // Sort Founders first
         staffList.sort((a, b) => {
@@ -500,6 +505,7 @@ export const HubView = () => {
     } else if (state.activeHubPanel === 'services') {
         content = ServicesView();
     } else if (state.activeHubPanel === 'emergency_call') {
+        // ... (Emergency Call View - Unchanged) ...
         content = `
             <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
                 <!-- EMERGENCY HEADER -->

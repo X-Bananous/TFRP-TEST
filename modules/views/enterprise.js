@@ -2,6 +2,18 @@
 import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 
+const refreshBanner = `
+    <div class="flex flex-col md:flex-row items-center justify-between p-4 mb-6 bg-blue-500/5 border border-blue-500/10 rounded-xl gap-3">
+        <div class="text-xs text-blue-200 flex items-center gap-2">
+             <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+            <span><span class="font-bold">Besoin d'actualiser ?</span> Vous ne trouvez pas ce que vous cherchez ?</span>
+        </div>
+        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs hover:bg-blue-500/10 hover:text-blue-300 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap w-full md:w-auto justify-center">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Recharger les données
+        </button>
+    </div>
+`;
+
 export const EnterpriseView = () => {
     const tabs = [
         { id: 'market', label: 'Marché', icon: 'shopping-cart' },
@@ -16,6 +28,7 @@ export const EnterpriseView = () => {
         // CHECK SESSION CLOSED
         if (!state.activeGameSession) {
             content = `
+                ${refreshBanner}
                 <div class="flex flex-col items-center justify-center h-full p-10 text-center animate-fade-in">
                     <div class="w-24 h-24 bg-blue-900/20 rounded-full flex items-center justify-center text-blue-500 mb-6 border border-blue-500/20">
                         <i data-lucide="store" class="w-12 h-12"></i>
@@ -33,6 +46,7 @@ export const EnterpriseView = () => {
             const items = state.enterpriseMarket || [];
             content = `
                 <div class="space-y-6">
+                    ${refreshBanner}
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="store" class="w-5 h-5 text-blue-400"></i> Place de Marché</h3>
                         <div class="text-xs text-gray-400">Achats disponibles.</div>
@@ -75,6 +89,12 @@ export const EnterpriseView = () => {
     // --- MY COMPANIES TAB ---
     else if (state.activeEnterpriseTab === 'my_companies') {
         content = `
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-white">Vos Organisations</h3>
+                <button onclick="actions.setEnterpriseTab('my_companies')" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 hover:bg-white/10">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser
+                </button>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 ${state.myEnterprises.length === 0 ? '<div class="col-span-2 text-center text-gray-500 py-10">Vous n\'êtes dans aucune entreprise.</div>' : ''}
                 ${state.myEnterprises.map(ent => `
@@ -111,8 +131,11 @@ export const EnterpriseView = () => {
             <div class="h-full flex flex-col animate-fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <button onclick="actions.setEnterpriseTab('my_companies')" class="text-gray-400 hover:text-white flex items-center gap-2 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i> Retour</button>
-                    <h2 class="text-2xl font-bold text-white">${ent.name}</h2>
-                    <div class="text-xs text-gray-500 uppercase font-bold tracking-widest">Interface de Gestion</div>
+                    <div class="flex gap-3 items-center">
+                        <h2 class="text-2xl font-bold text-white">${ent.name}</h2>
+                        <button onclick="actions.openEnterpriseManagement('${ent.id}')" class="glass-btn-secondary p-2 rounded-lg text-gray-400 hover:text-white" title="Actualiser"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="text-xs text-gray-500 uppercase font-bold tracking-widest hidden md:block">Interface de Gestion</div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
@@ -130,7 +153,7 @@ export const EnterpriseView = () => {
                                 </form>
                                 ${isLeader ? `
                                     <form onsubmit="actions.entWithdraw(event)" class="flex gap-2">
-                                        <input type="number" name="amount" placeholder="Retrait" class="glass-input flex-1 p-2 rounded-lg text-sm" min="1" required>
+                                        <input type="number" name="amount" placeholder="Retrait (Max 100k)" class="glass-input flex-1 p-2 rounded-lg text-sm" min="1" required>
                                         <button class="glass-btn-secondary px-3 rounded-lg text-red-400 border-red-500/30 hover:bg-red-500/10"><i data-lucide="arrow-up" class="w-4 h-4"></i></button>
                                     </form>
                                 ` : ''}
