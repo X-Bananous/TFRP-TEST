@@ -23,6 +23,101 @@ const refreshBanner = `
     </div>
 `;
 
+// --- ADVENT CALENDAR VIEW COMPONENT ---
+const AdventCalendarView = () => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    // Logic: 16 to 25
+    const startDay = 16;
+    const endDay = 25;
+    const days = [];
+    
+    // Check next unlock
+    let nextUnlockStr = '';
+    if (currentDay < startDay) {
+        nextUnlockStr = `Ouverture le ${startDay} Décembre`;
+    } else if (currentDay >= endDay) {
+        nextUnlockStr = "Joyeuses Fêtes !";
+    } else {
+        // Calculate time until next day (00:00)
+        const tomorrow = new Date(today);
+        tomorrow.setDate(currentDay + 1);
+        tomorrow.setHours(0,0,0,0);
+        const diff = Math.ceil((tomorrow - today) / (1000 * 60 * 60));
+        nextUnlockStr = `Prochaine case dans ~${diff}h`;
+    }
+
+    for (let i = startDay; i <= endDay; i++) {
+        const isClaimed = state.user.advent_calendar?.includes(i);
+        const isLocked = i > currentDay; // Future date
+        const isAvailable = !isLocked && !isClaimed;
+        
+        let bgClass = 'bg-white/5 border-white/5';
+        let icon = 'lock';
+        let textClass = 'text-gray-500';
+        let statusText = 'Verrouillé';
+        
+        if (isClaimed) {
+            bgClass = 'bg-emerald-900/20 border-emerald-500/30';
+            icon = 'check-circle';
+            textClass = 'text-emerald-400';
+            statusText = 'Ouvert';
+        } else if (isAvailable) {
+            bgClass = 'bg-gradient-to-br from-red-600 to-red-800 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] animate-pulse-slow';
+            icon = 'gift';
+            textClass = 'text-white';
+            statusText = 'Ouvrir !';
+        }
+
+        days.push({ day: i, isClaimed, isLocked, isAvailable, bgClass, icon, textClass, statusText });
+    }
+
+    return `
+        <div class="animate-fade-in max-w-5xl mx-auto h-full flex flex-col">
+            <div class="text-center mb-10 mt-4">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-400 text-sm font-bold border border-red-500/20 mb-4">
+                    <i data-lucide="snowflake" class="w-4 h-4"></i> Édition Spéciale Noël
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Calendrier de l'Avent</h1>
+                <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 16 au 25 Décembre pour débloquer des récompenses exclusives.</p>
+                <div class="mt-4 text-xs font-mono text-emerald-400 bg-black/40 inline-block px-3 py-1 rounded border border-emerald-500/20">
+                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${nextUnlockStr}
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar pb-10">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 px-4">
+                    ${days.map(d => `
+                        <button 
+                            ${d.isAvailable ? `onclick="actions.claimAdventReward(${d.day})"` : 'disabled'}
+                            class="relative aspect-square rounded-2xl border ${d.bgClass} flex flex-col items-center justify-center gap-2 group transition-all transform hover:scale-105 ${d.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'}">
+                            
+                            <div class="absolute top-3 left-4 font-black text-4xl text-white/10 select-none">${d.day}</div>
+                            
+                            <div class="relative z-10 p-3 rounded-full bg-black/20 backdrop-blur-sm">
+                                <i data-lucide="${d.icon}" class="w-8 h-8 ${d.textClass}"></i>
+                            </div>
+                            
+                            <div class="relative z-10 text-sm font-bold ${d.textClass} uppercase tracking-wider">
+                                ${d.statusText}
+                            </div>
+                            
+                            ${d.isAvailable ? '<div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>' : ''}
+                        </button>
+                    `).join('')}
+                </div>
+                
+                <div class="mt-12 text-center">
+                    <div class="inline-block p-4 bg-white/5 rounded-xl border border-white/5 max-w-md">
+                        <h4 class="text-white font-bold mb-1 flex items-center justify-center gap-2"><i data-lucide="gift" class="w-4 h-4 text-yellow-400"></i> Récompense Finale</h4>
+                        <p class="text-xs text-gray-400">Cumulez jusqu'à <b>$55,000</b> en ouvrant toutes les cases.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
 export const HubView = () => {
     // --- CHECK ALIGNMENT ---
     if (state.activeCharacter && !state.activeCharacter.alignment && !state.alignmentModalShown) {
@@ -95,36 +190,6 @@ export const HubView = () => {
         const job = state.activeCharacter?.job || 'unemployed';
         const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(job);
         
-        // ADVENT CALENDAR WIDGET (Modified to always show if requested)
-        const today = new Date();
-        const d = today.getDate();
-        const m = today.getMonth() + 1;
-        // Logic modified: Show regardless of date for now as per "doit deja s'afficher" request
-        // Original logic: const showAdvent = m === 12 && d >= 16 && d <= 25;
-        const showAdvent = true; 
-        const hasClaimed = state.user.advent_calendar?.includes(d);
-        
-        let adventHtml = '';
-        if (showAdvent) {
-            adventHtml = `
-                <div class="glass-panel p-4 mb-4 rounded-2xl bg-gradient-to-r from-red-900/40 via-green-900/40 to-black border-white/20 relative overflow-hidden flex items-center justify-between">
-                    <div class="absolute top-0 right-0 p-4 opacity-10 text-white"><i data-lucide="gift" class="w-32 h-32"></i></div>
-                    <div class="relative z-10 flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-2xl border border-white/20">🎄</div>
-                        <div>
-                            <div class="text-xs font-bold text-white uppercase tracking-widest mb-1">Calendrier de l'Avent</div>
-                            <div class="text-sm text-gray-300">Case du <span class="font-bold text-white">${d} Décembre</span> disponible !</div>
-                        </div>
-                    </div>
-                    ${hasClaimed ? `
-                        <button disabled class="glass-btn-secondary px-6 py-2 rounded-xl text-sm font-bold opacity-50 cursor-not-allowed">Déjà Ouvert</button>
-                    ` : `
-                        <button onclick="actions.claimAdventReward()" class="glass-btn bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 relative z-10 animate-pulse">Ouvrir</button>
-                    `}
-                </div>
-            `;
-        }
-
         let newsHtml = '';
         if (state.globalActiveHeists && state.globalActiveHeists.length > 0) {
             const majorHeists = state.globalActiveHeists.filter(h => !['house', 'gas', 'atm'].includes(h.heist_type));
@@ -200,7 +265,22 @@ export const HubView = () => {
             <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
                  <!-- DASHBOARD HEADER & BANNER -->
                  ${refreshBanner}
-                 ${adventHtml}
+                 
+                 <!-- ADVENT CALENDAR BANNER -->
+                 <button onclick="actions.setHubPanel('advent')" class="w-full glass-panel p-4 mb-4 rounded-2xl bg-gradient-to-r from-red-900/60 via-black to-black border-red-500/30 relative overflow-hidden flex items-center justify-between group hover:border-red-500/50 transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)]">
+                    <div class="absolute -right-4 -top-4 text-white opacity-10 group-hover:scale-110 transition-transform duration-500"><i data-lucide="gift" class="w-32 h-32"></i></div>
+                    <div class="relative z-10 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-2xl border border-white/20 animate-bounce">🎄</div>
+                        <div class="text-left">
+                            <div class="text-xs font-bold text-red-400 uppercase tracking-widest mb-1">Événement Spécial</div>
+                            <div class="text-lg font-bold text-white">Calendrier de l'Avent</div>
+                            <div class="text-xs text-gray-400">Du 16 au 25 Décembre • Récompenses Quotidiennes</div>
+                        </div>
+                    </div>
+                    <div class="relative z-10 bg-white text-red-900 font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-2 group-hover:bg-red-100 transition-colors">
+                        Ouvrir <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </div>
+                 </button>
                  
                 <div class="mb-6 relative rounded-3xl overflow-hidden h-48 group shadow-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-black border border-white/10">
                     <div class="absolute inset-0 p-8 flex flex-col justify-center">
@@ -351,6 +431,8 @@ export const HubView = () => {
                 </div>
             </div>
         `;
+    } else if (state.activeHubPanel === 'advent') {
+        content = AdventCalendarView();
     } else if (state.activeHubPanel === 'staff_list') {
         const staffList = state.staffMembers || [];
         // Sort Founders first
@@ -382,7 +464,7 @@ export const HubView = () => {
                         const discordColor = { online: 'bg-green-500', idle: 'bg-yellow-500', dnd: 'bg-red-500', offline: 'bg-gray-500' }[discordStatus] || 'bg-gray-500';
                         
                         return `
-                        <div class="glass-panel p-4 rounded-xl border border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors">
+                        <div class="glass-panel p-4 rounded-xl border border-white/5 flex items-center gap-4 hover:bg-white/10 transition-colors">
                             <div class="w-14 h-14 rounded-full border border-white/10 shrink-0">
                                 <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-full object-cover">
                             </div>
@@ -505,6 +587,7 @@ export const HubView = () => {
         let html = `
             <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Menu Principal</div>
             ${navItem('main', 'layout-grid', 'Tableau de bord', 'text-blue-400')}
+            ${navItem('advent', 'snowflake', 'Calendrier Avent', 'text-red-400')}
             ${navItem('staff_list', 'users-round', 'Liste du Staff', 'text-yellow-400')}
             
             ${isSessionActive ? `

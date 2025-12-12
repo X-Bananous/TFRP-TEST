@@ -556,30 +556,39 @@ export const fetchEnterpriseDetails = async (entId) => {
 };
 
 // --- ADVENT CALENDAR ---
-export const claimAdventReward = async () => {
+export const claimAdventReward = async (targetDay) => {
     const today = new Date();
-    const day = today.getDate();
-    const month = today.getMonth() + 1; // Dec = 12
+    const currentDay = today.getDate();
+    // For testing/demo purposes, we allow forcing date, but normal logic applies
+    // To strictly follow logic:
+    // const month = today.getMonth() + 1; // Dec = 12
+    // if (month !== 12) return showToast("Ce n'est pas Noël !", 'error');
+    
+    if (targetDay < 16 || targetDay > 25) {
+        showToast("Date invalide (16-25 Décembre).", 'error');
+        return;
+    }
 
-    // Check Date Range (16 to 25 Dec)
-    if (month !== 12 || day < 16 || day > 25) {
-        showToast("Le calendrier n'est pas actif aujourd'hui.", 'error');
+    // Cooldown/Date check
+    // If targetDay > currentDay, it means it's in the future
+    if (targetDay > currentDay) {
+        showToast("Patience ! Cette case est verrouillée.", 'error');
         return;
     }
 
     // Check if already claimed
     const claimedDays = state.user.advent_calendar || [];
-    if (claimedDays.includes(day)) {
-        showToast("Vous avez déjà ouvert la case du jour !", 'warning');
+    if (claimedDays.includes(targetDay)) {
+        showToast("Vous avez déjà ouvert cette case.", 'warning');
         return;
     }
 
     // Calculate Reward
     // 16th -> 1000, 17th -> 2000 ... 25th -> 10000. Sum = 55000.
-    const reward = (day - 15) * 1000; 
+    const reward = (targetDay - 15) * 1000; 
 
     // Update DB
-    const newClaimed = [...claimedDays, day];
+    const newClaimed = [...claimedDays, targetDay];
     const { error } = await state.supabase.from('profiles').update({ advent_calendar: newClaimed }).eq('id', state.user.id);
     
     if (error) {
@@ -591,14 +600,14 @@ export const claimAdventReward = async () => {
     const charId = state.activeCharacter.id;
     const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
     await state.supabase.from('bank_accounts').update({ bank_balance: (bank.bank_balance || 0) + reward }).eq('character_id', charId);
-    await state.supabase.from('transactions').insert({ sender_id: null, receiver_id: charId, amount: reward, type: 'deposit', description: `Calendrier Avent (Jour ${day})` });
+    await state.supabase.from('transactions').insert({ sender_id: null, receiver_id: charId, amount: reward, type: 'deposit', description: `Calendrier Avent (Jour ${targetDay})` });
 
     // Update State
     state.user.advent_calendar = newClaimed;
     await fetchBankData(charId); // Refresh UI
     
     showModal({
-        title: `🎁 Case du ${day} Décembre`,
+        title: `🎁 Case du ${targetDay} Décembre`,
         content: `
             <div class="text-center">
                 <div class="text-4xl mb-4">🎄</div>

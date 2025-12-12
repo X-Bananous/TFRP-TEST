@@ -179,3 +179,7 @@ export const deleteInventoryItem = async (itemId, itemName) => {
         }
     });
 };
+
+export const claimAdventReward = async (day) => {
+    await services.claimAdventReward(day);
+};

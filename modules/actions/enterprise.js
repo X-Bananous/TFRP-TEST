@@ -184,6 +184,3 @@ export const entWithdraw = async (e) => {
     await services.fetchEnterpriseDetails(ent.id);
     render();
 };
-export const claimAdventReward = async () => {
-    await services.claimAdventReward();
-};
