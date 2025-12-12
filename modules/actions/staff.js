@@ -367,19 +367,42 @@ export const searchProfilesForPerms = async (query) => {
         return;
     }
 
-    const results = await services.searchProfiles(query);
+    let results = [];
+
+    // Switch Search Context: Character vs Discord User
+    if (state.activeStaffTab === 'enterprise') {
+        // Search Characters (Citizens)
+        if(!state.allCharactersAdmin || state.allCharactersAdmin.length === 0) {
+             await services.fetchAllCharacters();
+        }
+        const q = query.toLowerCase();
+        results = state.allCharactersAdmin
+            .filter(c => c.status === 'accepted' && (`${c.first_name} ${c.last_name}`.toLowerCase().includes(q)))
+            .slice(0, 10);
+    } else {
+        // Search Discord Profiles
+        results = await services.searchProfiles(query);
+    }
+
     state.staffPermissionSearchResults = results;
     
     if (results.length > 0) {
-         container.innerHTML = results.map(p => `
+         container.innerHTML = results.map(p => {
+            // Handle differences between Profile (username) and Character (first_name)
+            const name = p.username || `${p.first_name} ${p.last_name}`;
+            const avatar = p.avatar_url || p.discord_avatar;
+            const subtext = state.activeStaffTab === 'enterprise' ? `Citoyen • ${p.discord_username}` : `Discord ID: ${p.id}`;
+
+            return `
             <div onclick="actions.selectUserForPerms('${p.id}')" class="p-3 hover:bg-white/10 cursor-pointer flex items-center gap-3 border-b border-white/5 last:border-0">
-                <img src="${p.avatar_url || ''}" class="w-8 h-8 rounded-full bg-gray-700">
+                <img src="${avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-8 h-8 rounded-full bg-gray-700 object-cover">
                 <div>
-                    <div class="font-bold text-sm text-white">${p.username}</div>
-                    <div class="text-[10px] text-gray-500">${p.id}</div>
+                    <div class="font-bold text-sm text-white">${name}</div>
+                    <div class="text-[10px] text-gray-500">${subtext}</div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
         container.classList.remove('hidden');
     } else {
          container.innerHTML = '<div class="p-3 text-xs text-gray-500 italic">Aucun résultat</div>';
@@ -390,13 +413,17 @@ export const searchProfilesForPerms = async (query) => {
 export const selectUserForPerms = async (userId) => {
     state.activePermissionUserId = userId; 
     let profile = state.staffPermissionSearchResults.find(p => p.id === userId);
+    
+    // Fallback lookups
     if(!profile) profile = state.staffMembers.find(p => p.id === userId);
-    if(!profile) profile = state.allCharactersAdmin.find(c => c.id === userId); // Reuse character search for enterprise leader
+    if(!profile) profile = state.allCharactersAdmin.find(c => c.id === userId); 
     
     if(!profile) {
+        // Try fetching Discord profile if not found in memory (only if not enterprise mode ideally, but acceptable fallback)
         const { data } = await state.supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
         profile = data;
     }
+    
     if (!profile) return;
     
     const dropdown = document.getElementById('perm-search-dropdown');
@@ -406,10 +433,13 @@ export const selectUserForPerms = async (userId) => {
         renderPermEditor(profile);
     } else if (state.activeStaffTab === 'enterprise') {
         // Special logic for Enterprise Leader Selection
-        // Update input
+        // Update input with Character Name
         const input = document.getElementById('ent-leader-search');
-        if(input) input.value = profile.first_name ? `${profile.first_name} ${profile.last_name}` : profile.username;
-        // Keep ID in state.activePermissionUserId
+        if(input) {
+            const name = profile.first_name ? `${profile.first_name} ${profile.last_name}` : profile.username;
+            input.value = name;
+        }
+        // Keep ID in state.activePermissionUserId (This is now a UUID from character)
     }
 };
 
