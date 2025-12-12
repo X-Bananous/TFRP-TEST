@@ -8,7 +8,7 @@ import {
     fetchGlobalHeists, fetchEmergencyCalls, fetchAllCharacters, fetchERLCData, 
     fetchPendingApplications, fetchStaffProfiles, fetchOnDutyStaff, 
     fetchServerStats, fetchPendingHeistReviews, fetchAvailableLobbies,
-    fetchActiveSession, fetchSessionHistory
+    fetchActiveSession, fetchSessionHistory, fetchEnterpriseMarket, fetchMyEnterprises, fetchEnterpriseDetails
 } from '../services.js';
 import { hasPermission } from '../utils.js';
 
@@ -90,6 +90,8 @@ export const setHubPanel = async (panel) => {
             await fetchInventory(state.activeCharacter.id);
         } else if (panel === 'enterprise') {
             // Placeholder for future data fetching
+            if(state.activeEnterpriseTab === 'market') await fetchEnterpriseMarket();
+            else if(state.activeEnterpriseTab === 'my_companies' && state.activeCharacter) await fetchMyEnterprises(state.activeCharacter.id);
         } else if (panel === 'illicit' && state.activeCharacter) {
             state.activeIllicitTab = 'dashboard'; 
             state.blackMarketSearch = ''; 
@@ -181,6 +183,11 @@ export const refreshCurrentView = async () => {
         else if (state.activeHubPanel === 'staff_list') {
             await fetchStaffProfiles();
             await fetchOnDutyStaff();
+        }
+        else if (state.activeHubPanel === 'enterprise') {
+             if (state.activeEnterpriseTab === 'market') await fetchEnterpriseMarket();
+             if (state.activeEnterpriseTab === 'my_companies' && charId) await fetchMyEnterprises(charId);
+             if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) await fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
         }
         else if (state.activeHubPanel === 'staff') {
             if (state.activeStaffTab === 'applications') await fetchPendingApplications();

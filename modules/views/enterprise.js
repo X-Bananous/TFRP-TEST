@@ -45,8 +45,8 @@ export const EnterpriseView = () => {
         } else {
             const items = state.enterpriseMarket || [];
             content = `
+                ${refreshBanner}
                 <div class="space-y-6">
-                    ${refreshBanner}
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="store" class="w-5 h-5 text-blue-400"></i> Place de Marché</h3>
                         <div class="text-xs text-gray-400">Achats disponibles.</div>
@@ -89,12 +89,7 @@ export const EnterpriseView = () => {
     // --- MY COMPANIES TAB ---
     else if (state.activeEnterpriseTab === 'my_companies') {
         content = `
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="font-bold text-white">Vos Organisations</h3>
-                <button onclick="actions.setEnterpriseTab('my_companies')" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 hover:bg-white/10">
-                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser
-                </button>
-            </div>
+            ${refreshBanner}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 ${state.myEnterprises.length === 0 ? '<div class="col-span-2 text-center text-gray-500 py-10">Vous n\'êtes dans aucune entreprise.</div>' : ''}
                 ${state.myEnterprises.map(ent => `
@@ -131,11 +126,8 @@ export const EnterpriseView = () => {
             <div class="h-full flex flex-col animate-fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <button onclick="actions.setEnterpriseTab('my_companies')" class="text-gray-400 hover:text-white flex items-center gap-2 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i> Retour</button>
-                    <div class="flex gap-3 items-center">
-                        <h2 class="text-2xl font-bold text-white">${ent.name}</h2>
-                        <button onclick="actions.openEnterpriseManagement('${ent.id}')" class="glass-btn-secondary p-2 rounded-lg text-gray-400 hover:text-white" title="Actualiser"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
-                    </div>
-                    <div class="text-xs text-gray-500 uppercase font-bold tracking-widest hidden md:block">Interface de Gestion</div>
+                    <h2 class="text-2xl font-bold text-white">${ent.name}</h2>
+                    <button onclick="actions.refreshCurrentView()" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-2"><i data-lucide="refresh-cw" class="w-3 h-3"></i></button>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
@@ -153,7 +145,7 @@ export const EnterpriseView = () => {
                                 </form>
                                 ${isLeader ? `
                                     <form onsubmit="actions.entWithdraw(event)" class="flex gap-2">
-                                        <input type="number" name="amount" placeholder="Retrait (Max 100k)" class="glass-input flex-1 p-2 rounded-lg text-sm" min="1" required>
+                                        <input type="number" name="amount" placeholder="Retrait" class="glass-input flex-1 p-2 rounded-lg text-sm" min="1" required>
                                         <button class="glass-btn-secondary px-3 rounded-lg text-red-400 border-red-500/30 hover:bg-red-500/10"><i data-lucide="arrow-up" class="w-4 h-4"></i></button>
                                     </form>
                                 ` : ''}
