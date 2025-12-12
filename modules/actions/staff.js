@@ -1,21 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { state } from '../state.js';
 import { render } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -44,6 +27,11 @@ export const setStaffTab = async (tab) => {
         if (tab === 'illegal') {
             await services.fetchPendingHeistReviews();
             await services.fetchGangs();
+        }
+        if (tab === 'enterprise') {
+            await services.fetchEnterprises();
+            await services.fetchPendingEnterpriseItems();
+            await services.fetchAllCharacters(); // For leader selection
         }
         if (tab === 'sessions' || tab === 'logs') {
             await services.fetchERLCData();
@@ -208,6 +196,69 @@ export const validateHeist = async (lobbyId, success) => {
     render();
 };
 
+// --- ENTERPRISE ADMINISTRATION ---
+export const adminCreateEnterprise = async (e) => {
+    e.preventDefault();
+    if (!hasPermission('can_manage_enterprises')) return;
+    
+    const formData = new FormData(e.target);
+    const name = formData.get('name');
+    
+    if(!state.activePermissionUserId) {
+        ui.showToast("Veuillez sélectionner un PDG.", 'error');
+        return;
+    }
+
+    await services.createEnterprise(name, state.activePermissionUserId);
+    
+    // Reset state
+    state.activePermissionUserId = null;
+    state.staffPermissionSearchResults = [];
+    e.target.reset();
+    
+    await services.fetchEnterprises();
+    render();
+};
+
+export const adminModerateItem = async (itemId, action) => {
+    // action: 'approve', 'reject'
+    await services.moderateEnterpriseItem(itemId, action === 'approve' ? 'approved' : 'rejected');
+    ui.showToast(action === 'approve' ? "Article approuvé." : "Article rejeté.", action === 'approve' ? 'success' : 'warning');
+    await services.fetchPendingEnterpriseItems();
+    render();
+};
+
+export const adminDeleteEnterprise = async (entId) => {
+    if (!hasPermission('can_manage_enterprises')) return;
+    ui.showModal({
+        title: "Dissoudre Entreprise",
+        content: "Cette action supprimera l'entreprise et tous ses membres.",
+        confirmText: "Dissoudre",
+        type: "danger",
+        onConfirm: async () => {
+            await state.supabase.from('enterprises').delete().eq('id', entId);
+            ui.showToast("Entreprise supprimée.", 'info');
+            await services.fetchEnterprises();
+            render();
+        }
+    });
+};
+
+// --- ERLC COMMANDS ---
+export const executeCommand = async (e) => {
+    e.preventDefault();
+    if (!hasPermission('can_execute_commands')) return;
+    
+    const btn = e.submitter;
+    toggleBtnLoading(btn, true);
+    
+    const command = new FormData(e.target).get('command');
+    await services.executeServerCommand(command);
+    
+    toggleBtnLoading(btn, false);
+    e.target.reset();
+};
+
 // --- GANG ADMINISTRATION ---
 export const openEditGang = (gangId) => {
     const gang = state.gangs.find(g => g.id === gangId);
@@ -340,8 +391,10 @@ export const selectUserForPerms = async (userId) => {
     state.activePermissionUserId = userId; 
     let profile = state.staffPermissionSearchResults.find(p => p.id === userId);
     if(!profile) profile = state.staffMembers.find(p => p.id === userId);
+    if(!profile) profile = state.allCharactersAdmin.find(c => c.id === userId); // Reuse character search for enterprise leader
+    
     if(!profile) {
-        const { data } = await state.supabase.from('profiles').select('*').eq('id', userId).single();
+        const { data } = await state.supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
         profile = data;
     }
     if (!profile) return;
@@ -349,7 +402,15 @@ export const selectUserForPerms = async (userId) => {
     const dropdown = document.getElementById('perm-search-dropdown');
     if(dropdown) dropdown.classList.add('hidden');
 
-    renderPermEditor(profile);
+    if (state.activeStaffTab === 'permissions') {
+        renderPermEditor(profile);
+    } else if (state.activeStaffTab === 'enterprise') {
+        // Special logic for Enterprise Leader Selection
+        // Update input
+        const input = document.getElementById('ent-leader-search');
+        if(input) input.value = profile.first_name ? `${profile.first_name} ${profile.last_name}` : profile.username;
+        // Keep ID in state.activePermissionUserId
+    }
 };
 
 export const renderPermEditor = (profile) => {
@@ -370,13 +431,15 @@ export const renderPermEditor = (profile) => {
         { k: 'can_manage_characters', l: 'Gérer Personnages' },
         { k: 'can_manage_economy', l: 'Gérer Économie' },
         { k: 'can_manage_illegal', l: 'Gérer Illégal' },
+        { k: 'can_manage_enterprises', l: 'Gérer Entreprises' },
         { k: 'can_manage_staff', l: 'Gérer Staff' },
         { k: 'can_manage_inventory', l: 'Gérer Inventaires' },
         { k: 'can_change_team', l: 'Changer Équipe' },
         { k: 'can_go_onduty', l: 'Prendre Service' },
         { k: 'can_manage_jobs', l: 'Gérer Métiers' },
         { k: 'can_bypass_login', l: 'Bypass Login' },
-        { k: 'can_launch_session', l: 'Gérer Sessions (LaunchSess)' }
+        { k: 'can_launch_session', l: 'Gérer Sessions' },
+        { k: 'can_execute_commands', l: 'Commandes ERLC' }
     ].map(p => `
         <label class="flex items-center gap-3 p-3 bg-white/5 rounded-lg ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'} transition-colors">
             <input type="checkbox" onchange="actions.updatePermission('${profile.id}', '${p.k}', this.checked)" 

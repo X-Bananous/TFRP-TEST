@@ -5,8 +5,7 @@ import { CONFIG } from '../config.js';
 export const EnterpriseView = () => {
     const tabs = [
         { id: 'market', label: 'Marché', icon: 'shopping-cart' },
-        { id: 'my_companies', label: 'Mes Entreprises', icon: 'building' },
-        { id: 'create', label: 'Créer', icon: 'plus-circle' }
+        { id: 'my_companies', label: 'Mes Entreprises', icon: 'building' }
     ];
 
     let content = '';
@@ -81,33 +80,6 @@ export const EnterpriseView = () => {
                 `).join('')}
             </div>
         `;
-    }
-
-    // --- CREATE TAB ---
-    else if (state.activeEnterpriseTab === 'create') {
-        const slotsLeft = CONFIG.MAX_ENTERPRISES - state.myEnterprises.length;
-        if (slotsLeft <= 0) {
-            content = `
-                <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                    <i data-lucide="ban" class="w-16 h-16 mb-4 opacity-50 text-red-500"></i>
-                    <h2 class="text-xl font-bold text-white mb-2">Limite Atteinte</h2>
-                    <p>Vous avez rejoint le maximum de ${CONFIG.MAX_ENTERPRISES} entreprises.</p>
-                </div>
-            `;
-        } else {
-            content = `
-                <div class="max-w-md mx-auto glass-panel p-8 rounded-2xl">
-                    <h3 class="text-xl font-bold text-white mb-6 text-center">Enregistrer une Société</h3>
-                    <form onsubmit="actions.createNewEnterprise(event)" class="space-y-4">
-                        <div>
-                            <label class="text-xs text-gray-500 uppercase font-bold ml-1">Nom de l'entreprise</label>
-                            <input type="text" name="name" class="glass-input w-full p-3 rounded-xl" placeholder="ex: Taxi Los Santos" required>
-                        </div>
-                        <button type="submit" class="glass-btn w-full py-3 rounded-xl font-bold">Créer et Devenir Patron</button>
-                    </form>
-                </div>
-            `;
-        }
     }
 
     // --- MANAGEMENT VIEW (Sub-view) ---
@@ -192,7 +164,7 @@ export const EnterpriseView = () => {
                                 <label class="text-[10px] text-gray-500 uppercase font-bold">Description (Optionnel)</label>
                                 <input type="text" name="description" class="glass-input w-full p-2 rounded-lg text-sm">
                             </div>
-                            <button type="submit" class="glass-btn w-full py-2 rounded-lg text-sm font-bold">Mettre en Vente</button>
+                            <button type="submit" class="glass-btn w-full py-2 rounded-lg text-sm font-bold">Mettre en Vente (Validation Staff Requise)</button>
                         </form>
 
                         <div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -201,19 +173,41 @@ export const EnterpriseView = () => {
                                     <tr>
                                         <th class="pb-2">Article</th>
                                         <th class="pb-2">Prix</th>
-                                        <th class="pb-2">Stock</th>
-                                        <th class="pb-2 text-right">Statut</th>
+                                        <th class="pb-2">Statut</th>
+                                        <th class="pb-2 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-white/5">
-                                    ${ent.items.map(i => `
+                                    ${ent.items.map(i => {
+                                        const isHidden = i.is_hidden;
+                                        const isPending = i.status === 'pending';
+                                        const isApproved = i.status === 'approved';
+                                        
+                                        return `
                                         <tr>
-                                            <td class="py-3 text-white">${i.name}</td>
+                                            <td class="py-3 text-white">
+                                                ${i.name}
+                                                ${isHidden ? '<span class="text-[9px] bg-gray-600 px-1 rounded ml-2">Masqué</span>' : ''}
+                                            </td>
                                             <td class="py-3 font-mono text-emerald-400">$${i.price.toLocaleString()}</td>
-                                            <td class="py-3 text-gray-400">${i.quantity}</td>
-                                            <td class="py-3 text-right"><span class="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold">En Vente</span></td>
+                                            <td class="py-3">
+                                                <span class="text-[9px] uppercase font-bold px-2 py-0.5 rounded ${isPending ? 'bg-orange-500/20 text-orange-400' : isApproved ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
+                                                    ${isPending ? 'En Attente' : isApproved ? 'Approuvé' : 'Rejeté'}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 text-right flex justify-end gap-2">
+                                                ${!isPending ? `
+                                                    <button onclick="actions.toggleItemVisibility('${i.id}', ${isHidden})" class="text-xs p-1 bg-white/10 rounded hover:bg-white/20" title="${isHidden ? 'Afficher' : 'Masquer'}">
+                                                        <i data-lucide="${isHidden ? 'eye' : 'eye-off'}" class="w-4 h-4"></i>
+                                                    </button>
+                                                ` : ''}
+                                                <button onclick="actions.deleteItem('${i.id}')" class="text-xs p-1 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20" title="Supprimer">
+                                                    <i data-lucide="trash" class="w-4 h-4"></i>
+                                                </button>
+                                            </td>
                                         </tr>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>

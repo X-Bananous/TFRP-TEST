@@ -14,36 +14,11 @@ export const setEnterpriseTab = async (tab) => {
             await services.fetchEnterpriseMarket();
         } else if (tab === 'my_companies') {
             await services.fetchMyEnterprises(state.activeCharacter.id);
-        } else if (tab === 'create') {
-            // No fetch needed
         }
     } finally {
         state.isPanelLoading = false;
         render();
     }
-};
-
-export const createNewEnterprise = async (e) => {
-    e.preventDefault();
-    const btn = e.submitter;
-    toggleBtnLoading(btn, true);
-
-    const data = new FormData(e.target);
-    const name = data.get('name');
-
-    if (state.myEnterprises.length >= CONFIG.MAX_ENTERPRISES) {
-        ui.showToast(`Limite atteinte (${CONFIG.MAX_ENTERPRISES} entreprises max).`, 'error');
-        toggleBtnLoading(btn, false);
-        return;
-    }
-
-    await services.createEnterprise(name, state.activeCharacter.id);
-    
-    // Refresh
-    await services.fetchMyEnterprises(state.activeCharacter.id);
-    state.activeEnterpriseTab = 'my_companies';
-    render();
-    toggleBtnLoading(btn, false);
 };
 
 export const openEnterpriseManagement = async (entId) => {
@@ -77,6 +52,47 @@ export const addItemToMarket = async (e) => {
     await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
     toggleBtnLoading(btn, false);
     render();
+};
+
+export const toggleItemVisibility = async (itemId, isHidden) => {
+    // Only works if item is not pending
+    const item = state.activeEnterpriseManagement.items.find(i => i.id === itemId);
+    if(item && item.status === 'pending') return ui.showToast("Impossible: Item en attente de validation.", 'error');
+
+    await services.updateEnterpriseItem(itemId, { is_hidden: !isHidden });
+    ui.showToast(!isHidden ? "Article masqué." : "Article visible.", 'info');
+    await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+    render();
+};
+
+export const updateItem = async (itemId, field, value) => {
+    const item = state.activeEnterpriseManagement.items.find(i => i.id === itemId);
+    if(item && item.status === 'pending') return ui.showToast("Modif. impossible en cours de validation.", 'error');
+
+    const updates = {};
+    updates[field] = value;
+    
+    await services.updateEnterpriseItem(itemId, updates);
+    await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+    render();
+};
+
+export const deleteItem = async (itemId) => {
+    const item = state.activeEnterpriseManagement.items.find(i => i.id === itemId);
+    if(item && item.status === 'pending') return ui.showToast("Modif. impossible en cours de validation.", 'error');
+
+    ui.showModal({
+        title: "Supprimer Article",
+        content: "Supprimer définitivement cet article ?",
+        confirmText: "Supprimer",
+        type: "danger",
+        onConfirm: async () => {
+            await state.supabase.from('enterprise_items').delete().eq('id', itemId);
+            ui.showToast("Article supprimé.", 'info');
+            await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+            render();
+        }
+    });
 };
 
 export const buyItem = async (itemId, price) => {

@@ -87,11 +87,25 @@ export const LoginView = () => {
                         <br>Ici, écrivez votre propre histoire sans aucune limite.
                     </p>
 
-                    <div class="flex flex-col md:flex-row gap-4 w-full max-w-md md:max-w-none justify-center mb-16">
+                    <div class="flex flex-col md:flex-row gap-4 w-full max-w-md md:max-w-none justify-center mb-16 items-center">
                         ${state.isLoggingIn ? `
                             <button disabled class="glass-btn h-14 px-8 rounded-full font-bold text-lg flex items-center justify-center gap-3 w-64">
                                 <div class="loader-spinner w-5 h-5 border-2"></div>
                                 Connexion...
+                            </button>
+                        ` : state.user ? `
+                            <div class="flex items-center gap-3 bg-white/10 border border-white/20 p-2 rounded-full pr-6">
+                                <div class="relative w-10 h-10">
+                                    <img src="${state.user.avatar}" class="w-full h-full rounded-full object-cover">
+                                    ${state.user.avatar_decoration ? `<img src="${state.user.avatar_decoration}" class="absolute top-1/2 left-1/2 w-[120%] h-[120%] -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none" style="max-width: none">` : ''}
+                                </div>
+                                <div class="text-left">
+                                    <div class="text-[10px] text-gray-400 uppercase font-bold">Connecté en tant que</div>
+                                    <div class="text-white font-bold text-sm">${state.user.username}</div>
+                                </div>
+                            </div>
+                            <button onclick="router('select')" class="glass-btn h-14 px-8 rounded-full font-bold text-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 cursor-pointer shadow-[0_0_40px_rgba(10,132,255,0.3)]">
+                                Accéder au Panel <i data-lucide="arrow-right" class="w-5 h-5"></i>
                             </button>
                         ` : `
                             <button onclick="actions.login()" class="glass-btn h-14 px-8 rounded-full font-bold text-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 cursor-pointer shadow-[0_0_40px_rgba(10,132,255,0.3)]">
@@ -99,10 +113,13 @@ export const LoginView = () => {
                                 Connexion Citoyen
                             </button>
                         `}
-                        <a href="${CONFIG.INVITE_URL}" target="_blank" class="glass-btn-secondary h-14 px-8 rounded-full font-bold text-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 cursor-pointer bg-white/5 hover:bg-white/10">
-                            <i data-lucide="message-circle" class="w-6 h-6"></i>
-                            Communauté
-                        </a>
+                        
+                        ${!state.user ? `
+                            <a href="${CONFIG.INVITE_URL}" target="_blank" class="glass-btn-secondary h-14 px-8 rounded-full font-bold text-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 cursor-pointer bg-white/5 hover:bg-white/10">
+                                <i data-lucide="message-circle" class="w-6 h-6"></i>
+                                Communauté
+                            </a>
+                        ` : ''}
                     </div>
 
                     <!-- Info Bubbles Grid -->
@@ -147,8 +164,8 @@ export const LoginView = () => {
 
                         <!-- Legal Links -->
                         <div class="mt-8 pt-8 border-t border-white/5 flex justify-center gap-6 text-xs text-gray-500">
-                            <button onclick="router('terms')" class="hover:text-white transition-colors">Conditions d'utilisation</button>
-                            <button onclick="router('privacy')" class="hover:text-white transition-colors">Politique de confidentialité</button>
+                            <button onclick="ui.showModal({title:'Conditions d\\'Utilisation', content: window.LEGAL_TERMS, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Conditions d'utilisation</button>
+                            <button onclick="ui.showModal({title:'Politique de Confidentialité', content: window.LEGAL_PRIVACY, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Politique de confidentialité</button>
                             <span>&copy; 2024 TFRP</span>
                         </div>
                     </div>

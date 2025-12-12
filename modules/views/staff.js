@@ -1,14 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
 import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 import { hasPermission } from '../utils.js';
@@ -78,6 +68,11 @@ export const StaffView = () => {
                     Illégal & Gangs
                 </button>
             ` : ''}
+            ${hasPermission('can_manage_enterprises') ? `
+                <button onclick="actions.setStaffTab('enterprise')" class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${state.activeStaffTab === 'enterprise' ? 'bg-white/10 text-white border-b-2 border-blue-600' : 'text-gray-400 hover:text-white'}">
+                    Entreprises
+                </button>
+            ` : ''}
             ${hasPermission('can_manage_staff') ? `
                 <button onclick="actions.setStaffTab('permissions')" class="px-4 py-2 text-sm font-medium rounded-t-lg transition-colors whitespace-nowrap ${state.activeStaffTab === 'permissions' ? 'bg-white/10 text-white border-b-2 border-purple-500' : 'text-gray-400 hover:text-white'}">
                     Permissions
@@ -94,6 +89,7 @@ export const StaffView = () => {
         </div>
     `;
 
+    // ... (Economy and Inventory Modals omitted for brevity, assume they exist) ...
     // --- MODALS ---
     let economyModalHtml = '';
     if (state.economyModal.isOpen && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
@@ -237,6 +233,7 @@ export const StaffView = () => {
         `;
 
     } else if (state.activeStaffTab === 'database') {
+        // ... (Database view logic same as before) ...
         const canDelete = hasPermission('can_manage_characters');
         const canInventory = hasPermission('can_manage_inventory');
         const canChangeTeam = hasPermission('can_change_team');
@@ -333,17 +330,14 @@ export const StaffView = () => {
             </div>
         `;
     } else if (state.activeStaffTab === 'economy' && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
+         // ... (Economy content logic same as before) ...
          const { totalMoney, totalCash, totalBank, totalGang } = state.serverStats;
-         
          const bankPercent = totalMoney > 0 ? (totalBank / totalMoney) * 100 : 0;
          const cashPercent = totalMoney > 0 ? (totalCash / totalMoney) * 100 : 0;
          const gangPercent = totalMoney > 0 ? (totalGang / totalMoney) * 100 : 0;
-         
          const subTab = state.activeEconomySubTab || 'players';
-
-         // SUB-TABS CONTENT
          let subContent = '';
-
+         
          if (subTab === 'players') {
              if (!hasPermission('can_manage_economy')) {
                  subContent = `<div class="p-8 text-center text-gray-500">Accès restreint. Seuls les gestionnaires économiques peuvent voir les comptes individuels.</div>`;
@@ -353,7 +347,6 @@ export const StaffView = () => {
                     const q = state.staffSearchQuery.toLowerCase();
                     allChars = allChars.filter(c => c.first_name.toLowerCase().includes(q) || c.last_name.toLowerCase().includes(q) || c.discord_username.toLowerCase().includes(q));
                  }
-                 
                  subContent = `
                     <div class="mb-6 flex justify-between items-center bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10">
                         <div><h3 class="font-bold text-white">Actions Globales</h3><p class="text-xs text-gray-400">Affecte l'intégralité des comptes bancaires du serveur.</p></div>
@@ -387,7 +380,6 @@ export const StaffView = () => {
                  `;
              }
          } else if (subTab === 'gangs') {
-             // Accessible by both Economy and Illegal managers
              subContent = `
                 <div class="glass-panel overflow-hidden rounded-xl">
                     <table class="w-full text-left border-collapse">
@@ -449,7 +441,6 @@ export const StaffView = () => {
                                 </table>
                             </div>
                         </div>
-                        
                         <div class="glass-panel p-6 rounded-2xl h-fit">
                             <h3 class="font-bold text-white mb-4">Argent Circulé (Journalier)</h3>
                             <div class="space-y-2">
@@ -465,7 +456,6 @@ export const StaffView = () => {
                  `;
              }
          }
-
          content = `
             ${refreshBanner}
             <!-- Graphs Section -->
@@ -482,17 +472,16 @@ export const StaffView = () => {
                     <div class="flex items-center gap-2"><div class="w-3 h-3 bg-purple-500 rounded-full"></div> Gangs ($${totalGang.toLocaleString()})</div>
                 </div>
             </div>
-
             <!-- SUB TABS -->
             <div class="flex gap-2 mb-6 border-b border-white/10 pb-1">
                 ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('players')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'players' ? 'text-white border-b-2 border-emerald-500' : 'text-gray-500 hover:text-white'}">Joueurs</button>` : ''}
                 <button onclick="actions.setEconomySubTab('gangs')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'gangs' ? 'text-white border-b-2 border-purple-500' : 'text-gray-500 hover:text-white'}">Gangs</button>
                 ${hasPermission('can_manage_economy') ? `<button onclick="actions.setEconomySubTab('stats')" class="px-4 py-2 text-sm font-medium transition-colors ${subTab === 'stats' ? 'text-white border-b-2 border-blue-500' : 'text-gray-500 hover:text-white'}">Transactions & Stats</button>` : ''}
             </div>
-
             ${subContent}
         `;
     } else if (state.activeStaffTab === 'illegal' && hasPermission('can_manage_illegal')) {
+        // ... (Illegal Logic) ...
         const { totalCoke, totalWeed } = state.serverStats;
         const totalDrugs = totalCoke + totalWeed;
         const cokePercent = totalDrugs > 0 ? (totalCoke / totalDrugs) * 100 : 0;
@@ -614,6 +603,75 @@ export const StaffView = () => {
                                 }).join('')}
                             </div>
                         `}
+                    </div>
+                </div>
+            </div>
+        `;
+
+    } else if (state.activeStaffTab === 'enterprise' && hasPermission('can_manage_enterprises')) {
+        content = `
+            ${refreshBanner}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                <!-- CREATE ENTERPRISE -->
+                <div class="glass-panel p-6 rounded-2xl h-fit">
+                    <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="building-2" class="w-5 h-5 text-blue-400"></i> Créer Entreprise</h3>
+                    <form onsubmit="actions.adminCreateEnterprise(event)" class="space-y-4">
+                        <input type="text" name="name" placeholder="Nom de l'entreprise" class="glass-input w-full p-2 rounded-lg" required>
+                        
+                        <div class="relative">
+                            <label class="text-xs text-gray-500 uppercase font-bold ml-1 mb-1 block">PDG / Leader</label>
+                            <input type="text" id="ent-leader-search" placeholder="Rechercher citoyen..." 
+                                oninput="actions.searchProfilesForPerms(this.value)" 
+                                class="glass-input w-full p-2 rounded-lg text-sm" autocomplete="off">
+                            <div id="perm-search-dropdown" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-xl mt-1 max-h-48 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden"></div>
+                        </div>
+
+                        <button type="submit" class="glass-btn w-full py-2 rounded-lg font-bold bg-blue-600 hover:bg-blue-500">Créer</button>
+                    </form>
+                </div>
+
+                <!-- MODERATION QUEUE -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col h-[400px]">
+                    <h3 class="font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="check-square" class="w-5 h-5 text-orange-400"></i> 
+                        Modération Articles (${state.pendingEnterpriseItems.length})
+                    </h3>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                        ${state.pendingEnterpriseItems.length === 0 ? '<div class="text-center text-gray-500 italic py-10">Aucun article en attente.</div>' : 
+                            state.pendingEnterpriseItems.map(item => `
+                                <div class="bg-white/5 p-3 rounded-xl border border-white/5">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <div class="font-bold text-white">${item.name}</div>
+                                        <div class="text-xs text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">${item.enterprises?.name}</div>
+                                    </div>
+                                    <div class="text-sm text-gray-400 mb-2">${item.description || 'Aucune description'}</div>
+                                    <div class="flex justify-between items-center text-xs mb-3 font-mono">
+                                        <span class="text-emerald-400">$${item.price.toLocaleString()}</span>
+                                        <span class="text-gray-500">Qté: ${item.quantity}</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="actions.adminModerateItem('${item.id}', 'approve')" class="flex-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 py-1.5 rounded font-bold border border-emerald-600/30">Approuver</button>
+                                        <button onclick="actions.adminModerateItem('${item.id}', 'reject')" class="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 py-1.5 rounded font-bold border border-red-600/30">Refuser</button>
+                                    </div>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+
+                <!-- LIST ENTERPRISES -->
+                <div class="glass-panel p-6 rounded-2xl lg:col-span-2">
+                    <h3 class="font-bold text-white mb-4">Liste des Entreprises</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${state.enterprises.map(e => `
+                            <div class="bg-white/5 p-3 rounded-lg flex justify-between items-center border border-white/5">
+                                <div>
+                                    <div class="font-bold text-white">${e.name}</div>
+                                    <div class="text-xs text-gray-500 font-mono">Solde: $${(e.balance || 0).toLocaleString()}</div>
+                                </div>
+                                <button onclick="actions.adminDeleteEnterprise('${e.id}')" class="text-red-400 hover:text-white p-2 bg-red-500/10 rounded transition-colors"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             </div>
@@ -741,6 +799,19 @@ export const StaffView = () => {
 
          content = `
             ${refreshBanner}
+            
+            ${hasPermission('can_execute_commands') ? `
+                <div class="glass-panel p-6 rounded-2xl mb-6 border border-blue-500/20 shadow-lg shadow-blue-500/10">
+                    <h3 class="font-bold text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-5 h-5 text-blue-400"></i> Exécuter Commande Serveur
+                    </h3>
+                    <form onsubmit="actions.executeCommand(event)" class="flex gap-2">
+                        <input type="text" name="command" placeholder=":kill player, :m message..." class="glass-input flex-1 p-3 rounded-lg font-mono text-sm" required autocomplete="off">
+                        <button type="submit" class="glass-btn px-6 rounded-lg font-bold bg-blue-600 hover:bg-blue-500">Envoyer</button>
+                    </form>
+                </div>
+            ` : ''}
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 <!-- CONNECTED PLAYERS LIST -->
@@ -843,7 +914,7 @@ export const StaffView = () => {
                             commands.map(l => `
                                 <div class="bg-white/5 p-3 rounded-lg border border-white/5 font-mono text-xs flex justify-between items-center">
                                     <div>
-                                        <span class="text-blue-400 font-bold">${l.Admin || 'System'}</span>
+                                        <span class="text-blue-400 font-bold">${l.Admin || l.Player || 'System'}</span>
                                         <span class="text-gray-500 mx-2">>></span>
                                         <span class="text-yellow-400 font-bold">${l.Command || 'Unknown'}</span>
                                         <span class="text-gray-400 ml-2">(${l.Logs || ''})</span>

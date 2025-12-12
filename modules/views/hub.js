@@ -244,7 +244,7 @@ export const HubView = () => {
                             </div>
                         </button>
 
-                        <!-- ENTERPRISE CARD -->
+                        <!-- ENTERPRISE CARD (Updated) -->
                         <button onclick="actions.setHubPanel('enterprise')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-blue-500/20">
                             <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                             <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]">
@@ -253,7 +253,6 @@ export const HubView = () => {
                             <div class="relative z-10">
                                 <h3 class="text-xl font-bold text-white">Entreprise</h3>
                                 <p class="text-sm text-gray-400 mt-1">Gestion Société & Employés</p>
-                                <div class="mt-2 text-[10px] text-blue-300 uppercase font-bold tracking-widest"><i data-lucide="clock" class="w-3 h-3 inline"></i> Bientôt</div>
                             </div>
                         </button>
 
@@ -557,8 +556,8 @@ export const HubView = () => {
 
                 <div class="p-4 bg-black/20 border-t border-white/5 shrink-0 space-y-2">
                         <div class="flex justify-center gap-4 text-[10px] text-gray-600">
-                            <button onclick="router('terms')" class="hover:text-white">CGU</button>
-                            <button onclick="router('privacy')" class="hover:text-white">Confidentialité</button>
+                            <button onclick="ui.showModal({title:'Conditions d\\'Utilisation', content: window.LEGAL_TERMS, confirmText: 'Fermer'})" class="hover:text-white">CGU</button>
+                            <button onclick="ui.showModal({title:'Politique de Confidentialité', content: window.LEGAL_PRIVACY, confirmText: 'Fermer'})" class="hover:text-white">Confidentialité</button>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="actions.backToSelect()" class="w-full glass-btn-secondary py-2 rounded-lg text-xs text-gray-300 hover:bg-white/10 cursor-pointer flex items-center justify-center gap-1" title="Changer de personnage">

@@ -134,10 +134,11 @@ export const state = {
     },
     
     // Enterprises (NEW)
-    activeEnterpriseTab: 'market', // market, my_companies, create
+    activeEnterpriseTab: 'market', // market, my_companies
     enterprises: [],
     myEnterprises: [], // Companies I am part of
-    enterpriseMarket: [], // Items for sale
+    enterpriseMarket: [], // Items for sale (public)
+    pendingEnterpriseItems: [], // Staff moderation
     activeEnterpriseManagement: null, // The specific company being managed in UI
     
     // Services Publics

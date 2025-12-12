@@ -460,6 +460,34 @@ export const fetchERLCData = async () => {
     }
 };
 
+export const executeServerCommand = async (command) => {
+    const apiKey = await getERLCApiKey();
+    if (!apiKey) return false;
+
+    try {
+        const res = await fetch(`${CONFIG.ERLC_API_URL}/command`, {
+            method: 'POST',
+            headers: {
+                'Server-Key': apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: command })
+        });
+        
+        if (res.ok) {
+            showToast(`Commande envoyée : ${command}`, 'success');
+            return true;
+        } else {
+            showToast("Erreur exécution ERLC.", 'error');
+            return false;
+        }
+    } catch(e) {
+        console.error(e);
+        showToast("Erreur réseau ERLC.", 'error');
+        return false;
+    }
+};
+
 export const fetchEmergencyCalls = async () => {
     const { data } = await state.supabase.from('emergency_calls').select('*').neq('status', 'closed').order('created_at', { ascending: false });
     state.emergencyCalls = data || [];
@@ -850,8 +878,24 @@ export const fetchEnterpriseMarket = async () => {
     const { data } = await state.supabase
         .from('enterprise_items')
         .select('*, enterprises(name)')
-        .gt('quantity', 0); // Only available items
+        .gt('quantity', 0)
+        .eq('is_hidden', false)
+        .eq('status', 'approved'); // Only show approved and visible items
+        
     state.enterpriseMarket = data || [];
+};
+
+export const fetchPendingEnterpriseItems = async () => {
+    const { data } = await state.supabase
+        .from('enterprise_items')
+        .select('*, enterprises(name)')
+        .eq('status', 'pending');
+        
+    state.pendingEnterpriseItems = data || [];
+};
+
+export const moderateEnterpriseItem = async (itemId, status) => {
+    await state.supabase.from('enterprise_items').update({ status: status }).eq('id', itemId);
 };
 
 export const createEnterpriseItem = async (entId, name, price, quantity, paymentType, description) => {
@@ -863,9 +907,24 @@ export const createEnterpriseItem = async (entId, name, price, quantity, payment
         price,
         quantity,
         payment_type: paymentType,
-        description
+        description,
+        status: 'pending', // Pending approval
+        is_hidden: false
     });
-    showToast("Article mis en vente.", 'success');
+    showToast("Article soumis pour validation staff.", 'info');
+};
+
+export const updateEnterpriseItem = async (itemId, updates) => {
+    // Force re-verification on critical changes
+    if (updates.name || updates.price || updates.description) {
+        updates.status = 'pending';
+    }
+    
+    const { error } = await state.supabase.from('enterprise_items').update(updates).eq('id', itemId);
+    if (!error) {
+        showToast("Article mis à jour.", 'success');
+        if (updates.status === 'pending') showToast("Modifications soumises à validation.", 'info');
+    }
 };
 
 export const buyEnterpriseItem = async (itemId) => {
