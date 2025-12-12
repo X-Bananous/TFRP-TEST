@@ -611,18 +611,9 @@ export const claimAdventReward = async (targetDay) => {
     if (targetDay === 16) {
         await state.supabase.from('inventory').insert({
             character_id: charId,
-            name: "Anniversaire de Bananous 2025",
-            quantity: 1,
-            estimated_value: 1000
-        });
-        extraItemMessage = `<br><span class="text-yellow-400 font-bold text-sm">+ Objet Spécial: Anniversaire de Bananous 2025</span>`;
-    }
-    if (targetDay === 24) {
-        await state.supabase.from('inventory').insert({
-            character_id: charId,
             name: "Traineau de 2025",
             quantity: 1,
-            estimated_value: 500
+            estimated_value: 1000
         });
         extraItemMessage = `<br><span class="text-yellow-400 font-bold text-sm">+ Objet Spécial: Traineau de 2025</span>`;
     }
