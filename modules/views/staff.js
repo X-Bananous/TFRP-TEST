@@ -93,7 +93,6 @@ export const StaffView = () => {
     // --- MODALS ---
     let economyModalHtml = '';
     if (state.economyModal.isOpen && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
-        // ... (Same modal code) ...
         economyModalHtml = `
             <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="actions.closeEconomyModal()"></div>
@@ -331,7 +330,7 @@ export const StaffView = () => {
             </div>
         `;
     } else if (state.activeStaffTab === 'economy' && (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal'))) {
-         // ... (Economy content logic) ...
+         // ... (Economy content logic same as before) ...
          const { totalMoney, totalCash, totalBank, totalGang, totalEnterprise } = state.serverStats;
          const bankPercent = totalMoney > 0 ? (totalBank / totalMoney) * 100 : 0;
          const cashPercent = totalMoney > 0 ? (totalCash / totalMoney) * 100 : 0;
@@ -439,7 +438,6 @@ export const StaffView = () => {
                 </div>
              `;
          } else if (subTab === 'stats') {
-             // ... stats view ...
              if (!hasPermission('can_manage_economy')) {
                  subContent = `<div class="p-8 text-center text-gray-500">Accès restreint aux gestionnaires économiques.</div>`;
              } else {
