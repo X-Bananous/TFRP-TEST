@@ -179,7 +179,7 @@ export const IllicitView = () => {
              const batch = state.drugLab.current_batch;
              const drugInfo = DRUG_DATA[batch.type];
              labWidget = `
-                <button onclick="actions.setIllicitTab('drugs')" class="glass-panel p-4 rounded-xl border border-emerald-500/30 flex items-center justify-between animate-pulse-slow w-full hover:bg-white/5 transition-colors group text-left mt-4">
+                <button onclick="actions.setIllicitTab('drugs')" class="glass-panel p-4 rounded-xl border border-emerald-500/30 flex items-center justify-between animate-pulse-slow w-full hover:bg-white/5 transition-colors group text-left">
                     <div class="flex items-center gap-4">
                         <div class="p-3 bg-emerald-500/20 rounded-lg text-emerald-400 group-hover:scale-110 transition-transform"><i data-lucide="flask-conical" class="w-6 h-6"></i></div>
                         <div>
@@ -194,78 +194,79 @@ export const IllicitView = () => {
         }
 
         content = `
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
-                 <!-- LEFT COLUMN: STATUS & ACTIONS -->
-                 <div class="lg:col-span-2 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2">
-                    
-                    <!-- Widgets Area -->
-                    <div>
-                        ${heistWidget}
-                        ${labWidget}
-                    </div>
+            <div class="flex flex-col h-full overflow-hidden gap-6">
+                 <!-- WIDGETS ROW (Fixed) -->
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
+                     ${heistWidget}
+                     ${labWidget ? labWidget : ''}
+                 </div>
 
-                    <!-- Quick Stats -->
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="glass-panel p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Argent Sale (Liquide)</div>
-                            <div class="text-xl font-bold text-white font-mono">$${state.bankAccount.cash_balance.toLocaleString()}</div>
+                 <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+                     <!-- LEFT: STATS & FEED (Scrollable) -->
+                     <div class="lg:col-span-2 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2">
+                        <!-- Quick Stats -->
+                        <div class="grid grid-cols-3 gap-4 shrink-0">
+                            <div class="glass-panel p-4 rounded-xl border border-white/5">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Argent Sale (Liquide)</div>
+                                <div class="text-xl font-bold text-white font-mono">$${state.bankAccount.cash_balance.toLocaleString()}</div>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl border border-white/5">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Mon Gang</div>
+                                <div class="text-xl font-bold text-purple-400 truncate">${state.activeGang ? state.activeGang.name : 'Aucun'}</div>
+                            </div>
+                            <div class="glass-panel p-4 rounded-xl border border-white/5">
+                                <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Réputation</div>
+                                <div class="text-xl font-bold text-white">Niveau 1</div>
+                            </div>
                         </div>
-                        <div class="glass-panel p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Mon Gang</div>
-                            <div class="text-xl font-bold text-purple-400 truncate">${state.activeGang ? state.activeGang.name : 'Aucun'}</div>
-                        </div>
-                        <div class="glass-panel p-4 rounded-xl border border-white/5">
-                            <div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Réputation</div>
-                            <div class="text-xl font-bold text-white">Niveau 1</div>
-                        </div>
-                    </div>
 
-                    <!-- Recent Activity / News (Placeholder) -->
-                    <div class="glass-panel p-6 rounded-2xl border border-white/5 flex-1">
-                        <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="radio" class="w-5 h-5 text-red-500"></i> Fil d'actualité illégal</h3>
-                        <div class="space-y-4">
-                            ${state.bounties.slice(0, 3).map(b => `
-                                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                                    <div class="p-2 bg-red-500/10 rounded-lg text-red-400"><i data-lucide="crosshair" class="w-4 h-4"></i></div>
-                                    <div class="flex-1">
-                                        <div class="text-sm font-bold text-white">Nouveau Contrat : ${b.target_name}</div>
-                                        <div class="text-xs text-gray-500">Prime: $${b.amount.toLocaleString()}</div>
+                        <!-- Recent Activity / News -->
+                        <div class="glass-panel p-6 rounded-2xl border border-white/5 flex-1">
+                            <h3 class="font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="radio" class="w-5 h-5 text-red-500"></i> Fil d'actualité illégal</h3>
+                            <div class="space-y-4">
+                                ${state.bounties.slice(0, 3).map(b => `
+                                    <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                                        <div class="p-2 bg-red-500/10 rounded-lg text-red-400"><i data-lucide="crosshair" class="w-4 h-4"></i></div>
+                                        <div class="flex-1">
+                                            <div class="text-sm font-bold text-white">Nouveau Contrat : ${b.target_name}</div>
+                                            <div class="text-xs text-gray-500">Prime: $${b.amount.toLocaleString()}</div>
+                                        </div>
+                                        <button onclick="actions.setIllicitTab('bounties')" class="text-xs text-gray-400 hover:text-white px-2 py-1 bg-white/5 rounded">Voir</button>
                                     </div>
-                                    <button onclick="actions.setIllicitTab('bounties')" class="text-xs text-gray-400 hover:text-white px-2 py-1 bg-white/5 rounded">Voir</button>
-                                </div>
-                            `).join('')}
-                            <div class="text-xs text-gray-600 text-center italic mt-4">Restez discret. La police écoute.</div>
+                                `).join('')}
+                                <div class="text-xs text-gray-600 text-center italic mt-4">Restez discret. La police écoute.</div>
+                            </div>
                         </div>
-                    </div>
-                 </div>
+                     </div>
 
-                 <!-- RIGHT COLUMN: SHORTCUTS -->
-                 <div class="flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-                    <button onclick="actions.setIllicitTab('gangs')" class="glass-panel p-5 rounded-2xl hover:border-purple-500/50 transition-all text-left group border border-white/5">
-                        <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center text-purple-400 mb-3 group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                            <i data-lucide="users" class="w-5 h-5"></i>
-                        </div>
-                        <div class="font-bold text-white">Gérer Gang</div>
-                        <div class="text-xs text-gray-500 mt-1">Membres, Coffre & Territoire</div>
-                    </button>
+                     <!-- RIGHT: SHORTCUTS (Scrollable) -->
+                     <div class="flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+                        <button onclick="actions.setIllicitTab('gangs')" class="glass-panel p-5 rounded-2xl hover:border-purple-500/50 transition-all text-left group border border-white/5">
+                            <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center text-purple-400 mb-3 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                                <i data-lucide="users" class="w-5 h-5"></i>
+                            </div>
+                            <div class="font-bold text-white">Gérer Gang</div>
+                            <div class="text-xs text-gray-500 mt-1">Membres, Coffre & Territoire</div>
+                        </button>
 
-                    <button onclick="actions.setIllicitTab('market')" class="glass-panel p-5 rounded-2xl hover:border-red-500/50 transition-all text-left group border border-white/5">
-                        <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center text-red-400 mb-3 group-hover:bg-red-500 group-hover:text-white transition-colors">
-                            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-                        </div>
-                        <div class="font-bold text-white">Marché Noir</div>
-                        <div class="text-xs text-gray-500 mt-1">Armes & Outils illégaux</div>
-                    </button>
+                        <button onclick="actions.setIllicitTab('market')" class="glass-panel p-5 rounded-2xl hover:border-red-500/50 transition-all text-left group border border-white/5">
+                            <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center text-red-400 mb-3 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                            </div>
+                            <div class="font-bold text-white">Marché Noir</div>
+                            <div class="text-xs text-gray-500 mt-1">Armes & Outils illégaux</div>
+                        </button>
 
-                    <button onclick="actions.setIllicitTab('drugs')" class="glass-panel p-5 rounded-2xl hover:border-emerald-500/50 transition-all text-left group border border-white/5 ${!hasGang || state.activeGang?.myStatus !== 'accepted' ? 'opacity-50' : ''}">
-                        <div class="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 mb-3 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                            <i data-lucide="flask-conical" class="w-5 h-5"></i>
-                        </div>
-                        <div class="font-bold text-white">Laboratoire</div>
-                        <div class="text-xs text-gray-500 mt-1">Production de stupéfiants</div>
-                        ${!hasGang || state.activeGang?.myStatus !== 'accepted' ? '<div class="mt-2 text-[9px] text-red-400 uppercase font-bold bg-red-500/10 inline-block px-1.5 py-0.5 rounded">Gang Requis</div>' : ''}
-                    </button>
-                 </div>
+                        <button onclick="actions.setIllicitTab('drugs')" class="glass-panel p-5 rounded-2xl hover:border-emerald-500/50 transition-all text-left group border border-white/5 ${!hasGang || state.activeGang?.myStatus !== 'accepted' ? 'opacity-50' : ''}">
+                            <div class="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 mb-3 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                                <i data-lucide="flask-conical" class="w-5 h-5"></i>
+                            </div>
+                            <div class="font-bold text-white">Laboratoire</div>
+                            <div class="text-xs text-gray-500 mt-1">Production de stupéfiants</div>
+                            ${!hasGang || state.activeGang?.myStatus !== 'accepted' ? '<div class="mt-2 text-[9px] text-red-400 uppercase font-bold bg-red-500/10 inline-block px-1.5 py-0.5 rounded">Gang Requis</div>' : ''}
+                        </button>
+                     </div>
+                </div>
             </div>
         `;
     }
@@ -317,7 +318,7 @@ export const IllicitView = () => {
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
                         <!-- LEFT COL: MEMBERS -->
                         <div class="glass-panel p-0 rounded-2xl col-span-1 lg:col-span-2 flex flex-col overflow-hidden border border-white/5">
-                            <div class="p-6 border-b border-white/5 bg-[#0a0a0a]">
+                            <div class="p-6 border-b border-white/5 bg-[#0a0a0a] shrink-0">
                                 <div class="flex justify-between items-start mb-6">
                                     <div>
                                         <h2 class="text-3xl font-bold text-white mb-1 tracking-tight">${myGang.name}</h2>
@@ -369,7 +370,7 @@ export const IllicitView = () => {
                             </div>
                             
                             ${isLeader && pendingMembers.length > 0 ? `
-                                <div class="p-4 bg-orange-900/10 border-t border-orange-500/20">
+                                <div class="p-4 bg-orange-900/10 border-t border-orange-500/20 shrink-0">
                                     <h3 class="font-bold text-orange-400 mb-3 text-xs uppercase tracking-widest flex items-center gap-2">
                                         <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
                                         Candidatures (${pendingMembers.length})
@@ -390,9 +391,9 @@ export const IllicitView = () => {
                         </div>
                         
                         <!-- RIGHT COL: FINANCES -->
-                        <div class="space-y-6 flex flex-col">
+                        <div class="space-y-6 flex flex-col overflow-y-auto custom-scrollbar">
                             <!-- GANG SAFE (COFFRE FORT) -->
-                            <div class="glass-panel p-6 rounded-2xl bg-gradient-to-br from-[#0a0a0a] to-black border-purple-500/20 shadow-2xl relative overflow-hidden">
+                            <div class="glass-panel p-6 rounded-2xl bg-gradient-to-br from-[#0a0a0a] to-black border-purple-500/20 shadow-2xl relative overflow-hidden shrink-0">
                                 <div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
                                 <h3 class="font-bold text-white mb-6 flex items-center gap-2 relative z-10">
                                     <i data-lucide="vault" class="w-5 h-5 text-purple-400"></i> Coffre-Fort
@@ -439,7 +440,6 @@ export const IllicitView = () => {
             // LIST OF GANGS TO JOIN
             content = `
                 <div class="max-w-5xl mx-auto h-full flex flex-col">
-                    ${refreshBanner}
                     <div class="text-center mb-8 shrink-0">
                         <h2 class="text-3xl font-bold text-white tracking-tight">Organisations Criminelles</h2>
                         <p class="text-gray-400 text-sm mt-2">Rejoignez un syndicat du crime pour étendre votre influence.</p>
@@ -526,8 +526,7 @@ export const IllicitView = () => {
 
                 <!-- LIST -->
                 <div class="glass-panel p-0 rounded-2xl lg:col-span-2 flex flex-col h-full border border-white/5 overflow-hidden">
-                    <div class="p-6 border-b border-white/5 bg-[#0a0a0a]">
-                        ${refreshBanner}
+                    <div class="p-6 border-b border-white/5 bg-[#0a0a0a] shrink-0">
                         <div class="flex justify-between items-center mt-4">
                             <h3 class="font-bold text-white flex items-center gap-2 text-lg"><i data-lucide="list" class="w-5 h-5 text-gray-400"></i> Tableau des Primes</h3>
                             <div class="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-400 border border-white/5">${state.bounties.filter(b => b.status === 'active').length} Actifs</div>
@@ -613,7 +612,6 @@ export const IllicitView = () => {
     
             content = `
                 <div class="h-full flex flex-col min-h-0">
-                     ${refreshBanner}
                      
                      <!-- HEADER -->
                      <div class="flex flex-col md:flex-row gap-4 items-center justify-between mb-6 shrink-0">
@@ -828,7 +826,6 @@ export const IllicitView = () => {
 
             content = `
                 <div class="h-full flex flex-col min-h-0">
-                    ${refreshBanner}
                     
                     <div class="flex-1 overflow-y-auto custom-scrollbar pb-6 pr-2">
                         <!-- ACTIVE / RECRUITING SECTION -->
@@ -989,7 +986,6 @@ export const IllicitView = () => {
 
                  content = `
                     <div class="h-full flex flex-col min-h-0 animate-fade-in">
-                        ${refreshBanner}
                         
                         <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <!-- STOCKS -->
@@ -1096,9 +1092,12 @@ export const IllicitView = () => {
     }
 
     return `
-        <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
-            <!-- HEADER NAV -->
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 shrink-0">
+        <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
+            <!-- FIXED BANNER -->
+            ${refreshBanner}
+            
+            <!-- FIXED HEADER NAV -->
+            <div class="px-6 pb-4 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/5 shrink-0">
                 <div>
                     <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                         <i data-lucide="skull" class="w-6 h-6 text-red-500"></i>
@@ -1106,7 +1105,7 @@ export const IllicitView = () => {
                     </h2>
                     <p class="text-gray-400 text-sm">Darknet Access • <span class="text-red-400 font-bold uppercase">Connexion Sécurisée</span></p>
                 </div>
-                <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full">
+                <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar">
                     ${tabs.map(t => `
                         <button onclick="actions.setIllicitTab('${t.id}')" 
                             class="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${currentTab === t.id ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
@@ -1116,7 +1115,8 @@ export const IllicitView = () => {
                 </div>
             </div>
 
-            <div class="flex-1 overflow-hidden relative overflow-y-auto custom-scrollbar">
+            <!-- MAIN SCROLLABLE CONTENT AREA -->
+            <div class="flex-1 p-6 overflow-hidden relative min-h-0">
                 ${content}
             </div>
         </div>
