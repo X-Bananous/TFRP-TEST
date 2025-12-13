@@ -173,105 +173,79 @@ const initApp = async () => {
 
     // Fetch Public Data for Landing Page (before auth)
     await fetchPublicLandingData();
-    // Re-render LoginView if that's where we are
     if(state.currentView === 'login') render();
 
-    // Auth Handling
-    const fragment = new URLSearchParams(window.location.hash.slice(1));
-    const popupToken = fragment.get('access_token');
-    const tokenType = fragment.get('token_type');
-    const expiresIn = fragment.get('expires_in');
+    // Check Supabase Session
+    const { data: { session } } = await state.supabase.auth.getSession();
 
-    // 1. Popup Callback Flow
-    if (popupToken && window.opener) {
-        window.opener.postMessage({ 
-            type: 'DISCORD_AUTH_SUCCESS', 
-            token: popupToken, 
-            tokenType: tokenType, 
-            expiresIn: expiresIn
-        }, window.location.origin);
-        window.close();
-        return;
-    }
-
-    // 2. Direct Redirect Callback Flow (FIX for Landing Page issue)
-    if (popupToken) {
-        const expiryTime = new Date().getTime() + (parseInt(expiresIn) * 1000);
-        localStorage.setItem('tfrp_access_token', popupToken);
-        localStorage.setItem('tfrp_token_type', tokenType);
-        localStorage.setItem('tfrp_token_expiry', expiryTime.toString());
-        state.accessToken = popupToken;
-        
-        // Clean URL to remove token from address bar
-        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
-        
-        await handleDiscordCallback(popupToken, tokenType);
-        return; // Stop here, handled
-    }
-
-    // 3. Stored Token Flow
-    const storedToken = localStorage.getItem('tfrp_access_token');
-    const storedType = localStorage.getItem('tfrp_token_type');
-    const storedExpiry = localStorage.getItem('tfrp_token_expiry');
-
-    if (storedToken && storedExpiry && new Date().getTime() < parseInt(storedExpiry)) {
-        state.accessToken = storedToken;
-        await handleDiscordCallback(storedToken, storedType);
-    } else {
-        router('login');
-        setTimeout(() => {
-            if(loadingScreen) loadingScreen.style.opacity = '0';
-            appEl.classList.remove('opacity-0');
-            setTimeout(() => loadingScreen?.remove(), 700);
-        }, 800);
-    }
-
-    // Listener for popup messages (if popup is used)
-    window.addEventListener('message', async (event) => {
-        if (event.origin !== window.location.origin) return;
-        if (event.data.type === 'DISCORD_AUTH_SUCCESS') {
-            const { token, tokenType, expiresIn } = event.data;
-            const expiryTime = new Date().getTime() + (parseInt(expiresIn) * 1000);
-            localStorage.setItem('tfrp_access_token', token);
-            localStorage.setItem('tfrp_token_type', tokenType);
-            localStorage.setItem('tfrp_token_expiry', expiryTime.toString());
-            state.accessToken = token;
-            state.isLoggingIn = false;
-            await handleDiscordCallback(token, tokenType);
+    // Listen for Auth Changes (Sign In / Sign Out)
+    state.supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        if (event === 'SIGNED_IN' && currentSession && !state.user) {
+             await handleAuthenticatedSession(currentSession);
+        } else if (event === 'SIGNED_OUT') {
+             state.user = null;
+             router('login');
         }
     });
+
+    if (session) {
+        await handleAuthenticatedSession(session);
+    } else {
+        // Clear loading and show login if no session
+        if(loadingScreen && loadingScreen.parentNode) {
+            loadingScreen.style.opacity = '0';
+            appEl.classList.remove('opacity-0');
+            setTimeout(() => loadingScreen.remove(), 700);
+        }
+        router('login');
+    }
 
     startPolling();
 };
 
-const handleDiscordCallback = async (token, type) => {
+const handleAuthenticatedSession = async (session) => {
     const appEl = document.getElementById('app');
     const loadingScreen = document.getElementById('loading-screen');
     
     try {
+        // The provider token (Discord Access Token) is critical for Guild Verification
+        const token = session.provider_token;
+        
+        if (!token) {
+            console.warn("Session found but no provider token. Re-authenticating for security.");
+            await state.supabase.auth.signOut();
+            return;
+        }
+
+        state.accessToken = token;
+        
+        // 1. Fetch Discord User Profile
         const userRes = await fetch('https://discord.com/api/users/@me', {
-            headers: { Authorization: `${type} ${token}` }
+            headers: { Authorization: `Bearer ${token}` }
         });
         if (!userRes.ok) throw new Error('Discord User Fetch Failed');
         const discordUser = await userRes.json();
         
-        // Fetch Guilds
+        // 2. Fetch Guilds (Security Check)
         const guildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
-             headers: { Authorization: `${type} ${token}` }
+             headers: { Authorization: `Bearer ${token}` }
         });
         const guilds = await guildsRes.json();
         
         if (!guilds.some(g => g.id === CONFIG.REQUIRED_GUILD_ID)) {
             router('access_denied');
-            if(loadingScreen) loadingScreen.style.opacity = '0';
-            appEl.classList.remove('opacity-0');
-            setTimeout(() => loadingScreen?.remove(), 700);
+            if(loadingScreen && loadingScreen.parentNode) {
+                loadingScreen.style.opacity = '0';
+                appEl.classList.remove('opacity-0');
+                setTimeout(() => loadingScreen.remove(), 700);
+            }
             return;
         }
 
         let isFounder = CONFIG.ADMIN_IDS.includes(discordUser.id);
         
-        const { error: upsertError } = await state.supabase.from('profiles').upsert({
+        // 3. Upsert Profile
+        await state.supabase.from('profiles').upsert({
             id: discordUser.id,
             username: discordUser.username,
             avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
@@ -280,35 +254,32 @@ const handleDiscordCallback = async (token, type) => {
 
         const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar').eq('id', discordUser.id).maybeSingle();
 
+        // 4. Set App State
         state.user = {
             id: discordUser.id,
             username: discordUser.global_name || discordUser.username,
             avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
             avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null,
             permissions: profile?.permissions || {},
-            advent_calendar: profile?.advent_calendar || [], // Load Advent Calendar State
+            advent_calendar: profile?.advent_calendar || [], 
             isFounder: isFounder,
-            guilds: guilds.map(g => g.id) // Store guild IDs for permission checks
+            guilds: guilds.map(g => g.id)
         };
 
         await loadCharacters();
-        // Init fetch of session
         await fetchActiveSession();
 
-        // --- SESSION RESTORATION LOGIC ---
+        // 5. Restore Session View Logic
         const savedView = sessionStorage.getItem('tfrp_current_view');
         const savedCharId = sessionStorage.getItem('tfrp_active_char');
         const savedPanel = sessionStorage.getItem('tfrp_hub_panel');
 
         if (savedView === 'hub' && savedCharId) {
-            // Restore Character
             const char = state.characters.find(c => c.id === savedCharId);
             if (char) {
-                // Manually set state without triggering router yet
                 state.activeCharacter = char;
-                state.alignmentModalShown = true; // Assume done if restored
+                state.alignmentModalShown = true; 
                 
-                // Restore Panel
                 if (savedPanel) {
                     await window.actions.setHubPanel(savedPanel); 
                 } else {
@@ -323,10 +294,10 @@ const handleDiscordCallback = async (token, type) => {
 
     } catch (e) {
         console.error("Auth Error:", e);
-        window.actions.logout();
+        await window.actions.logout();
     }
     
-    // Remove loading screen if still present
+    // Remove loading screen
     if(loadingScreen && loadingScreen.parentNode) {
         loadingScreen.style.opacity = '0';
         appEl.classList.remove('opacity-0');

@@ -9,12 +9,23 @@ export const login = async () => {
     state.isLoggingIn = true;
     render();
 
-    const scope = encodeURIComponent('identify guilds');
-    const redirect = encodeURIComponent(CONFIG.REDIRECT_URI);
-    const url = `https://discord.com/api/oauth2/authorize?client_id=${CONFIG.DISCORD_CLIENT_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
-    
-    // Use direct redirect instead of popup to ensure hash is preserved on mobile/free hosts
-    window.location.href = url;
+    try {
+        const { data, error } = await state.supabase.auth.signInWithOAuth({
+            provider: 'discord',
+            options: {
+                scopes: 'identify guilds',
+                redirectTo: CONFIG.REDIRECT_URI
+            }
+        });
+        
+        if (error) throw error;
+        // Supabase gère la redirection automatiquement
+    } catch (e) {
+        console.error("Login Error:", e);
+        state.isLoggingIn = false;
+        ui.showToast("Erreur d'initialisation connexion.", 'error');
+        render();
+    }
 };
 
 export const openFoundationModal = () => {
@@ -81,16 +92,18 @@ export const confirmLogout = () => {
 };
 
 export const logout = async () => {
+    await state.supabase.auth.signOut();
+    
     state.user = null;
     state.accessToken = null;
     state.characters = [];
-    localStorage.removeItem('tfrp_access_token');
-    localStorage.removeItem('tfrp_token_type');
-    localStorage.removeItem('tfrp_token_expiry');
     
     // Clear Session
     sessionStorage.clear();
+    localStorage.removeItem('tfrp_access_token'); // Cleanup legacy
     
-    window.location.hash = '';
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
     router('login');
 };
