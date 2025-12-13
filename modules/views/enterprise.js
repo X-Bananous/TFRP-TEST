@@ -3,16 +3,16 @@ import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 
 const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0">
+    <div class="flex flex-col md:flex-row items-center justify-between px-4 py-3 mb-4 bg-blue-500/5 border-y border-blue-500/10 gap-3 shrink-0">
         <div class="text-xs text-blue-200 flex items-center gap-2">
              <div class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </div>
-            <span><span class="font-bold">Registre du Commerce</span> • Terminal de Gestion V3</span>
+            <span><span class="font-bold">Registre du Commerce</span> • Connexion Sécurisée</span>
         </div>
         <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-xs text-blue-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser Données
         </button>
     </div>
 `;
@@ -39,7 +39,9 @@ export const EnterpriseView = () => {
         if (!state.activeGameSession) {
             content = `
                 <div class="flex flex-col items-center justify-center h-full p-10 text-center animate-fade-in text-gray-500">
-                    <i data-lucide="store" class="w-16 h-16 mb-4 opacity-20"></i>
+                    <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6 border border-gray-700">
+                        <i data-lucide="store" class="w-10 h-10 opacity-50"></i>
+                    </div>
                     <h2 class="text-xl font-bold text-white mb-2">Marché Fermé</h2>
                     <p class="text-sm">Les transactions commerciales sont suspendues hors session.</p>
                 </div>
@@ -58,7 +60,7 @@ export const EnterpriseView = () => {
                         </div>
                         
                         <!-- Stats Bar -->
-                        <div class="flex gap-2 overflow-x-auto">
+                        <div class="flex gap-2 overflow-x-auto custom-scrollbar pb-2 xl:pb-0">
                             <div class="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-xl border border-blue-500/10 whitespace-nowrap">
                                 <div class="p-1.5 bg-blue-500/10 rounded-lg text-blue-400"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></div>
                                 <div>
@@ -218,7 +220,7 @@ export const EnterpriseView = () => {
 
         return `
             <div class="h-full flex flex-col animate-fade-in">
-                <!-- HEADER -->
+                <!-- HEADER (Inside Management) -->
                 <div class="flex items-center justify-between mb-4 shrink-0 border-b border-white/5 pb-4">
                     <div class="flex items-center gap-4">
                         <button onclick="actions.setEnterpriseTab('my_companies')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5">
@@ -373,13 +375,24 @@ export const EnterpriseView = () => {
         `;
     }
 
+    // MAIN LAYOUT WRAPPER (FULL SCREEN)
     return `
         <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
             ${refreshBanner}
             
             ${!state.activeEnterpriseManagement ? `
-                <div class="px-6 pb-2 shrink-0">
-                    <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full border border-white/5">
+                <div class="px-6 pb-4 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/5 shrink-0">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <i data-lucide="building-2" class="w-6 h-6 text-blue-500"></i>
+                            Registre du Commerce
+                        </h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-gray-400">Opérateur:</span>
+                            <span class="text-xs font-bold text-white bg-white/10 px-2 py-0.5 rounded">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar">
                         ${tabs.map(t => `
                             <button onclick="actions.setEnterpriseTab('${t.id}')" 
                                 class="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${state.activeEnterpriseTab === t.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
