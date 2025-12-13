@@ -11,19 +11,7 @@ import { ui } from '../ui.js';
 import { HEIST_DATA } from './illicit.js';
 import { CONFIG } from '../config.js';
 
-const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between p-4 mb-6 bg-blue-500/5 border border-blue-500/10 rounded-xl gap-3">
-        <div class="text-xs text-blue-200 flex items-center gap-2">
-             <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
-            <span><span class="font-bold">Besoin d'actualiser ?</span> Vous ne trouvez pas ce que vous cherchez ?</span>
-        </div>
-        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs hover:bg-blue-500/10 hover:text-blue-300 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap w-full md:w-auto justify-center">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Recharger les données
-        </button>
-    </div>
-`;
-
-// --- ADVENT CALENDAR VIEW COMPONENT ---
+// ... [AdventCalendarView Code Omitted for Brevity - Keeping Existing Logic] ...
 const AdventCalendarView = () => {
     const today = new Date();
     const currentDay = today.getDate();
@@ -117,6 +105,18 @@ const AdventCalendarView = () => {
         </div>
     `;
 };
+
+const refreshBanner = `
+    <div class="flex flex-col md:flex-row items-center justify-between p-4 mb-6 bg-blue-500/5 border border-blue-500/10 rounded-xl gap-3">
+        <div class="text-xs text-blue-200 flex items-center gap-2">
+             <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
+            <span><span class="font-bold">Besoin d'actualiser ?</span> Vous ne trouvez pas ce que vous cherchez ?</span>
+        </div>
+        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs hover:bg-blue-500/10 hover:text-blue-300 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap w-full md:w-auto justify-center">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Recharger les données
+        </button>
+    </div>
+`;
 
 export const HubView = () => {
     // --- CHECK ALIGNMENT ---
@@ -317,59 +317,37 @@ export const HubView = () => {
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- ADVENT CALENDAR CARD -->
+                        <!-- CARDS OMITTED FOR BREVITY BUT KEPT IN LOGIC -->
+                        ${/* Same card logic as before */ ''}
                         <button onclick="actions.setHubPanel('advent')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-red-500/20">
                             <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)]">
-                                <i data-lucide="gift" class="w-6 h-6"></i>
-                            </div>
-                            <div class="relative z-10">
-                                <h3 class="text-xl font-bold text-white">Calendrier Avent</h3>
-                                <p class="text-sm text-gray-400 mt-1">Cadeaux Quotidiens (12-25)</p>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)]"><i data-lucide="gift" class="w-6 h-6"></i></div>
+                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Calendrier Avent</h3><p class="text-sm text-gray-400 mt-1">Cadeaux Quotidiens (12-25)</p></div>
                         </button>
 
                         <button onclick="actions.setHubPanel('bank')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-emerald-500/20">
                             <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                                <i data-lucide="landmark" class="w-6 h-6"></i>
-                            </div>
-                            <div class="relative z-10">
-                                <h3 class="text-xl font-bold text-white">Ma Banque</h3>
-                                <p class="text-sm text-gray-400 mt-1">Solde, Retraits & Virements</p>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"><i data-lucide="landmark" class="w-6 h-6"></i></div>
+                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Ma Banque</h3><p class="text-sm text-gray-400 mt-1">Solde, Retraits & Virements</p></div>
                         </button>
 
                         <button onclick="actions.setHubPanel('assets')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-indigo-500/20">
                             <div class="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-                                <i data-lucide="gem" class="w-6 h-6"></i>
-                            </div>
-                            <div class="relative z-10">
-                                <h3 class="text-xl font-bold text-white">Patrimoine</h3>
-                                <p class="text-sm text-gray-400 mt-1">Inventaire & Valeur Totale</p>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"><i data-lucide="gem" class="w-6 h-6"></i></div>
+                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Patrimoine</h3><p class="text-sm text-gray-400 mt-1">Inventaire & Valeur Totale</p></div>
                         </button>
 
-                        <!-- ENTERPRISE CARD (Updated) -->
                         <button onclick="actions.setHubPanel('enterprise')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-blue-500/20">
                             <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                                <i data-lucide="building-2" class="w-6 h-6"></i>
-                            </div>
-                            <div class="relative z-10">
-                                <h3 class="text-xl font-bold text-white">Entreprise</h3>
-                                <p class="text-sm text-gray-400 mt-1">Gestion Société & Employés</p>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"><i data-lucide="building-2" class="w-6 h-6"></i></div>
+                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Entreprise</h3><p class="text-sm text-gray-400 mt-1">Gestion Société & Employés</p></div>
                         </button>
 
                         ${hasServiceAccess ? `
                             <button onclick="actions.setHubPanel('services')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer ${!inServiceGuild ? 'border-red-500/30 opacity-90' : ''}">
                                 ${!inServiceGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
                                 <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                                    <i data-lucide="siren" class="w-6 h-6"></i>
-                                </div>
+                                <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"><i data-lucide="siren" class="w-6 h-6"></i></div>
                                 <div class="relative z-10">
                                     <h3 class="text-xl font-bold text-white">Services Publics</h3>
                                     <p class="text-sm text-gray-400 mt-1">Dispatch, Annuaire & Rapports</p>
@@ -380,42 +358,28 @@ export const HubView = () => {
                             <button onclick="actions.setHubPanel('illicit')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-red-500/20 ${!inIllegalGuild ? 'border-red-500/40 opacity-90' : ''}">
                                 ${!inIllegalGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
                                 <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]">
-                                    <i data-lucide="skull" class="w-6 h-6"></i>
-                                </div>
-                                <div class="relative z-10">
-                                    <h3 class="text-xl font-bold text-white">Monde Criminel</h3>
-                                    <p class="text-sm text-gray-400 mt-1">Mafias, Gangs & Marché Noir</p>
-                                </div>
+                                <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"><i data-lucide="skull" class="w-6 h-6"></i></div>
+                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Monde Criminel</h3><p class="text-sm text-gray-400 mt-1">Mafias, Gangs & Marché Noir</p></div>
                             </button>
                         ` : `
                             <div class="glass-card p-6 rounded-[24px] h-64 flex flex-col justify-center items-center text-center border-white/5 opacity-50">
                                 <i data-lucide="briefcase" class="w-10 h-10 text-gray-500 mb-4"></i>
                                 <h3 class="text-lg font-bold text-gray-400">Accès Civil</h3>
-                                <p class="text-sm text-gray-600 mt-1">Aucun accès spécial.</p>
-                                <p class="text-xs text-gray-600 mt-2">Rejoignez un métier (LEO/EMS) ou le crime pour débloquer.</p>
+                                <p class="text-sm text-gray-600 mt-1">Rejoignez un métier (LEO/EMS) ou le crime pour débloquer.</p>
                             </div>
                         `}
 
-                        <!-- STAFF LIST CARD (New Entry) -->
                         <button onclick="actions.setHubPanel('staff_list')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-yellow-500/20">
                             <div class="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 mb-4 group-hover:bg-yellow-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(234,179,8,0.3)]">
-                                <i data-lucide="users-round" class="w-6 h-6"></i>
-                            </div>
-                            <div class="relative z-10">
-                                <h3 class="text-xl font-bold text-white">Liste du Staff</h3>
-                                <p class="text-sm text-gray-400 mt-1">Disponibilité & Statut</p>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 mb-4 group-hover:bg-yellow-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(234,179,8,0.3)]"><i data-lucide="users-round" class="w-6 h-6"></i></div>
+                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Liste du Staff</h3><p class="text-sm text-gray-400 mt-1">Disponibilité & Statut</p></div>
                         </button>
 
                         ${showStaffCard ? `
                         <button onclick="actions.setHubPanel('staff')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden border-purple-500/20 cursor-pointer ${!inStaffGuild ? 'border-red-500/40 opacity-90' : ''}">
                              ${!inStaffGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
                             <div class="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                                <i data-lucide="shield-alert" class="w-6 h-6"></i>
-                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"><i data-lucide="shield-alert" class="w-6 h-6"></i></div>
                             <div class="relative z-10">
                                 <h3 class="text-xl font-bold text-white">Administration</h3>
                                 <p class="text-sm text-gray-400 mt-1">Gestion Joueurs & Whitelist</p>
@@ -431,7 +395,6 @@ export const HubView = () => {
         content = AdventCalendarView();
     } else if (state.activeHubPanel === 'staff_list') {
         const staffList = state.staffMembers || [];
-        // Sort Founders first
         staffList.sort((a, b) => {
              const aF = CONFIG.ADMIN_IDS.includes(a.id);
              const bF = CONFIG.ADMIN_IDS.includes(b.id);
@@ -500,9 +463,9 @@ export const HubView = () => {
     } else if (state.activeHubPanel === 'services') {
         content = ServicesView();
     } else if (state.activeHubPanel === 'emergency_call') {
+        // ... (Emergency Call View Code) ...
         content = `
             <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
-                <!-- EMERGENCY HEADER -->
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
@@ -512,41 +475,17 @@ export const HubView = () => {
                         <p class="text-gray-400 text-sm">Central 911 • Los Angeles</p>
                     </div>
                 </div>
-
                 <div class="flex-1 overflow-y-auto custom-scrollbar flex items-center justify-center">
                     <div class="glass-panel p-8 rounded-2xl w-full max-w-2xl border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.1)]">
                         ${isSessionActive ? `
                             <form onsubmit="actions.createEmergencyCall(event)" class="space-y-6">
-                                <div>
-                                    <label class="text-xs text-gray-500 uppercase font-bold ml-1">Service Requis</label>
-                                    <select name="service" class="glass-input p-3 rounded-xl w-full text-sm bg-black/40 mt-1">
-                                        <option value="police">Police / Sheriff</option>
-                                        <option value="ems">Ambulance / Pompier</option>
-                                        <option value="dot">Dépanneuse (DOT)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-xs text-gray-500 uppercase font-bold ml-1">Localisation</label>
-                                    <input type="text" list="streets" name="location" placeholder="Rue ou Point de repère" class="glass-input w-full p-3 rounded-xl text-sm bg-black/40 mt-1" required>
-                                    <datalist id="streets">
-                                        ${CONFIG.STREET_NAMES.map(s => `<option value="${s}">`).join('')}
-                                    </datalist>
-                                </div>
-                                <div>
-                                    <label class="text-xs text-gray-500 uppercase font-bold ml-1">Description</label>
-                                    <textarea name="description" rows="3" placeholder="Nature de l'incident, blessés, armes..." class="glass-input w-full p-3 rounded-xl text-sm bg-black/40 mt-1" required></textarea>
-                                </div>
-                                
-                                <button type="submit" class="glass-btn w-full py-4 rounded-xl font-bold text-lg bg-red-600 hover:bg-red-500 shadow-lg shadow-red-900/20 flex items-center justify-center gap-2">
-                                    <i data-lucide="radio" class="w-5 h-5"></i> Envoyer au Central
-                                </button>
+                                <div><label class="text-xs text-gray-500 uppercase font-bold ml-1">Service Requis</label><select name="service" class="glass-input p-3 rounded-xl w-full text-sm bg-black/40 mt-1"><option value="police">Police / Sheriff</option><option value="ems">Ambulance / Pompier</option><option value="dot">Dépanneuse (DOT)</option></select></div>
+                                <div><label class="text-xs text-gray-500 uppercase font-bold ml-1">Localisation</label><input type="text" list="streets" name="location" placeholder="Rue ou Point de repère" class="glass-input w-full p-3 rounded-xl text-sm bg-black/40 mt-1" required><datalist id="streets">${CONFIG.STREET_NAMES.map(s => `<option value="${s}">`).join('')}</datalist></div>
+                                <div><label class="text-xs text-gray-500 uppercase font-bold ml-1">Description</label><textarea name="description" rows="3" placeholder="Nature de l'incident, blessés, armes..." class="glass-input w-full p-3 rounded-xl text-sm bg-black/40 mt-1" required></textarea></div>
+                                <button type="submit" class="glass-btn w-full py-4 rounded-xl font-bold text-lg bg-red-600 hover:bg-red-500 shadow-lg shadow-red-900/20 flex items-center justify-center gap-2"><i data-lucide="radio" class="w-5 h-5"></i> Envoyer au Central</button>
                             </form>
                         ` : `
-                            <div class="text-center py-10">
-                                <i data-lucide="radio-off" class="w-16 h-16 text-gray-600 mx-auto mb-4"></i>
-                                <h3 class="text-xl font-bold text-gray-400 mb-2">Service Indisponible</h3>
-                                <p class="text-sm text-gray-500">Aucun central de réception d'appels n'est actif car il n'y a pas de session de jeu en cours.</p>
-                            </div>
+                            <div class="text-center py-10"><i data-lucide="radio-off" class="w-16 h-16 text-gray-600 mx-auto mb-4"></i><h3 class="text-xl font-bold text-gray-400 mb-2">Service Indisponible</h3><p class="text-sm text-gray-500">Aucun central de réception d'appels n'est actif car il n'y a pas de session de jeu en cours.</p></div>
                         `}
                     </div>
                 </div>
@@ -558,16 +497,20 @@ export const HubView = () => {
     const generateNavItems = () => {
         const navItem = (panel, icon, label, color = 'text-white') => {
             const isActive = state.activeHubPanel === panel;
-            const bgClass = isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white';
+            const bgClass = isActive 
+                ? 'bg-gradient-to-r from-blue-600/20 to-transparent border-l-4 border-blue-500 text-white shadow-lg shadow-blue-500/5' 
+                : 'text-gray-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent';
             
             let lockIcon = '';
-            if (panel === 'services' && !inServiceGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
-            if (panel === 'illicit' && !inIllegalGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
-            if (panel === 'staff' && !inStaffGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto"></i>';
+            if (panel === 'services' && !inServiceGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto opacity-50"></i>';
+            if (panel === 'illicit' && !inIllegalGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto opacity-50"></i>';
+            if (panel === 'staff' && !inStaffGuild) lockIcon = '<i data-lucide="lock" class="w-3 h-3 text-red-500 ml-auto opacity-50"></i>';
 
             return `
-                <button onclick="actions.setHubPanel('${panel}'); actions.toggleSidebar();" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 cursor-pointer ${bgClass}">
-                    <i data-lucide="${icon}" class="w-5 h-5 ${isActive ? color : ''}"></i>
+                <button onclick="actions.setHubPanel('${panel}'); actions.toggleSidebar();" class="group w-full text-left px-4 py-3 text-sm font-medium transition-all flex items-center gap-3 cursor-pointer rounded-r-xl ${bgClass} mb-1">
+                    <div class="p-1.5 rounded-lg ${isActive ? 'bg-blue-500/20' : 'bg-white/5 group-hover:bg-white/10'} transition-colors">
+                        <i data-lucide="${icon}" class="w-4 h-4 ${isActive ? color : 'text-gray-400 group-hover:text-white'}"></i>
+                    </div>
                     ${label}
                     ${lockIcon}
                 </button>
@@ -581,17 +524,23 @@ export const HubView = () => {
         if (isBypass) return '';
 
         let html = `
-            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Menu Principal</div>
+            <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                <span class="w-8 h-[1px] bg-gray-700"></span> Menu
+            </div>
             ${navItem('main', 'layout-grid', 'Tableau de bord', 'text-blue-400')}
             ${navItem('advent', 'snowflake', 'Calendrier Avent', 'text-red-400')}
             ${navItem('staff_list', 'users-round', 'Liste du Staff', 'text-yellow-400')}
             
             ${isSessionActive ? `
-                <button onclick="actions.openCallPage(); actions.toggleSidebar();" class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 cursor-pointer text-red-400 hover:bg-red-500/10 hover:text-red-300">
-                     <i data-lucide="phone" class="w-5 h-5 text-red-500"></i> Appel d'urgence
+                <button onclick="actions.openCallPage(); actions.toggleSidebar();" class="group w-full text-left px-4 py-3 text-sm font-medium transition-all flex items-center gap-3 cursor-pointer rounded-r-xl text-red-400 hover:text-red-300 hover:bg-red-500/5 border-l-4 border-transparent hover:border-red-500/50 mb-1">
+                     <div class="p-1.5 rounded-lg bg-red-500/10 group-hover:bg-red-500/20"><i data-lucide="phone" class="w-4 h-4 text-red-500"></i></div>
+                     Appel d'urgence
                 </button>
             ` : ''}
 
+            <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                <span class="w-8 h-[1px] bg-gray-700"></span> Gestion
+            </div>
             ${navItem('bank', 'landmark', 'Ma Banque', 'text-emerald-400')}
             ${navItem('assets', 'gem', 'Patrimoine', 'text-indigo-400')}
             ${navItem('enterprise', 'building-2', 'Entreprise', 'text-blue-400')}
@@ -599,49 +548,40 @@ export const HubView = () => {
             ${hasServiceAccess ? navItem('services', 'siren', 'Services Publics', 'text-blue-400') : ''}
             ${isIllegal ? navItem('illicit', 'skull', 'Illégal', 'text-red-400') : ''}
             
-            ${hasStaffAccess ? `<div class="my-4 border-t border-white/5"></div>` : ''}
-        `;
-
-        if (hasStaffAccess) {
-            html += `
-                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-4 mb-2">Staff</div>
+            ${hasStaffAccess ? `
+                <div class="px-6 mt-6 mb-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-8 h-[1px] bg-gray-700"></span> Admin
+                </div>
                 ${navItem('staff', 'shield-alert', 'Administration', 'text-purple-400')}
-            `;
-        }
+            ` : ''}
+        `;
         
         return html;
     };
 
-    const hasStaffAccess = Object.keys(state.user.permissions || {}).length > 0 || state.user.isFounder;
-    // Staff on duty
     const staffOnDuty = state.onDutyStaff || [];
 
-    // --- MOBILE BOTTOM NAV BAR (NEW REDESIGNED) ---
-    // Simpler, modern iOS-style tab bar
+    // --- MOBILE BOTTOM NAV BAR (Modern iOS style) ---
     const mobileNav = `
         <div class="md:hidden fixed bottom-0 left-0 w-full bg-[#050505]/95 backdrop-blur-xl border-t border-white/10 z-50 flex justify-around items-center pb-[env(safe-area-inset-bottom)]">
             <button onclick="actions.setHubPanel('main')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'main' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="layout-grid" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Accueil</span>
             </button>
-            
             <button onclick="actions.setHubPanel('bank')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="landmark" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Banque</span>
             </button>
-            
             <!-- MENU TOGGLE (Center) -->
             <button onclick="actions.toggleSidebar()" class="flex-1 py-3 flex flex-col items-center gap-1 text-white relative group">
                 <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/10 group-active:bg-white/20 transition-colors -mt-4 shadow-lg backdrop-blur-md">
                     <i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-6 h-6"></i>
                 </div>
             </button>
-
             <button onclick="actions.setHubPanel('assets')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'assets' ? 'text-indigo-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="backpack" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Sac</span>
             </button>
-            
             <button onclick="actions.setHubPanel('staff_list')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'staff_list' ? 'text-yellow-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="users" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">Staff</span>
@@ -656,9 +596,7 @@ export const HubView = () => {
             <div class="w-full flex justify-center pt-3 pb-1">
                 <div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
             </div>
-            
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
-                <!-- User Profile Header -->
                 <div class="flex items-center gap-3 mb-6 p-4 bg-white/5 rounded-2xl border border-white/5">
                     <img src="${state.user.avatar}" class="w-12 h-12 rounded-full border border-white/10 object-cover">
                     <div>
@@ -666,11 +604,9 @@ export const HubView = () => {
                         <p class="text-xs text-blue-400 font-semibold uppercase tracking-wider">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</p>
                     </div>
                 </div>
-
-                <div class="space-y-2">
+                <div class="space-y-1">
                     ${generateNavItems()}
                 </div>
-
                 <div class="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
                     <button onclick="actions.backToSelect()" class="glass-btn-secondary py-3 rounded-xl text-xs flex items-center justify-center gap-2">
                         <i data-lucide="users" class="w-4 h-4"></i> Changer Perso
@@ -685,73 +621,84 @@ export const HubView = () => {
 
     return `
         <div class="flex h-full w-full bg-[#050505] relative overflow-hidden">
-            <!-- Mobile Navigation Elements -->
+            <!-- Mobile Elements -->
             ${mobileNav}
             ${mobileMenuOverlay}
 
-            <!-- DESKTOP SIDEBAR (Hidden on Mobile) -->
-            <aside class="hidden md:flex relative top-0 bottom-0 left-0 z-[100] w-72 h-[100dvh] glass-panel border-y-0 border-l-0 flex-col shadow-2xl">
-                <div class="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
-                    <div class="flex items-center gap-3">
-                        <div class="relative w-10 h-10 shrink-0">
-                            <img src="${state.user.avatar}" class="w-full h-full rounded-full border border-white/10 relative z-0 object-cover">
-                            ${state.user.avatar_decoration ? `<img src="${state.user.avatar_decoration}" class="absolute top-1/2 left-1/2 w-[122%] h-[122%] -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none" style="max-width: none">` : ''}
+            <!-- DESKTOP SIDEBAR (Redesigned) -->
+            <aside class="hidden md:flex relative top-0 bottom-0 left-0 z-[100] w-72 h-[100dvh] bg-[#09090b]/95 backdrop-blur-xl border-r border-white/5 flex-col shadow-2xl">
+                <!-- User Profile Header -->
+                <div class="p-6 shrink-0 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-blue-900/10 to-transparent pointer-events-none"></div>
+                    <div class="relative z-10 flex items-center gap-3">
+                        <div class="relative w-12 h-12 shrink-0 group cursor-pointer">
+                            <div class="absolute inset-0 bg-blue-500 rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                            <img src="${state.user.avatar}" class="w-full h-full rounded-full border-2 border-white/10 relative z-10 object-cover">
+                            ${state.user.avatar_decoration ? `<img src="${state.user.avatar_decoration}" class="absolute top-1/2 left-1/2 w-[125%] h-[125%] -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none" style="max-width: none">` : ''}
                         </div>
                         <div class="overflow-hidden">
                             <h3 class="font-bold text-white truncate text-sm">${state.user.username}</h3>
-                            <p class="text-xs text-blue-400 font-semibold uppercase tracking-wider">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</p>
-                            ${state.activeCharacter?.job !== 'unemployed' ? `<div class="text-[10px] text-gray-500 uppercase mt-0.5">${state.activeCharacter?.job}</div>` : ''}
+                            <p class="text-xs text-blue-400 font-semibold uppercase tracking-wider truncate">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</p>
+                            ${state.activeCharacter?.job !== 'unemployed' ? `<div class="text-[10px] text-gray-500 uppercase mt-0.5 bg-white/5 px-1.5 py-0.5 rounded w-fit">${state.activeCharacter?.job}</div>` : ''}
                         </div>
                     </div>
                 </div>
                 
-                <div class="p-4 space-y-2 flex-1 overflow-y-auto custom-scrollbar">
+                <!-- Navigation -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1">
                     ${generateNavItems()}
                     
                     ${isSessionActive ? `
-                        <!-- ERLC Status Widget (Updated) -->
-                        <div class="mt-6 mx-2 p-3 bg-white/5 rounded-xl border border-white/5">
-                             <div class="flex items-center justify-between mb-2">
+                        <div class="mt-8 mx-2 p-4 bg-gradient-to-br from-green-900/20 to-black rounded-xl border border-green-500/20 relative group overflow-hidden">
+                             <div class="absolute -right-6 -top-6 w-16 h-16 bg-green-500/20 rounded-full blur-2xl"></div>
+                             <div class="flex items-center justify-between mb-3 relative z-10">
                                 <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    <span class="text-xs font-bold text-gray-300">ERLC Live</span>
+                                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]"></span>
+                                    <span class="text-xs font-bold text-white tracking-wide">ERLC LIVE</span>
                                 </div>
-                                <span class="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">Queue: <span class="text-white erlc-queue-count">${queue ? queue.length : 0}</span></span>
+                                <span class="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-gray-400 font-mono">Q: <span class="text-white erlc-queue-count">${queue ? queue.length : 0}</span></span>
                              </div>
                              
-                             <!-- Join Code -->
-                             <div class="text-center bg-black/30 rounded border border-white/5 py-2 mb-2">
-                                <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Code Serveur</div>
-                                <div class="font-mono font-bold text-white text-xl tracking-widest select-all">${joinKey}</div>
+                             <div class="bg-black/40 rounded-lg border border-white/5 py-2 px-3 mb-3 flex items-center justify-between group-hover:border-green-500/30 transition-colors">
+                                <span class="font-mono font-bold text-white text-lg tracking-widest select-all">${joinKey}</span>
+                                <i data-lucide="copy" class="w-3 h-3 text-gray-500"></i>
                              </div>
 
-                             <!-- Join Button -->
-                             <a href="${robloxUrl}" class="glass-btn-secondary w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-white/10 hover:text-white text-gray-300">
-                                <i data-lucide="play" class="w-3 h-3"></i> Rejoindre ERLC
+                             <a href="${robloxUrl}" class="glass-btn-secondary w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-green-500 hover:text-white hover:border-green-500 transition-all text-gray-300">
+                                <i data-lucide="play" class="w-3 h-3 fill-current"></i> Rejoindre
                              </a>
                         </div>
                     ` : ''}
 
-                    <div class="mt-2 mx-2 p-3 bg-purple-500/5 rounded-xl border border-purple-500/10">
-                        <div class="text-[10px] font-bold text-purple-400 uppercase mb-2">Staff En Service (${staffOnDuty.length})</div>
+                    <div class="mt-4 mx-2 p-3 rounded-xl border border-white/5 bg-white/[0.02]">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-[10px] font-bold text-gray-500 uppercase">Staff Actif</div>
+                            <span class="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 rounded-full">${staffOnDuty.length}</span>
+                        </div>
                         ${staffOnDuty.length > 0 
-                            ? `<div class="space-y-1">${staffOnDuty.map(s => `<div class="flex items-center gap-2 text-xs text-gray-300"><img src="${s.avatar_url}" class="w-4 h-4 rounded-full"> ${s.username}</div>`).join('')}</div>` 
-                            : '<div class="text-xs text-gray-500 italic">Aucun staff.</div>'
+                            ? `<div class="space-y-2">${staffOnDuty.map(s => `
+                                <div class="flex items-center gap-2 text-xs text-gray-300">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                    <img src="${s.avatar_url}" class="w-4 h-4 rounded-full"> ${s.username}
+                                </div>`).join('')}</div>` 
+                            : '<div class="text-[10px] text-gray-600 italic">Aucun membre en service.</div>'
                         }
                     </div>
                 </div>
 
-                <div class="p-4 bg-black/20 border-t border-white/5 shrink-0 space-y-2">
-                        <div class="flex justify-center gap-4 text-[10px] text-gray-600">
-                            <button onclick="ui.showModal({title:'Conditions d\\'Utilisation', content: window.LEGAL_TERMS, confirmText: 'Fermer'})" class="hover:text-white">CGU</button>
-                            <button onclick="ui.showModal({title:'Politique de Confidentialité', content: window.LEGAL_PRIVACY, confirmText: 'Fermer'})" class="hover:text-white">Confidentialité</button>
+                <!-- Footer Actions -->
+                <div class="p-4 border-t border-white/5 shrink-0 bg-[#0c0c0e]">
+                        <div class="flex justify-center gap-4 text-[10px] text-gray-600 mb-3">
+                            <button onclick="ui.showModal({title:'Conditions d\\'Utilisation', content: window.LEGAL_TERMS, confirmText: 'Fermer'})" class="hover:text-white transition-colors">CGU</button>
+                            <span class="text-gray-800">•</span>
+                            <button onclick="ui.showModal({title:'Politique de Confidentialité', content: window.LEGAL_PRIVACY, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Privé</button>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <button onclick="actions.backToSelect()" class="w-full glass-btn-secondary py-2 rounded-lg text-xs text-gray-300 hover:bg-white/10 cursor-pointer flex items-center justify-center gap-1" title="Changer de personnage">
-                            <i data-lucide="users" class="w-3 h-3"></i> Persos
+                            <button onclick="actions.backToSelect()" class="w-full glass-btn-secondary py-2.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer flex items-center justify-center gap-2 transition-all group" title="Changer de personnage">
+                                <i data-lucide="users" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> Persos
                             </button>
-                            <button onclick="actions.confirmLogout()" class="w-full glass-btn-secondary py-2 rounded-lg text-xs text-red-300 hover:bg-red-900/20 border-red-500/10 cursor-pointer flex items-center justify-center gap-1">
-                            <i data-lucide="log-out" class="w-3 h-3"></i> Sortir
+                            <button onclick="actions.confirmLogout()" class="w-full glass-btn-secondary py-2.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/10 hover:border-red-500/30 cursor-pointer flex items-center justify-center gap-2 transition-all group">
+                                <i data-lucide="log-out" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i> Sortir
                             </button>
                         </div>
                 </div>

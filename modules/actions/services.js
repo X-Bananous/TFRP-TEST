@@ -1,13 +1,4 @@
 
-
-
-
-
-
-
-
-
-
 import { state } from '../state.js';
 import { render } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -244,29 +235,35 @@ export const openDossier = async (charId) => {
     if(!char) return;
 
     // 2. Logic: Recovery of points (1 per day)
-    // Assume driver_license_points default is 12 if null
     let points = char.driver_license_points !== null ? char.driver_license_points : 12;
     let lastUpdate = char.last_point_recovery ? new Date(char.last_point_recovery) : new Date(char.created_at);
     
-    // Check if 24h passed
     const now = new Date();
     const diffTime = Math.abs(now - lastUpdate);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
     
     if (diffDays > 0 && points < 12) {
         points = Math.min(12, points + diffDays);
-        // Update DB
         await state.supabase.from('characters').update({
             driver_license_points: points,
             last_point_recovery: now.toISOString()
         }).eq('id', charId);
-        char.driver_license_points = points; // Update local obj for display
+        char.driver_license_points = points;
     }
 
     state.dossierTarget = char;
+    // SWITCH TO DOSSIER PAGE instead of Modal
+    state.activeServicesTab = 'dossier_detail';
     render();
 };
 
+export const closeDossierPage = () => {
+    state.dossierTarget = null;
+    state.activeServicesTab = 'directory'; // Back to list
+    render();
+};
+
+// Deprecated (Modal version) - kept for compatibility if needed elsewhere
 export const closeDossier = () => {
     state.dossierTarget = null;
     render();
