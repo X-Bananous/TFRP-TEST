@@ -306,6 +306,7 @@ export const StaffView = () => {
                                                 <option value="leo" ${c.job === 'leo' ? 'selected' : ''}>Police (LEO)</option>
                                                 <option value="lafd" ${c.job === 'lafd' ? 'selected' : ''}>Pompier (LAFD)</option>
                                                 <option value="ladot" ${c.job === 'ladot' ? 'selected' : ''}>DOT (Dépanneur)</option>
+                                                <option value="lawyer" ${c.job === 'lawyer' ? 'selected' : ''}>Avocat (Barreau)</option>
                                                 ` : ''}
                                             </select>
                                         ` : `<span class="text-xs text-gray-500 font-mono">${c.job || 'unemployed'}</span>`}

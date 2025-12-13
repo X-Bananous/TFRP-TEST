@@ -92,8 +92,8 @@ export const ServicesView = () => {
                         ${reports.length > 0 ? reports.map(r => `
                             <div class="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                                 <div class="flex justify-between items-start mb-2">
-                                    <div class="font-bold text-orange-400 text-sm">${r.title}</div>
-                                    <div class="text-[10px] text-gray-500 bg-black/30 px-2 py-1 rounded">${new Date(r.created_at).toLocaleDateString()}</div>
+                                    <div class="font-bold text-orange-400 text-sm truncate pr-2" title="${r.title}">${r.title}</div>
+                                    <div class="text-[10px] text-gray-500 bg-black/30 px-2 py-1 rounded whitespace-nowrap">${new Date(r.created_at).toLocaleDateString()}</div>
                                 </div>
                                 <div class="text-sm text-gray-300 mb-3 leading-relaxed">"${r.description}"</div>
                                 <div class="flex gap-2 text-xs border-t border-white/5 pt-3">
@@ -239,8 +239,8 @@ export const ServicesView = () => {
             contentList = reports.length > 0 ? reports.map(r => `
                 <div class="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
                     <div class="flex justify-between items-start mb-2">
-                        <div class="font-bold text-orange-400 text-sm">${r.title}</div>
-                        <div class="text-[10px] text-gray-500 bg-black/30 px-2 py-1 rounded">${new Date(r.created_at).toLocaleDateString()}</div>
+                        <div class="font-bold text-orange-400 text-sm truncate pr-2" title="${r.title}">${r.title}</div>
+                        <div class="text-[10px] text-gray-500 bg-black/30 px-2 py-1 rounded whitespace-nowrap">${new Date(r.created_at).toLocaleDateString()}</div>
                     </div>
                     <div class="text-sm text-gray-300 mb-3 leading-relaxed truncate">"${r.description}"</div>
                     <div class="flex gap-2 text-xs border-t border-white/5 pt-3">
@@ -423,7 +423,7 @@ export const ServicesView = () => {
                                 <button type="button" onclick="actions.setServicesTab('directory')" class="w-full py-2 bg-blue-500/10 border border-dashed border-blue-500/30 rounded-lg text-xs text-blue-300 hover:text-white hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2"><i data-lucide="user-plus" class="w-3 h-3"></i> Sélectionner dans l'annuaire</button>
                             </div>
                             <div class="space-y-4">
-                                <div><label class="text-xs text-gray-400 uppercase font-bold ml-1 mb-1 block">Qualification</label><input type="text" name="title" class="glass-input w-full p-3 rounded-xl text-sm" placeholder="Ex: Refus d'obtempérer" required></div>
+                                <div><label class="text-xs text-gray-400 uppercase font-bold ml-1 mb-1 block">Qualification</label><input type="text" name="title" class="glass-input w-full p-3 rounded-xl text-sm" placeholder="Ex: Refus d'obtempérer" required maxlength="60"></div>
                                 <div><label class="text-xs text-gray-400 uppercase font-bold ml-1 mb-1 block">Détails</label><textarea name="description" rows="5" class="glass-input w-full p-3 rounded-xl text-sm leading-relaxed" placeholder="Faits..."></textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div><label class="text-xs text-gray-400 uppercase font-bold ml-1 mb-1 block">Amende ($)</label><div class="relative"><span class="absolute left-3 top-3 text-emerald-500 font-bold">$</span><input type="number" name="fine_amount" class="glass-input w-full pl-6 p-3 rounded-xl text-sm font-mono" value="0" max="25000"></div></div>

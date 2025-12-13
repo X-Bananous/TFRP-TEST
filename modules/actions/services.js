@@ -192,7 +192,14 @@ export const submitPoliceReport = async (e) => {
     toggleBtnLoading(btn, true);
 
     const data = new FormData(e.target);
+    const title = data.get('title');
     const fineAmount = parseInt(data.get('fine_amount') || 0);
+
+    if (title.length > 60) {
+        ui.showToast("Titre trop long (Max 60 caractères).", 'error');
+        toggleBtnLoading(btn, false);
+        return;
+    }
 
     if (fineAmount > 25000) {
          ui.showToast('Amende maximale : 25 000 $.', 'error');
@@ -203,7 +210,7 @@ export const submitPoliceReport = async (e) => {
     const reportData = {
         character_id: state.activeCharacter.id, 
         author_id: `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}`,
-        title: data.get('title'),
+        title: title,
         description: data.get('description'),
         fine_amount: fineAmount,
         jail_time: parseInt(data.get('jail_time') || 0)
