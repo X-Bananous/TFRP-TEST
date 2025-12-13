@@ -119,15 +119,140 @@ export const deleteItem = async (itemId) => {
     });
 };
 
-export const buyItem = async (itemId, price) => {
+export const openBuyModal = (itemId) => {
+    if (!state.activeGameSession) { 
+        ui.showToast("Impossible : Session fermée.", 'error'); 
+        return; 
+    }
+
+    const item = state.enterpriseMarket.find(i => i.id === itemId);
+    if(!item) return;
+
+    const currentCash = state.bankAccount ? state.bankAccount.cash_balance : 0;
+    const currentBank = state.bankAccount ? state.bankAccount.bank_balance : 0;
+    
+    // Calculate max affordable
+    let maxAffordable = 0;
+    if (item.payment_type === 'cash_only') maxAffordable = Math.floor(currentCash / item.price);
+    else if (item.payment_type === 'bank_only') maxAffordable = Math.floor(currentBank / item.price);
+    else maxAffordable = Math.floor((currentCash + currentBank) / item.price); // Rough estimate for 'both' (though split logic is complex)
+    
+    // Max purchase is limited by Stock AND Money
+    const maxQty = Math.min(item.quantity, maxAffordable);
+    const canBuy = maxQty > 0;
+
+    // Helper script for dynamic price
+    window.updateBuyTotal = (price) => {
+        const qty = parseInt(document.getElementById('buy-qty').value) || 0;
+        const total = qty * price;
+        document.getElementById('buy-total').textContent = '$' + total.toLocaleString();
+    };
+
     ui.showModal({
-        title: "Confirmer Achat",
-        content: `Acheter cet article pour $${price.toLocaleString()} ?`,
-        confirmText: "Payer",
-        onConfirm: async () => {
-            await services.buyEnterpriseItem(itemId);
+        title: "Détails Produit",
+        content: `
+            <div class="flex gap-4 mb-4">
+                <div class="w-20 h-20 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 shrink-0 border border-blue-500/20">
+                    <i data-lucide="package" class="w-10 h-10"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-white text-lg">${item.name}</h3>
+                    <div class="text-xs text-gray-400 mb-2">Vendu par <span class="text-blue-300">${item.enterprises?.name}</span></div>
+                    <div class="bg-black/30 p-2 rounded-lg border border-white/5 text-xs text-gray-300 italic mb-2">
+                        "${item.description || 'Aucune description fournie.'}"
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">Prix Unitaire</span>
+                    <span class="font-mono font-bold text-emerald-400">$${item.price.toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">Stock Disponible</span>
+                    <span class="font-mono text-white">${item.quantity}</span>
+                </div>
+                
+                <div class="pt-3 border-t border-white/5">
+                    <label class="text-xs text-gray-500 uppercase font-bold mb-1 block">Quantité souhaitée</label>
+                    <input type="number" id="buy-qty" class="glass-input w-full p-2 rounded-lg text-sm font-mono" 
+                        value="1" min="1" max="${item.quantity}" oninput="window.updateBuyTotal(${item.price})">
+                </div>
+                
+                <div class="flex justify-between items-center bg-black/40 p-3 rounded-lg mt-2">
+                    <span class="text-gray-400 text-xs font-bold uppercase">Total à Payer</span>
+                    <span class="font-mono font-bold text-xl text-emerald-400" id="buy-total">$${item.price.toLocaleString()}</span>
+                </div>
+            </div>
+            
+            ${!canBuy ? `<div class="mt-2 text-center text-xs text-red-400">Fonds insuffisants.</div>` : ''}
+        `,
+        confirmText: canBuy ? "Confirmer Achat" : null,
+        cancelText: "Annuler",
+        onConfirm: () => {
+            const qty = parseInt(document.getElementById('buy-qty').value);
+            if(qty > 0 && qty <= item.quantity) {
+                confirmBuyItem(itemId, qty);
+            }
         }
     });
+    
+    if(window.lucide) lucide.createIcons();
+};
+
+export const confirmBuyItem = async (itemId, quantity) => {
+    const item = state.enterpriseMarket.find(i => i.id === itemId);
+    if(!item) return;
+    
+    const totalPrice = item.price * quantity;
+    const charId = state.activeCharacter.id;
+    const { data: bank } = await state.supabase.from('bank_accounts').select('*').eq('character_id', charId).single();
+    
+    let canPay = false;
+    let paySource = '';
+    
+    if (item.payment_type === 'cash_only' || item.payment_type === 'both') { 
+        if (bank.cash_balance >= totalPrice) { canPay = true; paySource = 'cash'; } 
+    }
+    if (!canPay && (item.payment_type === 'bank_only' || item.payment_type === 'both')) { 
+        if (bank.bank_balance >= totalPrice) { canPay = true; paySource = 'bank'; } 
+    }
+    
+    if (!canPay) return ui.showToast(`Fonds insuffisants pour ${quantity}x ${item.name}.`, 'error');
+    
+    const updateBank = {};
+    if (paySource === 'cash') updateBank.cash_balance = bank.cash_balance - totalPrice; 
+    else updateBank.bank_balance = bank.bank_balance - totalPrice;
+    
+    await state.supabase.from('bank_accounts').update(updateBank).eq('character_id', charId);
+    
+    // Inventory Logic
+    const { data: existingInv } = await state.supabase.from('inventory').select('*').eq('character_id', charId).eq('name', item.name).maybeSingle();
+    if (existingInv) { 
+        await state.supabase.from('inventory').update({ quantity: existingInv.quantity + quantity }).eq('id', existingInv.id); 
+    } else { 
+        await state.supabase.from('inventory').insert({ character_id: charId, name: item.name, quantity: quantity, estimated_value: item.price }); 
+    }
+    
+    // Enterprise Update
+    await state.supabase.from('enterprises').update({ balance: (item.enterprises.balance || 0) + totalPrice }).eq('id', item.enterprise_id);
+    
+    if (item.quantity === quantity) { 
+        await state.supabase.from('enterprise_items').delete().eq('id', itemId); 
+    } else { 
+        await state.supabase.from('enterprise_items').update({ quantity: item.quantity - quantity }).eq('id', itemId); 
+    }
+    
+    ui.showToast(`Achat effectué : ${quantity}x ${item.name}`, 'success');
+    await services.fetchBankData(charId); 
+    await services.fetchEnterpriseMarket();
+    render();
+};
+
+// Legacy method alias for compatibility if needed, but UI now uses openBuyModal
+export const buyItem = async (itemId, price) => {
+    openBuyModal(itemId);
 };
 
 export const quitEnterprise = async (entId) => {

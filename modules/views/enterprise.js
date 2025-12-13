@@ -3,13 +3,13 @@ import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 
 const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between px-4 py-3 mb-4 bg-blue-500/5 border-y border-blue-500/10 gap-3 shrink-0">
+    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0">
         <div class="text-xs text-blue-200 flex items-center gap-2">
              <div class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </div>
-            <span><span class="font-bold">Registre du Commerce</span> • Terminal de Gestion</span>
+            <span><span class="font-bold">Registre du Commerce</span> • Terminal de Gestion V3</span>
         </div>
         <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-xs text-blue-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser
@@ -26,6 +26,10 @@ export const EnterpriseView = () => {
     // Safe access to wallet
     const currentCash = state.bankAccount ? state.bankAccount.cash_balance : 0;
     const currentBank = state.bankAccount ? state.bankAccount.bank_balance : 0;
+    
+    // Stats Volume
+    const todayStats = state.dailyEconomyStats?.[0] || { amount: 0 };
+    const volumeToday = todayStats.amount;
 
     let content = '';
 
@@ -45,74 +49,99 @@ export const EnterpriseView = () => {
             
             content = `
                 <div class="flex flex-col h-full overflow-hidden animate-fade-in">
-                    <!-- TOOLBAR -->
-                    <div class="flex flex-col md:flex-row gap-4 mb-4 shrink-0">
+                    <!-- TOOLBAR & STATS -->
+                    <div class="flex flex-col xl:flex-row gap-4 mb-6 shrink-0">
+                        <!-- Search -->
                         <div class="relative flex-1">
                             <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-500"></i>
-                            <input type="text" placeholder="Rechercher produit..." class="glass-input pl-10 w-full p-2.5 rounded-xl text-sm bg-black/20 focus:bg-black/40">
+                            <input type="text" placeholder="Rechercher produit, entreprise..." class="glass-input pl-10 w-full p-2.5 rounded-xl text-sm bg-black/20 focus:bg-black/40">
                         </div>
-                        <div class="flex items-center gap-4 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                            <div class="text-right">
-                                <div class="text-[9px] text-gray-500 uppercase font-bold">Portefeuille</div>
-                                <div class="text-sm font-mono font-bold text-emerald-400">$${currentCash.toLocaleString()}</div>
+                        
+                        <!-- Stats Bar -->
+                        <div class="flex gap-2 overflow-x-auto">
+                            <div class="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-xl border border-blue-500/10 whitespace-nowrap">
+                                <div class="p-1.5 bg-blue-500/10 rounded-lg text-blue-400"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></div>
+                                <div>
+                                    <div class="text-[9px] text-blue-300/70 uppercase font-bold">Volume Jour</div>
+                                    <div class="text-sm font-mono font-bold text-blue-100">$${volumeToday.toLocaleString()}</div>
+                                </div>
                             </div>
-                            <div class="text-right pl-4 border-l border-white/10">
-                                <div class="text-[9px] text-gray-500 uppercase font-bold">Banque</div>
-                                <div class="text-sm font-mono font-bold text-blue-400">$${currentBank.toLocaleString()}</div>
+                            <div class="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-xl border border-white/5 whitespace-nowrap">
+                                <div class="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400"><i data-lucide="wallet" class="w-4 h-4"></i></div>
+                                <div>
+                                    <div class="text-[9px] text-gray-500 uppercase font-bold">Portefeuille</div>
+                                    <div class="text-sm font-mono font-bold text-emerald-400">$${currentCash.toLocaleString()}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-xl border border-white/5 whitespace-nowrap">
+                                <div class="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400"><i data-lucide="landmark" class="w-4 h-4"></i></div>
+                                <div>
+                                    <div class="text-[9px] text-gray-500 uppercase font-bold">Banque</div>
+                                    <div class="text-sm font-mono font-bold text-indigo-400">$${currentBank.toLocaleString()}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- GRID -->
-                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                        ${items.length === 0 ? '<div class="text-center text-gray-500 py-10 italic border border-dashed border-white/10 rounded-xl">Aucune offre sur le marché.</div>' : `
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                ${items.map(item => {
-                                    // Payment Logic Check
-                                    let canAfford = false;
-                                    let paymentMethod = '';
-                                    
-                                    if (item.payment_type === 'cash_only' && currentCash >= item.price) { canAfford = true; paymentMethod = 'Espèces'; }
-                                    else if (item.payment_type === 'bank_only' && currentBank >= item.price) { canAfford = true; paymentMethod = 'Banque'; }
-                                    else if (item.payment_type === 'both') {
-                                        if (currentCash >= item.price) { canAfford = true; paymentMethod = 'Espèces'; }
-                                        else if (currentBank >= item.price) { canAfford = true; paymentMethod = 'Banque'; }
-                                    }
+                    <!-- DATA TABLE -->
+                    <div class="flex-1 overflow-hidden rounded-xl border border-white/5 bg-white/5 flex flex-col min-h-0">
+                        <div class="overflow-y-auto custom-scrollbar flex-1">
+                            ${items.length === 0 ? '<div class="text-center text-gray-500 py-10 italic">Aucune offre sur le marché.</div>' : `
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="bg-[#151515] text-xs uppercase text-gray-500 font-bold sticky top-0 z-10 shadow-sm">
+                                        <tr>
+                                            <th class="p-4 w-16"></th>
+                                            <th class="p-4">Produit</th>
+                                            <th class="p-4">Vendeur</th>
+                                            <th class="p-4 text-center">Stock</th>
+                                            <th class="p-4 text-right">Prix Unitaire</th>
+                                            <th class="p-4 text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm divide-y divide-white/5">
+                                        ${items.map(item => {
+                                            // Payment Logic Check
+                                            let canAfford = false;
+                                            if (item.payment_type === 'cash_only' && currentCash >= item.price) canAfford = true;
+                                            else if (item.payment_type === 'bank_only' && currentBank >= item.price) canAfford = true;
+                                            else if (item.payment_type === 'both' && (currentCash >= item.price || currentBank >= item.price)) canAfford = true;
 
-                                    return `
-                                    <div class="bg-white/5 rounded-xl border border-white/5 p-4 hover:border-blue-500/30 transition-all group flex flex-col relative overflow-hidden">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div class="w-10 h-10 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center text-gray-400">
-                                                <i data-lucide="package" class="w-5 h-5"></i>
-                                            </div>
-                                            <div class="text-right">
-                                                <div class="font-mono font-bold text-white text-lg">$${item.price.toLocaleString()}</div>
-                                                <div class="text-[10px] text-gray-500 uppercase">Stock: ${item.quantity}</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <h4 class="font-bold text-white text-sm truncate" title="${item.name}">${item.name}</h4>
-                                            <div class="text-xs text-blue-400 flex items-center gap-1 truncate">
-                                                <i data-lucide="building-2" class="w-3 h-3"></i> ${item.enterprises?.name || 'Entreprise'}
-                                            </div>
-                                        </div>
-                                        
-                                        ${item.description ? `<div class="text-xs text-gray-500 bg-black/20 p-2 rounded mb-3 line-clamp-2 min-h-[2.5em]">"${item.description}"</div>` : ''}
-                                        
-                                        <div class="mt-auto pt-3 border-t border-white/5 flex items-center justify-between gap-2">
-                                            <div class="text-[9px] uppercase font-bold text-gray-500 bg-white/5 px-2 py-1 rounded border border-white/5">
-                                                ${item.payment_type === 'both' ? 'Mixte' : item.payment_type === 'cash_only' ? 'Cash' : 'Banque'}
-                                            </div>
-                                            <button onclick="actions.buyItem('${item.id}', ${item.price})" ${!canAfford ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${canAfford ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-white/5 text-gray-600 cursor-not-allowed'}">
-                                                Acheter
-                                            </button>
-                                        </div>
-                                    </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        `}
+                                            return `
+                                            <tr class="hover:bg-white/5 transition-colors group cursor-pointer" onclick="actions.openBuyModal('${item.id}')">
+                                                <td class="p-4 text-center">
+                                                    <div class="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-gray-400 border border-white/5">
+                                                        <i data-lucide="package" class="w-4 h-4"></i>
+                                                    </div>
+                                                </td>
+                                                <td class="p-4">
+                                                    <div class="font-bold text-white">${item.name}</div>
+                                                    ${item.description ? `<div class="text-xs text-gray-500 truncate max-w-[200px]">${item.description}</div>` : ''}
+                                                </td>
+                                                <td class="p-4 text-gray-400">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <i data-lucide="building-2" class="w-3 h-3 text-blue-500/50"></i>
+                                                        ${item.enterprises?.name || 'Entreprise'}
+                                                    </div>
+                                                </td>
+                                                <td class="p-4 text-center">
+                                                    <span class="bg-white/10 px-2 py-0.5 rounded text-xs font-mono text-white">${item.quantity}</span>
+                                                </td>
+                                                <td class="p-4 text-right">
+                                                    <div class="font-mono font-bold text-emerald-400">$${item.price.toLocaleString()}</div>
+                                                    <div class="text-[9px] uppercase font-bold text-gray-600">${item.payment_type === 'both' ? 'Mixte' : item.payment_type === 'cash_only' ? 'Cash' : 'Banque'}</div>
+                                                </td>
+                                                <td class="p-4 text-right">
+                                                    <button class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-500/20 hover:text-blue-300 border-white/10 group-hover:border-blue-500/50 transition-all flex items-center gap-2 ml-auto">
+                                                        <i data-lucide="eye" class="w-3 h-3"></i> Détails
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            `}
+                        </div>
                     </div>
                 </div>
             `;
@@ -123,7 +152,7 @@ export const EnterpriseView = () => {
     else if (state.activeEnterpriseTab === 'my_companies') {
         content = `
             <div class="flex flex-col h-full overflow-hidden animate-fade-in">
-                <div class="mb-4 flex justify-between items-center shrink-0">
+                <div class="mb-6 flex justify-between items-center shrink-0">
                     <h3 class="font-bold text-white flex items-center gap-2 text-sm uppercase tracking-wide">
                         <i data-lucide="briefcase" class="w-4 h-4 text-blue-400"></i> Vos Affiliations
                     </h3>
@@ -133,7 +162,7 @@ export const EnterpriseView = () => {
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${state.myEnterprises.length === 0 ? '<div class="col-span-full text-center text-gray-500 py-10 italic border border-dashed border-white/10 rounded-xl">Vous n\'êtes employé d\'aucune entreprise.</div>' : ''}
                         ${state.myEnterprises.map(ent => `
-                            <div class="bg-white/5 p-5 rounded-xl border border-white/5 hover:border-white/10 transition-all flex flex-col">
+                            <div class="glass-panel p-5 rounded-xl border border-white/5 hover:border-white/10 transition-all flex flex-col">
                                 <div class="flex justify-between items-start mb-4">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20">
@@ -182,6 +211,7 @@ export const EnterpriseView = () => {
 
     // --- MANAGEMENT VIEW (Dashboard) ---
     else if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) {
+        // Reuse existing management code but ensure container fit
         const ent = state.activeEnterpriseManagement;
         const isLeader = ent.myRank === 'leader';
         const circulation = ent.circulation || [];
@@ -344,21 +374,23 @@ export const EnterpriseView = () => {
     }
 
     return `
-        <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
+        <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
             ${refreshBanner}
             
             ${!state.activeEnterpriseManagement ? `
-                <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full mb-4 shrink-0 border border-white/5">
-                    ${tabs.map(t => `
-                        <button onclick="actions.setEnterpriseTab('${t.id}')" 
-                            class="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${state.activeEnterpriseTab === t.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
-                            <i data-lucide="${t.icon}" class="w-4 h-4"></i> ${t.label}
-                        </button>
-                    `).join('')}
+                <div class="px-6 pb-2 shrink-0">
+                    <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full border border-white/5">
+                        ${tabs.map(t => `
+                            <button onclick="actions.setEnterpriseTab('${t.id}')" 
+                                class="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${state.activeEnterpriseTab === t.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                                <i data-lucide="${t.icon}" class="w-4 h-4"></i> ${t.label}
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
             ` : ''}
 
-            <div class="flex-1 overflow-hidden relative overflow-y-auto custom-scrollbar p-1">
+            <div class="flex-1 p-6 overflow-hidden relative min-h-0">
                 ${content}
             </div>
         </div>
