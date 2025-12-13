@@ -194,7 +194,7 @@ export const HubView = () => {
         const showStaffCard = Object.keys(state.user.permissions || {}).length > 0 || state.user.isFounder;
         const isIllegal = state.activeCharacter?.alignment === 'illegal';
         const job = state.activeCharacter?.job || 'unemployed';
-        const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(job);
+        const hasServiceAccess = ['leo', 'lafd', 'ladot', 'lawyer'].includes(job);
         
         let newsHtml = '';
         if (state.globalActiveHeists && state.globalActiveHeists.length > 0) {
@@ -526,7 +526,7 @@ export const HubView = () => {
         };
 
         const hasStaffAccess = Object.keys(state.user.permissions || {}).length > 0 || state.user.isFounder;
-        const hasServiceAccess = ['leo', 'lafd', 'ladot'].includes(state.activeCharacter?.job);
+        const hasServiceAccess = ['leo', 'lafd', 'ladot', 'lawyer'].includes(state.activeCharacter?.job);
         const isIllegal = state.activeCharacter?.alignment === 'illegal';
 
         if (isBypass) return '';

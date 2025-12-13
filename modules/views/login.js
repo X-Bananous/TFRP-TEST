@@ -111,11 +111,10 @@ export const LoginView = () => {
                         `}
                     </div>
 
-                    <!-- Layout: Left Info, Right Widget -->
-                    <div class="flex flex-col lg:flex-row gap-12 w-full max-w-6xl items-start">
+                    <!-- Layout: Full Width Info -->
+                    <div class="w-full max-w-6xl mx-auto">
                         
-                        <!-- Left Content -->
-                        <div class="flex-1 w-full space-y-12">
+                        <div class="w-full space-y-12">
                              <!-- Info Bubbles Grid -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                                 <div class="glass-panel p-6 rounded-2xl text-left border border-blue-500/20 hover:border-blue-500/40 transition-colors">
@@ -141,12 +140,12 @@ export const LoginView = () => {
 
                             <!-- Staff Section -->
                             <div>
-                                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2 justify-center md:justify-start">
                                     <i data-lucide="shield" class="w-5 h-5 text-purple-400"></i> La Fondation
                                 </h3>
                                 
                                 <!-- Founders Fixed -->
-                                <div class="flex justify-center gap-4 mb-6">
+                                <div class="flex justify-center md:justify-start gap-4 mb-6 flex-wrap">
                                     ${founders.map(f => renderCard(f, true)).join('')}
                                 </div>
 
@@ -159,13 +158,6 @@ export const LoginView = () => {
                                         </div>
                                     </div>
                                 ` : ''}
-                            </div>
-                        </div>
-
-                        <!-- Right: Discord Widget -->
-                        <div class="hidden lg:block w-[350px] shrink-0">
-                            <div class="glass-panel p-1 rounded-xl border border-indigo-500/20 shadow-2xl">
-                                <iframe src="https://discord.com/widget?id=${CONFIG.REQUIRED_GUILD_ID}&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" class="rounded-lg"></iframe>
                             </div>
                         </div>
                     </div>
