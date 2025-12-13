@@ -506,9 +506,9 @@ export const resolveBounty = async (bountyId, winnerId) => {
     await fetchBounties();
 };
 
-// ... (Enterprise Services - same) ...
+// ... (Enterprise Services) ...
 export const fetchEnterprises = async () => { 
-    // Join with leader to get name for admin table
+    // Used for Admin View and Directory
     const { data } = await state.supabase.from('enterprises').select('*, leader:characters!enterprises_leader_id_fkey(first_name, last_name)'); 
     state.enterprises = data || []; 
 };
@@ -526,8 +526,13 @@ export const createEnterprise = async (name, leaderId) => {
 };
 
 export const joinEnterprise = async (entId, charId) => {
-    await state.supabase.from('enterprise_members').insert({ enterprise_id: entId, character_id: charId, rank: 'employee', status: 'pending' });
-    showToast('Candidature envoyée', 'success');
+    // Check existing
+    const {data} = await state.supabase.from('enterprise_members').select('*').eq('enterprise_id', entId).eq('character_id', charId).maybeSingle();
+    if(data) return showToast("Vous avez déjà postulé ou êtes membre.", 'warning');
+
+    const { error } = await state.supabase.from('enterprise_members').insert({ enterprise_id: entId, character_id: charId, rank: 'employee', status: 'pending' });
+    if(!error) showToast('Candidature envoyée au PDG.', 'success');
+    else showToast("Erreur candidature.", 'error');
 };
 
 export const fetchEnterpriseMarket = async () => {
@@ -560,31 +565,6 @@ export const updateEnterpriseItem = async (itemId, updates) => {
     if (updates.name || updates.price || updates.description) { updates.status = 'pending'; }
     const { error } = await state.supabase.from('enterprise_items').update(updates).eq('id', itemId);
     if (!error) { showToast("Article mis à jour.", 'success'); if (updates.status === 'pending') showToast("Modifications soumises à validation.", 'info'); }
-};
-
-export const buyEnterpriseItem = async (itemId) => {
-    if (!state.activeGameSession) { showToast("Impossible : Session fermée.", 'error'); return; }
-    const { data: item } = await state.supabase.from('enterprise_items').select('*, enterprises(id, balance)').eq('id', itemId).single();
-    if(!item || item.quantity < 1) return showToast("Article indisponible.", 'error');
-    const charId = state.activeCharacter.id;
-    const { data: bank } = await state.supabase.from('bank_accounts').select('*').eq('character_id', charId).single();
-    let canPay = false; let paySource = '';
-    if (item.payment_type === 'cash_only' || item.payment_type === 'both') { if (bank.cash_balance >= item.price) { canPay = true; paySource = 'cash'; } }
-    if (!canPay && (item.payment_type === 'bank_only' || item.payment_type === 'both')) { if (bank.bank_balance >= item.price) { canPay = true; paySource = 'bank'; } }
-    if (!canPay) return showToast(`Fonds insuffisants.`, 'error');
-    const updateBank = {};
-    if (paySource === 'cash') updateBank.cash_balance = bank.cash_balance - item.price; else updateBank.bank_balance = bank.bank_balance - item.price;
-    await state.supabase.from('bank_accounts').update(updateBank).eq('character_id', charId);
-    
-    // Inventory - Use Name as Key because names are unique now
-    const { data: existingInv } = await state.supabase.from('inventory').select('*').eq('character_id', charId).eq('name', item.name).maybeSingle();
-    if (existingInv) { await state.supabase.from('inventory').update({ quantity: existingInv.quantity + 1 }).eq('id', existingInv.id); } 
-    else { await state.supabase.from('inventory').insert({ character_id: charId, name: item.name, quantity: 1, estimated_value: item.price }); }
-    
-    await state.supabase.from('enterprises').update({ balance: (item.enterprises.balance || 0) + item.price }).eq('id', item.enterprise_id);
-    if (item.quantity === 1) { await state.supabase.from('enterprise_items').delete().eq('id', itemId); } else { await state.supabase.from('enterprise_items').update({ quantity: item.quantity - 1 }).eq('id', itemId); }
-    showToast(`Achat effectué : ${item.name}`, 'success');
-    await fetchBankData(charId); await fetchEnterpriseMarket();
 };
 
 export const fetchEnterpriseCirculation = async (entId) => {

@@ -3,16 +3,16 @@ import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 
 const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between px-4 py-3 mb-4 bg-blue-500/5 border-y border-blue-500/10 gap-3 shrink-0">
+    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0">
         <div class="text-xs text-blue-200 flex items-center gap-2">
              <div class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </div>
-            <span><span class="font-bold">Registre du Commerce</span> • Connexion Sécurisée</span>
+            <span><span class="font-bold">Registre du Commerce</span> • Terminal de Gestion V3.1</span>
         </div>
         <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-xs text-blue-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser Données
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser
         </button>
     </div>
 `;
@@ -20,6 +20,7 @@ const refreshBanner = `
 export const EnterpriseView = () => {
     const tabs = [
         { id: 'market', label: 'Marché Public', icon: 'shopping-cart' },
+        { id: 'directory', label: 'Annuaire & Recrutement', icon: 'building' },
         { id: 'my_companies', label: 'Mes Entreprises', icon: 'briefcase' }
     ];
 
@@ -39,9 +40,7 @@ export const EnterpriseView = () => {
         if (!state.activeGameSession) {
             content = `
                 <div class="flex flex-col items-center justify-center h-full p-10 text-center animate-fade-in text-gray-500">
-                    <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6 border border-gray-700">
-                        <i data-lucide="store" class="w-10 h-10 opacity-50"></i>
-                    </div>
+                    <i data-lucide="store" class="w-16 h-16 mb-4 opacity-20"></i>
                     <h2 class="text-xl font-bold text-white mb-2">Marché Fermé</h2>
                     <p class="text-sm">Les transactions commerciales sont suspendues hors session.</p>
                 </div>
@@ -60,7 +59,7 @@ export const EnterpriseView = () => {
                         </div>
                         
                         <!-- Stats Bar -->
-                        <div class="flex gap-2 overflow-x-auto custom-scrollbar pb-2 xl:pb-0">
+                        <div class="flex gap-2 overflow-x-auto">
                             <div class="flex items-center gap-3 px-4 py-2 bg-blue-500/5 rounded-xl border border-blue-500/10 whitespace-nowrap">
                                 <div class="p-1.5 bg-blue-500/10 rounded-lg text-blue-400"><i data-lucide="bar-chart-3" class="w-4 h-4"></i></div>
                                 <div>
@@ -96,18 +95,14 @@ export const EnterpriseView = () => {
                                             <th class="p-4">Produit</th>
                                             <th class="p-4">Vendeur</th>
                                             <th class="p-4 text-center">Stock</th>
-                                            <th class="p-4 text-right">Prix Unitaire</th>
+                                            <th class="p-4 text-right">Prix HT</th>
                                             <th class="p-4 text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody class="text-sm divide-y divide-white/5">
                                         ${items.map(item => {
-                                            // Payment Logic Check
-                                            let canAfford = false;
-                                            if (item.payment_type === 'cash_only' && currentCash >= item.price) canAfford = true;
-                                            else if (item.payment_type === 'bank_only' && currentBank >= item.price) canAfford = true;
-                                            else if (item.payment_type === 'both' && (currentCash >= item.price || currentBank >= item.price)) canAfford = true;
-
+                                            // Payment Logic Check (Simplified visual check)
+                                            // Real check happens in modal
                                             return `
                                             <tr class="hover:bg-white/5 transition-colors group cursor-pointer" onclick="actions.openBuyModal('${item.id}')">
                                                 <td class="p-4 text-center">
@@ -134,7 +129,7 @@ export const EnterpriseView = () => {
                                                 </td>
                                                 <td class="p-4 text-right">
                                                     <button class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-500/20 hover:text-blue-300 border-white/10 group-hover:border-blue-500/50 transition-all flex items-center gap-2 ml-auto">
-                                                        <i data-lucide="eye" class="w-3 h-3"></i> Détails
+                                                        <i data-lucide="shopping-cart" class="w-3 h-3"></i> Achat
                                                     </button>
                                                 </td>
                                             </tr>
@@ -148,6 +143,46 @@ export const EnterpriseView = () => {
                 </div>
             `;
         }
+    }
+
+    // --- DIRECTORY TAB (NEW) ---
+    else if (state.activeEnterpriseTab === 'directory') {
+        const ents = state.enterprises || [];
+        content = `
+            <div class="flex flex-col h-full overflow-hidden animate-fade-in">
+                <div class="mb-6 flex justify-between items-center shrink-0">
+                    <h3 class="font-bold text-white flex items-center gap-2 text-sm uppercase tracking-wide">
+                        <i data-lucide="building" class="w-4 h-4 text-blue-400"></i> Annuaire des Entreprises
+                    </h3>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${ents.length === 0 ? '<div class="col-span-full text-center text-gray-500 py-10 italic border border-dashed border-white/10 rounded-xl">Aucune entreprise enregistrée.</div>' : ''}
+                        ${ents.map(ent => `
+                            <div class="glass-panel p-5 rounded-xl border border-white/5 hover:border-blue-500/30 transition-all flex flex-col group relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-150 duration-500"></div>
+                                
+                                <div class="flex justify-between items-start mb-4 relative z-10">
+                                    <div class="w-12 h-12 rounded-lg bg-blue-900/20 flex items-center justify-center text-blue-400 font-bold border border-blue-500/20 text-lg">
+                                        ${ent.name[0]}
+                                    </div>
+                                </div>
+                                
+                                <h4 class="font-bold text-white text-lg mb-1 relative z-10">${ent.name}</h4>
+                                <div class="text-xs text-gray-500 mb-6 relative z-10 flex items-center gap-1">
+                                    <i data-lucide="user" class="w-3 h-3"></i> PDG: <span class="text-gray-300 font-bold">${ent.leader ? `${ent.leader.first_name} ${ent.leader.last_name}` : 'Inconnu'}</span>
+                                </div>
+
+                                <button onclick="actions.applyToEnterprise('${ent.id}')" class="mt-auto glass-btn-secondary w-full py-3 rounded-xl text-sm font-bold hover:bg-blue-500/20 hover:text-blue-300 hover:border-blue-500/30 transition-all relative z-10 flex items-center justify-center gap-2">
+                                    <i data-lucide="send" class="w-3 h-3"></i> Postuler
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     // --- MY COMPANIES TAB ---
@@ -308,12 +343,15 @@ export const EnterpriseView = () => {
                             <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                                 <i data-lucide="package-plus" class="w-4 h-4 text-orange-400"></i> Mise en Vente
                             </h3>
+                            <div class="text-[10px] text-orange-300 mb-3 bg-orange-500/10 p-2 rounded border border-orange-500/20">
+                                <i data-lucide="info" class="w-3 h-3 inline mr-1"></i> Taxe de mise en rayon : 5% du prix total prélevé sur le compte entreprise.
+                            </div>
                             <form onsubmit="actions.addItemToMarket(event)" class="space-y-3">
                                 <div class="grid grid-cols-2 gap-3">
-                                    <input type="text" name="name" placeholder="Nom Produit" class="glass-input p-2 rounded-lg text-xs w-full" required>
+                                    <input type="text" name="name" placeholder="Nom (Max 25 car.)" maxlength="25" class="glass-input p-2 rounded-lg text-xs w-full" required>
                                     <div class="relative">
                                         <span class="absolute left-2 top-2 text-gray-500 text-xs">$</span>
-                                        <input type="number" name="price" placeholder="Prix Unitaire" class="glass-input p-2 pl-5 rounded-lg text-xs w-full font-mono" required>
+                                        <input type="number" name="price" placeholder="Prix HT" class="glass-input p-2 pl-5 rounded-lg text-xs w-full font-mono" required>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-3">
@@ -324,9 +362,9 @@ export const EnterpriseView = () => {
                                         <option value="bank_only">Banque</option>
                                     </select>
                                 </div>
-                                <input type="text" name="description" placeholder="Description courte (Optionnel)" class="glass-input p-2 rounded-lg text-xs w-full">
+                                <input type="text" name="description" placeholder="Description (Max 55 car.)" maxlength="55" class="glass-input p-2 rounded-lg text-xs w-full">
                                 <button type="submit" class="glass-btn w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500">
-                                    <i data-lucide="plus" class="w-3 h-3"></i> Ajouter au Catalogue
+                                    <i data-lucide="plus" class="w-3 h-3"></i> Payer Taxe & Ajouter
                                 </button>
                             </form>
                         </div>
@@ -375,24 +413,13 @@ export const EnterpriseView = () => {
         `;
     }
 
-    // MAIN LAYOUT WRAPPER (FULL SCREEN)
     return `
         <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
             ${refreshBanner}
             
             ${!state.activeEnterpriseManagement ? `
-                <div class="px-6 pb-4 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/5 shrink-0">
-                    <div>
-                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                            <i data-lucide="building-2" class="w-6 h-6 text-blue-500"></i>
-                            Registre du Commerce
-                        </h2>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span class="text-xs text-gray-400">Opérateur:</span>
-                            <span class="text-xs font-bold text-white bg-white/10 px-2 py-0.5 rounded">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</span>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full no-scrollbar">
+                <div class="px-6 pb-2 shrink-0">
+                    <div class="flex gap-2 bg-white/5 p-1 rounded-xl overflow-x-auto max-w-full border border-white/5">
                         ${tabs.map(t => `
                             <button onclick="actions.setEnterpriseTab('${t.id}')" 
                                 class="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all whitespace-nowrap ${state.activeEnterpriseTab === t.id ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}">

@@ -12,6 +12,8 @@ export const setEnterpriseTab = async (tab) => {
     try {
         if (tab === 'market') {
             await services.fetchEnterpriseMarket();
+        } else if (tab === 'directory') {
+            await services.fetchEnterprises(); // Fetch all for directory
         } else if (tab === 'my_companies') {
             await services.fetchMyEnterprises(state.activeCharacter.id);
         }
@@ -30,28 +32,62 @@ export const openEnterpriseManagement = async (entId) => {
     render();
 };
 
+export const applyToEnterprise = async (entId) => {
+    await services.joinEnterprise(entId, state.activeCharacter.id);
+    // Refresh to update UI feedback if needed, although simple toast is usually enough
+};
+
 export const addItemToMarket = async (e) => {
     e.preventDefault();
     const btn = e.submitter;
     
     // Check permissions (Employee, Leader, Co-Leader)
-    const rank = state.activeEnterpriseManagement?.myRank;
+    const ent = state.activeEnterpriseManagement;
+    const rank = ent?.myRank;
     if (!rank || rank === 'pending') return ui.showToast("Accès refusé.", 'error');
 
-    toggleBtnLoading(btn, true);
     const data = new FormData(e.target);
     const name = data.get('name');
+    const description = data.get('description');
     const price = parseInt(data.get('price'));
     const quantity = parseInt(data.get('quantity'));
     const payment = data.get('payment_type');
-    const description = data.get('description');
 
-    const success = await services.createEnterpriseItem(state.activeEnterpriseManagement.id, name, price, quantity, payment, description);
+    // 1. LIMIT CHECKS
+    if (name.length > 25) return ui.showToast("Nom trop long (Max 25 car.)", 'error');
+    if (description.length > 55) return ui.showToast("Description trop longue (Max 55 car.)", 'error');
+    
+    // 2. TAX CALCULATION (5%)
+    const taxAmount = Math.ceil(price * quantity * 0.05);
+    const entBalance = ent.balance || 0;
+
+    if (entBalance < taxAmount) {
+        return ui.showToast(`Fonds insuffisants pour la taxe de mise en rayon ($${taxAmount}).`, 'error');
+    }
+
+    toggleBtnLoading(btn, true);
+
+    // 3. DEDUCT TAX
+    const { error: taxError } = await state.supabase.from('enterprises')
+        .update({ balance: entBalance - taxAmount })
+        .eq('id', ent.id);
+
+    if (taxError) {
+        toggleBtnLoading(btn, false);
+        return ui.showToast("Erreur prélèvement taxe.", 'error');
+    }
+
+    // 4. CREATE ITEM
+    const success = await services.createEnterpriseItem(ent.id, name, price, quantity, payment, description);
     
     if(success) {
-        // Refresh Details only if successful
-        await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
+        ui.showToast(`Article ajouté. Taxe payée: $${taxAmount}`, 'success');
+        // Refresh Details
+        await services.fetchEnterpriseDetails(ent.id);
         e.target.reset();
+    } else {
+        // Refund tax if item creation fails (optional but fair)
+        await state.supabase.from('enterprises').update({ balance: entBalance }).eq('id', ent.id);
     }
     
     toggleBtnLoading(btn, false);
@@ -81,6 +117,10 @@ export const restockItem = async (itemId) => {
             const item = state.activeEnterpriseManagement.items.find(i => i.id === itemId);
             if(!item) return;
             
+            // Tax logic for restocking could apply here too, but instructions only specified creation. 
+            // Assuming no tax on simple restock for now to keep it simple, or apply same 5% logic if strict.
+            // Let's keep it simple as per prompt "a la creation d'un objet".
+
             await services.updateEnterpriseItem(itemId, { quantity: item.quantity + val });
             ui.showToast(`Stock mis à jour (+${val}).`, 'success');
             await services.fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
@@ -131,25 +171,34 @@ export const openBuyModal = (itemId) => {
     const currentCash = state.bankAccount ? state.bankAccount.cash_balance : 0;
     const currentBank = state.bankAccount ? state.bankAccount.bank_balance : 0;
     
-    // Calculate max affordable
+    // Price Calculation with VAT
+    const priceHT = item.price;
+    const priceTTC = Math.ceil(priceHT * 1.20); // 20% VAT
+
+    // Calculate max affordable based on TTC
     let maxAffordable = 0;
-    if (item.payment_type === 'cash_only') maxAffordable = Math.floor(currentCash / item.price);
-    else if (item.payment_type === 'bank_only') maxAffordable = Math.floor(currentBank / item.price);
-    else maxAffordable = Math.floor((currentCash + currentBank) / item.price); // Rough estimate for 'both' (though split logic is complex)
+    if (item.payment_type === 'cash_only') maxAffordable = Math.floor(currentCash / priceTTC);
+    else if (item.payment_type === 'bank_only') maxAffordable = Math.floor(currentBank / priceTTC);
+    else maxAffordable = Math.floor((currentCash + currentBank) / priceTTC);
     
     // Max purchase is limited by Stock AND Money
     const maxQty = Math.min(item.quantity, maxAffordable);
     const canBuy = maxQty > 0;
 
     // Helper script for dynamic price
-    window.updateBuyTotal = (price) => {
+    window.updateBuyTotal = (basePrice) => {
         const qty = parseInt(document.getElementById('buy-qty').value) || 0;
-        const total = qty * price;
-        document.getElementById('buy-total').textContent = '$' + total.toLocaleString();
+        const totalHT = qty * basePrice;
+        const totalVAT = Math.ceil(totalHT * 0.20);
+        const totalTTC = totalHT + totalVAT;
+        
+        document.getElementById('buy-total-ht').textContent = '$' + totalHT.toLocaleString();
+        document.getElementById('buy-vat').textContent = '$' + totalVAT.toLocaleString();
+        document.getElementById('buy-total-ttc').textContent = '$' + totalTTC.toLocaleString();
     };
 
     ui.showModal({
-        title: "Détails Produit",
+        title: "Détails Produit (TTC)",
         content: `
             <div class="flex gap-4 mb-4">
                 <div class="w-20 h-20 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 shrink-0 border border-blue-500/20">
@@ -166,23 +215,37 @@ export const openBuyModal = (itemId) => {
             
             <div class="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3">
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-gray-400">Prix Unitaire</span>
-                    <span class="font-mono font-bold text-emerald-400">$${item.price.toLocaleString()}</span>
+                    <span class="text-gray-400">Prix Unitaire (HT)</span>
+                    <span class="font-mono text-white">$${priceHT.toLocaleString()}</span>
                 </div>
                 <div class="flex justify-between items-center text-sm">
-                    <span class="text-gray-400">Stock Disponible</span>
-                    <span class="font-mono text-white">${item.quantity}</span>
+                    <span class="text-gray-400">TVA (20%)</span>
+                    <span class="font-mono text-gray-500">+ $${Math.ceil(priceHT * 0.20).toLocaleString()}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm border-t border-white/5 pt-2 mt-2">
+                    <span class="text-emerald-400 font-bold">Prix Unitaire (TTC)</span>
+                    <span class="font-mono font-bold text-emerald-400">$${priceTTC.toLocaleString()}</span>
                 </div>
                 
                 <div class="pt-3 border-t border-white/5">
                     <label class="text-xs text-gray-500 uppercase font-bold mb-1 block">Quantité souhaitée</label>
                     <input type="number" id="buy-qty" class="glass-input w-full p-2 rounded-lg text-sm font-mono" 
-                        value="1" min="1" max="${item.quantity}" oninput="window.updateBuyTotal(${item.price})">
+                        value="1" min="1" max="${item.quantity}" oninput="window.updateBuyTotal(${priceHT})">
                 </div>
                 
-                <div class="flex justify-between items-center bg-black/40 p-3 rounded-lg mt-2">
-                    <span class="text-gray-400 text-xs font-bold uppercase">Total à Payer</span>
-                    <span class="font-mono font-bold text-xl text-emerald-400" id="buy-total">$${item.price.toLocaleString()}</span>
+                <div class="bg-black/40 p-3 rounded-lg mt-2 space-y-1">
+                    <div class="flex justify-between items-center text-xs text-gray-500">
+                        <span>Total HT</span>
+                        <span id="buy-total-ht">$${priceHT.toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-gray-500">
+                        <span>Total TVA</span>
+                        <span id="buy-vat">$${Math.ceil(priceHT * 0.20).toLocaleString()}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1 border-t border-white/10 mt-1">
+                        <span class="text-gray-400 text-xs font-bold uppercase">Total à Payer</span>
+                        <span class="font-mono font-bold text-xl text-emerald-400" id="buy-total-ttc">$${priceTTC.toLocaleString()}</span>
+                    </div>
                 </div>
             </div>
             
@@ -205,7 +268,10 @@ export const confirmBuyItem = async (itemId, quantity) => {
     const item = state.enterpriseMarket.find(i => i.id === itemId);
     if(!item) return;
     
-    const totalPrice = item.price * quantity;
+    const priceHT = item.price * quantity;
+    const priceVAT = Math.ceil(priceHT * 0.20);
+    const totalPriceTTC = priceHT + priceVAT;
+
     const charId = state.activeCharacter.id;
     const { data: bank } = await state.supabase.from('bank_accounts').select('*').eq('character_id', charId).single();
     
@@ -213,21 +279,22 @@ export const confirmBuyItem = async (itemId, quantity) => {
     let paySource = '';
     
     if (item.payment_type === 'cash_only' || item.payment_type === 'both') { 
-        if (bank.cash_balance >= totalPrice) { canPay = true; paySource = 'cash'; } 
+        if (bank.cash_balance >= totalPriceTTC) { canPay = true; paySource = 'cash'; } 
     }
     if (!canPay && (item.payment_type === 'bank_only' || item.payment_type === 'both')) { 
-        if (bank.bank_balance >= totalPrice) { canPay = true; paySource = 'bank'; } 
+        if (bank.bank_balance >= totalPriceTTC) { canPay = true; paySource = 'bank'; } 
     }
     
-    if (!canPay) return ui.showToast(`Fonds insuffisants pour ${quantity}x ${item.name}.`, 'error');
+    if (!canPay) return ui.showToast(`Fonds insuffisants (TTC: $${totalPriceTTC}).`, 'error');
     
+    // 1. Deduct from User (Total TTC)
     const updateBank = {};
-    if (paySource === 'cash') updateBank.cash_balance = bank.cash_balance - totalPrice; 
-    else updateBank.bank_balance = bank.bank_balance - totalPrice;
+    if (paySource === 'cash') updateBank.cash_balance = bank.cash_balance - totalPriceTTC; 
+    else updateBank.bank_balance = bank.bank_balance - totalPriceTTC;
     
     await state.supabase.from('bank_accounts').update(updateBank).eq('character_id', charId);
     
-    // Inventory Logic
+    // 2. Add Item to Inventory
     const { data: existingInv } = await state.supabase.from('inventory').select('*').eq('character_id', charId).eq('name', item.name).maybeSingle();
     if (existingInv) { 
         await state.supabase.from('inventory').update({ quantity: existingInv.quantity + quantity }).eq('id', existingInv.id); 
@@ -235,16 +302,17 @@ export const confirmBuyItem = async (itemId, quantity) => {
         await state.supabase.from('inventory').insert({ character_id: charId, name: item.name, quantity: quantity, estimated_value: item.price }); 
     }
     
-    // Enterprise Update
-    await state.supabase.from('enterprises').update({ balance: (item.enterprises.balance || 0) + totalPrice }).eq('id', item.enterprise_id);
+    // 3. Pay Enterprise (HT Only) - VAT is burned/removed from economy
+    await state.supabase.from('enterprises').update({ balance: (item.enterprises.balance || 0) + priceHT }).eq('id', item.enterprise_id);
     
+    // 4. Update Stock
     if (item.quantity === quantity) { 
         await state.supabase.from('enterprise_items').delete().eq('id', itemId); 
     } else { 
         await state.supabase.from('enterprise_items').update({ quantity: item.quantity - quantity }).eq('id', itemId); 
     }
     
-    ui.showToast(`Achat effectué : ${quantity}x ${item.name}`, 'success');
+    ui.showToast(`Achat effectué : ${quantity}x ${item.name} (TVA incluse)`, 'success');
     await services.fetchBankData(charId); 
     await services.fetchEnterpriseMarket();
     render();
