@@ -586,8 +586,8 @@ export const claimAdventReward = async (targetDay) => {
     // const month = today.getMonth() + 1; // Dec = 12
     // if (month !== 12) return showToast("Ce n'est pas Noël !", 'error');
     
-    if (targetDay < 16 || targetDay > 25) {
-        showToast("Date invalide (16-25 Décembre).", 'error');
+    if (targetDay < 12 || targetDay > 25) {
+        showToast("Date invalide (12-25 Décembre).", 'error');
         return;
     }
 
@@ -606,21 +606,18 @@ export const claimAdventReward = async (targetDay) => {
     }
 
     // Calculate Reward
-    // 16th -> 1000, 17th -> 2000 ... 25th -> 10000. Sum = 55000.
-    const reward = (targetDay - 15) * 1000; 
+    // 12th -> 1000, 13th -> 2000 ... 24th -> 13000.
+    // 25th -> 25000.
+    
+    let reward = 0;
+    if (targetDay === 25) {
+        reward = 25000;
+    } else {
+        reward = (targetDay - 11) * 1000;
+    }
+
     let extraItemMessage = "";
     const charId = state.activeCharacter.id;
-
-    // EXTRA ITEMS LOGIC
-    if (targetDay === 16) {
-        await state.supabase.from('inventory').insert({
-            character_id: charId,
-            name: "Traineau de 2025",
-            quantity: 1,
-            estimated_value: 1000
-        });
-        extraItemMessage = `<br><span class="text-yellow-400 font-bold text-sm">+ Objet Spécial: Traineau de 2025</span>`;
-    }
 
     // Update DB
     const newClaimed = [...claimedDays, targetDay];
@@ -645,7 +642,7 @@ export const claimAdventReward = async (targetDay) => {
         content: `
             <div class="text-center">
                 <div class="text-4xl mb-4">🎄</div>
-                <div class="text-xl font-bold text-white mb-2">Joyeux Noël !</div>
+                <div class="text-xl font-bold text-white mb-2">${targetDay === 25 ? "Joyeux Noël !" : "Récompense du jour"}</div>
                 <p class="text-gray-300">Vous avez reçu un virement de <span class="text-emerald-400 font-bold">$${reward.toLocaleString()}</span>.${extraItemMessage}</p>
             </div>
         `,

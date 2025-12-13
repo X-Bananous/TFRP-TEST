@@ -27,8 +27,8 @@ const refreshBanner = `
 const AdventCalendarView = () => {
     const today = new Date();
     const currentDay = today.getDate();
-    // Logic: 16 to 25
-    const startDay = 16;
+    // Logic: 12 to 25
+    const startDay = 12;
     const endDay = 25;
     const days = [];
     
@@ -79,7 +79,7 @@ const AdventCalendarView = () => {
                     <i data-lucide="snowflake" class="w-4 h-4"></i> Édition Spéciale Noël
                 </div>
                 <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Calendrier de l'Avent</h1>
-                <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 16 au 25 Décembre pour débloquer des récompenses exclusives.</p>
+                <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 12 au 25 Décembre pour débloquer des récompenses exclusives.</p>
                 <div class="mt-4 text-xs font-mono text-emerald-400 bg-black/40 inline-block px-3 py-1 rounded border border-emerald-500/20">
                     <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${nextUnlockStr}
                 </div>
@@ -90,15 +90,15 @@ const AdventCalendarView = () => {
                     ${days.map(d => `
                         <button 
                             ${d.isAvailable ? `onclick="actions.claimAdventReward(${d.day})"` : 'disabled'}
-                            class="relative aspect-square rounded-2xl border ${d.bgClass} flex flex-col items-center justify-center gap-2 group transition-all transform hover:scale-105 ${d.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'}">
+                            class="relative aspect-square rounded-2xl border ${d.bgClass} flex flex-col items-center justify-center gap-2 group transition-all transform hover:scale-105 ${d.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'} ${d.day === 25 ? 'col-span-2 md:col-span-1 lg:col-span-1 border-yellow-500/50' : ''}">
                             
                             <div class="absolute top-3 left-4 font-black text-4xl text-white/10 select-none">${d.day}</div>
                             
                             <div class="relative z-10 p-3 rounded-full bg-black/20 backdrop-blur-sm">
-                                <i data-lucide="${d.icon}" class="w-8 h-8 ${d.textClass}"></i>
+                                <i data-lucide="${d.day === 25 ? 'star' : d.icon}" class="w-8 h-8 ${d.day === 25 ? 'text-yellow-400' : d.textClass}"></i>
                             </div>
                             
-                            <div class="relative z-10 text-sm font-bold ${d.textClass} uppercase tracking-wider">
+                            <div class="relative z-10 text-sm font-bold ${d.day === 25 ? 'text-yellow-400' : d.textClass} uppercase tracking-wider">
                                 ${d.statusText}
                             </div>
                             
@@ -109,8 +109,8 @@ const AdventCalendarView = () => {
                 
                 <div class="mt-12 text-center">
                     <div class="inline-block p-4 bg-white/5 rounded-xl border border-white/5 max-w-md">
-                        <h4 class="text-white font-bold mb-1 flex items-center justify-center gap-2"><i data-lucide="gift" class="w-4 h-4 text-yellow-400"></i> Récompense Finale</h4>
-                        <p class="text-xs text-gray-400">Cumulez jusqu'à <b>$55,000</b> en ouvrant toutes les cases.</p>
+                        <h4 class="text-white font-bold mb-1 flex items-center justify-center gap-2"><i data-lucide="gift" class="w-4 h-4 text-yellow-400"></i> Le 25 Décembre</h4>
+                        <p class="text-xs text-gray-400">Une prime exceptionnelle de <b>$25,000</b> vous attend pour Noël !</p>
                     </div>
                 </div>
             </div>
@@ -325,7 +325,7 @@ export const HubView = () => {
                             </div>
                             <div class="relative z-10">
                                 <h3 class="text-xl font-bold text-white">Calendrier Avent</h3>
-                                <p class="text-sm text-gray-400 mt-1">Cadeaux Quotidiens</p>
+                                <p class="text-sm text-gray-400 mt-1">Cadeaux Quotidiens (12-25)</p>
                             </div>
                         </button>
 
@@ -616,30 +616,35 @@ export const HubView = () => {
     // Staff on duty
     const staffOnDuty = state.onDutyStaff || [];
 
-    // --- MOBILE BOTTOM NAV BAR (NEW) ---
+    // --- MOBILE BOTTOM NAV BAR (NEW REDESIGNED) ---
+    // Simpler, modern iOS-style tab bar
     const mobileNav = `
-        <div class="md:hidden fixed bottom-0 left-0 w-full glass-panel border-t border-white/10 z-50 flex justify-between items-center px-6 py-4 pb-6 safe-area-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-            <button onclick="actions.setHubPanel('main')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'main' ? 'text-blue-400' : 'text-gray-500'}">
+        <div class="md:hidden fixed bottom-0 left-0 w-full bg-[#050505]/95 backdrop-blur-xl border-t border-white/10 z-50 flex justify-around items-center pb-[env(safe-area-inset-bottom)]">
+            <button onclick="actions.setHubPanel('main')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'main' ? 'text-blue-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="layout-grid" class="w-6 h-6"></i>
-                <span class="text-[9px] font-bold uppercase">Hub</span>
-            </button>
-            <button onclick="actions.setHubPanel('bank')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-400' : 'text-gray-500'}">
-                <i data-lucide="landmark" class="w-6 h-6"></i>
-                <span class="text-[9px] font-bold uppercase">Banque</span>
+                <span class="text-[10px] font-medium">Accueil</span>
             </button>
             
-            <!-- FLOATING ACTION BUTTON (Center) -->
-            <button onclick="actions.toggleSidebar()" class="relative -top-5 bg-blue-600 hover:bg-blue-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 border-4 border-[#050505] transition-transform active:scale-95">
-                <i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-6 h-6"></i>
+            <button onclick="actions.setHubPanel('bank')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-500' : 'text-gray-500 hover:text-gray-300'}">
+                <i data-lucide="landmark" class="w-6 h-6"></i>
+                <span class="text-[10px] font-medium">Banque</span>
+            </button>
+            
+            <!-- MENU TOGGLE (Center) -->
+            <button onclick="actions.toggleSidebar()" class="flex-1 py-3 flex flex-col items-center gap-1 text-white relative group">
+                <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/10 group-active:bg-white/20 transition-colors -mt-4 shadow-lg backdrop-blur-md">
+                    <i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-6 h-6"></i>
+                </div>
             </button>
 
-            <button onclick="actions.setHubPanel('assets')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'assets' ? 'text-indigo-400' : 'text-gray-500'}">
+            <button onclick="actions.setHubPanel('assets')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'assets' ? 'text-indigo-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="backpack" class="w-6 h-6"></i>
-                <span class="text-[9px] font-bold uppercase">Sac</span>
+                <span class="text-[10px] font-medium">Sac</span>
             </button>
-            <button onclick="actions.setHubPanel('staff_list')" class="flex flex-col items-center gap-1 ${state.activeHubPanel === 'staff_list' ? 'text-yellow-400' : 'text-gray-500'}">
+            
+            <button onclick="actions.setHubPanel('staff_list')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'staff_list' ? 'text-yellow-500' : 'text-gray-500 hover:text-gray-300'}">
                 <i data-lucide="users" class="w-6 h-6"></i>
-                <span class="text-[9px] font-bold uppercase">Staff</span>
+                <span class="text-[10px] font-medium">Staff</span>
             </button>
         </div>
     `;
