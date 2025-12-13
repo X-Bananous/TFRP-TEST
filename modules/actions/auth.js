@@ -14,16 +14,23 @@ export const login = async () => {
             provider: 'discord',
             options: {
                 scopes: 'identify guilds',
-                redirectTo: CONFIG.REDIRECT_URI
+                redirectTo: CONFIG.REDIRECT_URI,
+                skipBrowserRedirect: true // We handle redirect manually to avoid SDK hang
             }
         });
         
         if (error) throw error;
-        // Supabase gère la redirection automatiquement
+        
+        if (data && data.url) {
+            // Force browser redirection to Discord
+            window.location.href = data.url;
+        } else {
+            throw new Error("Aucune URL de redirection reçue.");
+        }
     } catch (e) {
         console.error("Login Error:", e);
         state.isLoggingIn = false;
-        ui.showToast("Erreur d'initialisation connexion.", 'error');
+        ui.showToast("Erreur connexion: " + (e.message || "Inconnue"), 'error');
         render();
     }
 };
@@ -92,7 +99,7 @@ export const confirmLogout = () => {
 };
 
 export const logout = async () => {
-    await state.supabase.auth.signOut();
+    if(state.supabase) await state.supabase.auth.signOut();
     
     state.user = null;
     state.accessToken = null;

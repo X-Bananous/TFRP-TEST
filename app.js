@@ -173,10 +173,17 @@ const initApp = async () => {
 
     // Fetch Public Data for Landing Page (before auth)
     await fetchPublicLandingData();
+    // Render initially to show login screen data
     if(state.currentView === 'login') render();
 
     // Check Supabase Session
-    const { data: { session } } = await state.supabase.auth.getSession();
+    let session = null;
+    try {
+        const result = await state.supabase.auth.getSession();
+        session = result.data.session;
+    } catch(err) {
+        console.error("Session check failed", err);
+    }
 
     // Listen for Auth Changes (Sign In / Sign Out)
     state.supabase.auth.onAuthStateChange(async (event, currentSession) => {
@@ -212,7 +219,7 @@ const handleAuthenticatedSession = async (session) => {
         const token = session.provider_token;
         
         if (!token) {
-            console.warn("Session found but no provider token. Re-authenticating for security.");
+            console.warn("Session found but no provider token (Possible outdated session or missing scope). Re-authenticating.");
             await state.supabase.auth.signOut();
             return;
         }
@@ -223,6 +230,10 @@ const handleAuthenticatedSession = async (session) => {
         const userRes = await fetch('https://discord.com/api/users/@me', {
             headers: { Authorization: `Bearer ${token}` }
         });
+        
+        if (userRes.status === 401) {
+             throw new Error("Token expired");
+        }
         if (!userRes.ok) throw new Error('Discord User Fetch Failed');
         const discordUser = await userRes.json();
         
@@ -232,7 +243,7 @@ const handleAuthenticatedSession = async (session) => {
         });
         const guilds = await guildsRes.json();
         
-        if (!guilds.some(g => g.id === CONFIG.REQUIRED_GUILD_ID)) {
+        if (!Array.isArray(guilds) || !guilds.some(g => g.id === CONFIG.REQUIRED_GUILD_ID)) {
             router('access_denied');
             if(loadingScreen && loadingScreen.parentNode) {
                 loadingScreen.style.opacity = '0';
@@ -274,6 +285,7 @@ const handleAuthenticatedSession = async (session) => {
         const savedCharId = sessionStorage.getItem('tfrp_active_char');
         const savedPanel = sessionStorage.getItem('tfrp_hub_panel');
 
+        // Only auto-login to character if we actually found characters
         if (savedView === 'hub' && savedCharId) {
             const char = state.characters.find(c => c.id === savedCharId);
             if (char) {
@@ -294,6 +306,7 @@ const handleAuthenticatedSession = async (session) => {
 
     } catch (e) {
         console.error("Auth Error:", e);
+        // If critical error, force logout to reset state
         await window.actions.logout();
     }
     

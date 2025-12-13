@@ -5,16 +5,11 @@ export const CONFIG = {
     
     // Discord Configuration
     DISCORD_CLIENT_ID: '1448414660343890083',
-    // Dynamic Redirect URI based on current hostname
+    // Dynamic Redirect URI based on current location
     get REDIRECT_URI() {
-        const hostname = window.location.hostname;
-        if (hostname.includes('teamfrenchroleplay.ct.ws')) {
-            // Must match exactly what's in Discord Dev Portal.
-            // Using window.location.href.split('#')[0] ensures we keep ?i=2 if present
-            return window.location.href.split('#')[0];
-        }
-        // Fallback or Dev
-        return 'https://x-bananous.github.io/TFRP-TEST/';
+        // Automatically use the current page URL (without query params or hash) as the redirect URI.
+        // IMPORTANT: This URL must be whitelisted in Supabase Auth > URL Configuration > Redirect URLs.
+        return window.location.href.split('#')[0].split('?')[0];
     },
     
     REQUIRED_GUILD_ID: '1279455759414857759', // Main Server
