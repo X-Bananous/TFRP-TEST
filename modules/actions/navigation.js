@@ -92,6 +92,12 @@ export const setHubPanel = async (panel) => {
         } else if (panel === 'enterprise') {
             // Fetch Market & Economy Stats for the new design
             const promises = [fetchDailyEconomyStats()];
+            
+            // Ensure Bank Data is fetched for display
+            if (state.activeCharacter) {
+                promises.push(fetchBankData(state.activeCharacter.id));
+            }
+
             if(state.activeEnterpriseTab === 'market') promises.push(fetchEnterpriseMarket());
             else if(state.activeEnterpriseTab === 'my_companies' && state.activeCharacter) promises.push(fetchMyEnterprises(state.activeCharacter.id));
             
@@ -196,6 +202,7 @@ export const refreshCurrentView = async () => {
         }
         else if (state.activeHubPanel === 'enterprise') {
              await fetchDailyEconomyStats();
+             if(charId) await fetchBankData(charId); // Refresh bank too
              if (state.activeEnterpriseTab === 'market') await fetchEnterpriseMarket();
              if (state.activeEnterpriseTab === 'my_companies' && charId) await fetchMyEnterprises(charId);
              if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) await fetchEnterpriseDetails(state.activeEnterpriseManagement.id);

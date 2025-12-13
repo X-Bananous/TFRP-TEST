@@ -50,6 +50,9 @@ export const EnterpriseView = () => {
             // Economy Stats Display
             const todayStats = state.dailyEconomyStats?.[0] || { amount: 0 };
             const volumeToday = todayStats.amount;
+            
+            // SAFE ACCESS to Bank Account (prevent null crash)
+            const currentCash = state.bankAccount ? state.bankAccount.cash_balance : 0;
 
             content = `
                 <div class="space-y-8 animate-fade-in">
@@ -73,7 +76,7 @@ export const EnterpriseView = () => {
                             </div>
                             <div class="bg-black/40 backdrop-blur px-6 py-4 rounded-2xl border border-white/5 text-center min-w-[140px]">
                                 <div class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Mon Solde</div>
-                                <div class="font-mono font-bold text-emerald-400 text-lg">$ ${state.bankAccount.cash_balance.toLocaleString()}</div>
+                                <div class="font-mono font-bold text-emerald-400 text-lg">$ ${currentCash.toLocaleString()}</div>
                             </div>
                         </div>
                     </div>
@@ -84,7 +87,9 @@ export const EnterpriseView = () => {
                         
                         ${items.length === 0 ? '<div class="text-center text-gray-500 py-10 bg-white/5 rounded-2xl border border-dashed border-white/5">Aucune offre disponible actuellement.</div>' : `
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                ${items.map(item => `
+                                ${items.map(item => {
+                                    const canAfford = currentCash >= item.price;
+                                    return `
                                     <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-blue-500/30 transition-all group flex flex-col justify-between h-full relative overflow-hidden">
                                         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                         
@@ -112,12 +117,13 @@ export const EnterpriseView = () => {
                                         
                                         <div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
                                             <div class="text-xl font-mono font-bold text-white">$${item.price.toLocaleString()}</div>
-                                            <button onclick="actions.buyItem('${item.id}', ${item.price})" class="glass-btn px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform">
-                                                Acheter
+                                            <button onclick="actions.buyItem('${item.id}', ${item.price})" ${!canAfford ? 'disabled' : ''} class="glass-btn px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform ${!canAfford ? 'opacity-50 cursor-not-allowed bg-white/10 border border-white/5 text-gray-500 shadow-none' : ''}">
+                                                ${canAfford ? 'Acheter' : 'Fonds ?'}
                                             </button>
                                         </div>
                                     </div>
-                                `).join('')}
+                                    `;
+                                }).join('')}
                             </div>
                         `}
                     </div>
