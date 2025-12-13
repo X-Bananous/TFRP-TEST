@@ -176,7 +176,19 @@ const initApp = async () => {
     // Render initially to show login screen data
     if(state.currentView === 'login') render();
 
-    // Check Supabase Session
+    // --- CHECK FOR LEGACY HASH (Specific Test URL Support) ---
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const legacyToken = params.get('access_token');
+        if (legacyToken) {
+            // Found a direct Discord token, handle it via Legacy handler
+            await handleLegacySession(legacyToken);
+            startPolling();
+            return;
+        }
+    }
+
+    // --- STANDARD SUPABASE CHECK ---
     let session = null;
     try {
         const result = await state.supabase.auth.getSession();
@@ -185,7 +197,7 @@ const initApp = async () => {
         console.error("Session check failed", err);
     }
 
-    // Listen for Auth Changes (Sign In / Sign Out)
+    // Listen for Auth Changes (Sign In / Sign Out) - Only for Supabase Flow
     state.supabase.auth.onAuthStateChange(async (event, currentSession) => {
         if (event === 'SIGNED_IN' && currentSession && !state.user) {
              await handleAuthenticatedSession(currentSession);
@@ -210,6 +222,79 @@ const initApp = async () => {
     startPolling();
 };
 
+// --- HANDLER: LEGACY DISCORD DIRECT (No Supabase Session) ---
+const handleLegacySession = async (token) => {
+    const appEl = document.getElementById('app');
+    const loadingScreen = document.getElementById('loading-screen');
+
+    try {
+        state.accessToken = token;
+
+        // 1. Fetch Discord User
+        const userRes = await fetch('https://discord.com/api/users/@me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!userRes.ok) throw new Error('Discord User Fetch Failed (Legacy)');
+        const discordUser = await userRes.json();
+
+        // 2. Fetch Guilds
+        const guildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
+             headers: { Authorization: `Bearer ${token}` }
+        });
+        const guilds = await guildsRes.json();
+
+        if (!Array.isArray(guilds) || !guilds.some(g => g.id === CONFIG.REQUIRED_GUILD_ID)) {
+            router('access_denied');
+            clearLoad();
+            return;
+        }
+
+        let isFounder = CONFIG.ADMIN_IDS.includes(discordUser.id);
+
+        // 3. Upsert Profile (Using Anon Key directly)
+        await state.supabase.from('profiles').upsert({
+            id: discordUser.id,
+            username: discordUser.username,
+            avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
+            updated_at: new Date(),
+        });
+
+        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar').eq('id', discordUser.id).maybeSingle();
+
+        // 4. Set App State
+        state.user = {
+            id: discordUser.id,
+            username: discordUser.global_name || discordUser.username,
+            avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`,
+            avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null,
+            permissions: profile?.permissions || {},
+            advent_calendar: profile?.advent_calendar || [], 
+            isFounder: isFounder,
+            guilds: guilds.map(g => g.id)
+        };
+
+        // Clean URL hash
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        await finalizeLoginLogic();
+
+    } catch(e) {
+        console.error("Legacy Auth Error", e);
+        ui.showToast("Erreur connexion Legacy.", 'error');
+        router('login');
+    }
+    clearLoad();
+
+    function clearLoad() {
+        if(loadingScreen && loadingScreen.parentNode) {
+            loadingScreen.style.opacity = '0';
+            appEl.classList.remove('opacity-0');
+            setTimeout(() => loadingScreen.remove(), 700);
+        }
+    }
+};
+
+// --- HANDLER: SUPABASE OAUTH SESSION ---
 const handleAuthenticatedSession = async (session) => {
     const appEl = document.getElementById('app');
     const loadingScreen = document.getElementById('loading-screen');
@@ -277,32 +362,7 @@ const handleAuthenticatedSession = async (session) => {
             guilds: guilds.map(g => g.id)
         };
 
-        await loadCharacters();
-        await fetchActiveSession();
-
-        // 5. Restore Session View Logic
-        const savedView = sessionStorage.getItem('tfrp_current_view');
-        const savedCharId = sessionStorage.getItem('tfrp_active_char');
-        const savedPanel = sessionStorage.getItem('tfrp_hub_panel');
-
-        // Only auto-login to character if we actually found characters
-        if (savedView === 'hub' && savedCharId) {
-            const char = state.characters.find(c => c.id === savedCharId);
-            if (char) {
-                state.activeCharacter = char;
-                state.alignmentModalShown = true; 
-                
-                if (savedPanel) {
-                    await window.actions.setHubPanel(savedPanel); 
-                } else {
-                    router('hub');
-                }
-            } else {
-                router(state.characters.length > 0 ? 'select' : 'create');
-            }
-        } else {
-            router(state.characters.length > 0 ? 'select' : 'create');
-        }
+        await finalizeLoginLogic();
 
     } catch (e) {
         console.error("Auth Error:", e);
@@ -315,6 +375,36 @@ const handleAuthenticatedSession = async (session) => {
         loadingScreen.style.opacity = '0';
         appEl.classList.remove('opacity-0');
         setTimeout(() => loadingScreen.remove(), 700);
+    }
+};
+
+// Shared Logic between Legacy & Supabase Auth Flow
+const finalizeLoginLogic = async () => {
+    await loadCharacters();
+    await fetchActiveSession();
+
+    // 5. Restore Session View Logic
+    const savedView = sessionStorage.getItem('tfrp_current_view');
+    const savedCharId = sessionStorage.getItem('tfrp_active_char');
+    const savedPanel = sessionStorage.getItem('tfrp_hub_panel');
+
+    // Only auto-login to character if we actually found characters
+    if (savedView === 'hub' && savedCharId) {
+        const char = state.characters.find(c => c.id === savedCharId);
+        if (char) {
+            state.activeCharacter = char;
+            state.alignmentModalShown = true; 
+            
+            if (savedPanel) {
+                await window.actions.setHubPanel(savedPanel); 
+            } else {
+                router('hub');
+            }
+        } else {
+            router(state.characters.length > 0 ? 'select' : 'create');
+        }
+    } else {
+        router(state.characters.length > 0 ? 'select' : 'create');
     }
 };
 

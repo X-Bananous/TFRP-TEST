@@ -9,6 +9,26 @@ export const login = async () => {
     state.isLoggingIn = true;
     render();
 
+    // --- SPECIFIC CONDITION FOR GITHUB TEST PAGE ---
+    // Utilisation de l'ancienne méthode (Discord Direct) pour cette URL
+    if (window.location.href.includes("x-bananous.github.io/TFRP-TEST/")) {
+        try {
+            const redirectUri = encodeURIComponent(CONFIG.REDIRECT_URI);
+            const clientId = CONFIG.DISCORD_CLIENT_ID;
+            const scope = encodeURIComponent('identify guilds');
+            // Direct Discord OAuth2 URL (Implicit Grant)
+            const url = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
+            window.location.href = url;
+            return;
+        } catch (e) {
+            console.error("Legacy Login Error:", e);
+            state.isLoggingIn = false;
+            render();
+            return;
+        }
+    }
+
+    // --- STANDARD SUPABASE FLOW FOR OTHER ENVIRONMENTS ---
     try {
         const { data, error } = await state.supabase.auth.signInWithOAuth({
             provider: 'discord',
