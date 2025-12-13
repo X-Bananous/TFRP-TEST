@@ -122,6 +122,17 @@ export const setServicesTab = async (tab) => {
     }
 };
 
+export const toggleDirectoryMode = async (mode) => {
+    state.servicesDirectoryMode = mode;
+    if(mode === 'reports') {
+        state.isPanelLoading = true;
+        render();
+        await services.fetchAllReports();
+        state.isPanelLoading = false;
+    }
+    render();
+};
+
 export const openCallPage = () => {
     if(window.actions) window.actions.setHubPanel('emergency_call');
 };
@@ -136,6 +147,13 @@ export const createEmergencyCall = async (e) => {
     
     toggleBtnLoading(btn, false);
     if(window.actions) window.actions.setHubPanel('main');
+};
+
+export const joinCall = async (callId) => {
+    if (!state.activeGameSession) return ui.showToast("Session fermée.", "error");
+    await services.joinEmergencyCall(callId);
+    ui.showToast("Vous avez rejoint l'intervention.", "success");
+    render();
 };
 
 export const searchServices = (query) => {

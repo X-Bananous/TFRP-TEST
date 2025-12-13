@@ -21,18 +21,23 @@ const refreshBanner = `
 export const ServicesView = () => {
     // ACCESS CONTROL (Job)
     const job = state.activeCharacter?.job || 'unemployed';
-    if (!['leo', 'lafd', 'ladot'].includes(job)) {
+    const isLeo = job === 'leo';
+    const isLawyer = job === 'lawyer';
+    const isAllowed = ['leo', 'lafd', 'ladot', 'lawyer'].includes(job);
+
+    if (!isAllowed) {
          return `<div class="h-full flex flex-col items-center justify-center text-gray-500 animate-fade-in">
             <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6 border border-gray-700">
                 <i data-lucide="shield-off" class="w-10 h-10 opacity-50"></i>
             </div>
             <h2 class="text-xl font-bold text-white mb-2">Accès Restreint</h2>
-            <p class="text-sm">Ce terminal est réservé au personnel des Services Publics.</p>
+            <p class="text-sm">Ce terminal est réservé au personnel des Services Publics & Avocats.</p>
             <div class="mt-4 px-3 py-1 rounded bg-red-500/10 text-red-400 text-xs border border-red-500/20 uppercase font-bold">Job RP Requis</div>
          </div>`;
     }
 
     // --- SEARCH MODAL (Overlay) ---
+    // ... (policeSearchTarget and criminalRecordTarget modals stay same) ...
     let searchResultModal = '';
     if (state.policeSearchTarget) {
         const { targetName, items, cash } = state.policeSearchTarget;
@@ -107,13 +112,15 @@ export const ServicesView = () => {
 
     // TABS
     let tabs = [];
-    if (job === 'leo') {
+    if (isLeo || isLawyer) {
         tabs = [
             { id: 'dispatch', label: 'Dispatch', icon: 'radio' },
-            { id: 'directory', label: 'Annuaire', icon: 'folder-search' },
-            { id: 'reports', label: 'Rapports', icon: 'file-text' },
-            { id: 'map', label: 'Véhicules', icon: 'car-front' }
+            { id: 'directory', label: 'Annuaire', icon: 'folder-search' }
         ];
+        if (isLeo) {
+            tabs.push({ id: 'reports', label: 'Rédiger Rapport', icon: 'file-plus' });
+            tabs.push({ id: 'map', label: 'Véhicules', icon: 'car-front' });
+        }
     } else {
          tabs = [ { id: 'dispatch', label: 'Dispatch', icon: 'radio' } ];
     }
@@ -130,33 +137,14 @@ export const ServicesView = () => {
         const activeAlerts = heists.filter(h => (Date.now() - new Date(h.start_time).getTime()) > 30000); 
         const allCalls = state.emergencyCalls || [];
         const filteredCalls = allCalls.filter(c => {
+            if (isLawyer) return true; // Lawyers see all dispatch
             if (job === 'leo') return c.service === 'police';
             if (job === 'lafd') return c.service === 'ems';
             if (job === 'ladot') return c.service === 'dot';
             return false;
         });
 
-        // CALCULATE UNITS (Cops Only)
-        // Try to filter players by Team if available, otherwise count Police Vehicles
-        let unitsCount = 0;
-        const players = state.erlcData.players || [];
-        const vehicles = state.erlcData.vehicles || [];
-        
-        // Strategy 1: Check if 'Team' exists in player object
-        const hasTeamData = players.some(p => p.Team);
-        if (hasTeamData) {
-            unitsCount = players.filter(p => p.Team === 'Police' || p.Team === 'Sheriff' || p.Team === 'DOT' || p.Team === 'Fire').length;
-        } else {
-            // Strategy 2: Count Vehicles with "Police" or "Sheriff" in name or texture
-            unitsCount = vehicles.filter(v => {
-                const n = (v.Name || '').toLowerCase();
-                const t = (v.Texture || '').toLowerCase();
-                const o = (v.Owner || '').toLowerCase();
-                return n.includes('police') || n.includes('sheriff') || n.includes('undercover') || t.includes('police') || t.includes('sheriff');
-            }).length;
-        }
-
-        const themeColor = job === 'leo' ? 'blue' : job === 'lafd' ? 'red' : 'yellow';
+        const themeColor = isLeo ? 'blue' : job === 'lafd' ? 'red' : 'yellow';
 
         content = `
             <div class="flex flex-col h-full overflow-hidden">
@@ -168,10 +156,6 @@ export const ServicesView = () => {
                     <div class="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center justify-between">
                         <div><div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Appels 911</div><div class="text-xl font-bold text-white">${filteredCalls.length}</div></div>
                         <i data-lucide="phone-call" class="w-5 h-5 text-gray-500"></i>
-                    </div>
-                    <div class="bg-white/5 border border-white/10 p-3 rounded-xl flex items-center justify-between">
-                        <div><div class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Unités Actives</div><div class="text-xl font-bold text-emerald-400">${unitsCount}</div></div>
-                        <i data-lucide="users" class="w-5 h-5 text-emerald-500/50"></i>
                     </div>
                     <div class="bg-${themeColor}-500/10 border border-${themeColor}-500/20 p-3 rounded-xl flex items-center justify-between">
                         <div><div class="text-[10px] text-${themeColor}-300 uppercase font-bold tracking-widest">Canal</div><div class="text-lg font-bold text-${themeColor}-400 uppercase">${job}</div></div>
@@ -207,13 +191,30 @@ export const ServicesView = () => {
                             <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold">911</span>
                         </div>
                         <div class="flex-1 overflow-y-auto custom-scrollbar p-0">
-                            ${filteredCalls.length > 0 ? filteredCalls.map(c => `
+                            ${filteredCalls.length > 0 ? filteredCalls.map(c => {
+                                // Joined Units Badge
+                                const joinedUnits = c.joined_units || [];
+                                const hasJoined = joinedUnits.some(u => u.id === state.activeCharacter.id);
+                                
+                                return `
                                 <div class="p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
                                     <div class="flex justify-between items-start mb-1"><div class="flex items-center gap-2"><span class="text-xs font-mono text-gray-500">${new Date(c.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span><span class="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">${c.caller_id}</span></div><span class="px-2 py-0.5 bg-white/10 rounded text-[10px] text-gray-400 uppercase tracking-wide">${c.service}</span></div>
                                     <div class="text-sm text-gray-300 mb-2 pl-6 border-l-2 border-white/10 group-hover:border-blue-500/50 transition-colors">"${c.description}"</div>
-                                    <div class="flex items-center gap-2 pl-6"><i data-lucide="map-pin" class="w-3 h-3 text-gray-500"></i><span class="text-xs text-gray-400 font-mono">${c.location}</span></div>
+                                    <div class="flex items-center justify-between pl-6 mt-2">
+                                        <div class="flex items-center gap-2"><i data-lucide="map-pin" class="w-3 h-3 text-gray-500"></i><span class="text-xs text-gray-400 font-mono">${c.location}</span></div>
+                                        ${!isLawyer ? `
+                                            <button onclick="actions.joinCall('${c.id}')" ${hasJoined ? 'disabled' : ''} class="text-[10px] px-2 py-1 rounded border ${hasJoined ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-white/10 text-gray-400 hover:text-white hover:bg-white/10'} transition-colors">
+                                                ${hasJoined ? 'Sur place' : 'Rejoindre'}
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                    ${joinedUnits.length > 0 ? `
+                                        <div class="flex gap-1 flex-wrap mt-2 pl-6">
+                                            ${joinedUnits.map(u => `<span class="text-[9px] bg-white/5 text-gray-400 px-1.5 py-0.5 rounded border border-white/5">${u.badge} ${u.name.split(' ')[1]}</span>`).join('')}
+                                        </div>
+                                    ` : ''}
                                 </div>
-                            `).join('') : `<div class="p-8 text-center text-gray-600 italic text-sm">Aucun appel en attente.</div>`}
+                            `}).join('') : `<div class="p-8 text-center text-gray-600 italic text-sm">Aucun appel en attente.</div>`}
                         </div>
                     </div>
                 </div>
@@ -223,43 +224,83 @@ export const ServicesView = () => {
 
     // === 2. ANNUAIRE / DIRECTORY ===
     else if (state.activeServicesTab === 'directory') {
-        let citizens = state.allCharactersAdmin || [];
-        if (state.servicesSearchQuery) {
-            const q = state.servicesSearchQuery.toLowerCase();
-            citizens = citizens.filter(c => c.first_name.toLowerCase().includes(q) || c.last_name.toLowerCase().includes(q));
+        const showReports = state.servicesDirectoryMode === 'reports';
+        
+        let contentList = '';
+        
+        if (showReports) {
+            // View All Reports (For Lawyers/Admins/Cops)
+            let reports = state.globalReports || [];
+            if(state.servicesSearchQuery) {
+                const q = state.servicesSearchQuery.toLowerCase();
+                reports = reports.filter(r => r.title.toLowerCase().includes(q) || r.author_id.toLowerCase().includes(q));
+            }
+            
+            contentList = reports.length > 0 ? reports.map(r => `
+                <div class="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-bold text-orange-400 text-sm">${r.title}</div>
+                        <div class="text-[10px] text-gray-500 bg-black/30 px-2 py-1 rounded">${new Date(r.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-3 leading-relaxed truncate">"${r.description}"</div>
+                    <div class="flex gap-2 text-xs border-t border-white/5 pt-3">
+                        <div class="text-red-300"><span class="text-gray-500">Amende:</span> $${r.fine_amount}</div>
+                        <div class="text-gray-500">•</div>
+                        <div class="text-blue-300"><span class="text-gray-500">Prison:</span> ${Math.round(r.jail_time / 60)} min</div>
+                        <div class="ml-auto text-gray-600">Off. ${r.author_id}</div>
+                    </div>
+                </div>
+            `).join('') : '<div class="col-span-full text-center py-10 text-gray-500 italic">Aucun rapport trouvé.</div>';
+            
+        } else {
+            // View Citizens
+            let citizens = state.allCharactersAdmin || [];
+            if (state.servicesSearchQuery) {
+                const q = state.servicesSearchQuery.toLowerCase();
+                citizens = citizens.filter(c => c.first_name.toLowerCase().includes(q) || c.last_name.toLowerCase().includes(q));
+            }
+            
+            contentList = citizens.length > 0 ? citizens.map(c => `
+                <div class="bg-white/5 rounded-xl border border-white/5 p-4 hover:bg-white/10 hover:border-blue-500/30 transition-all group flex flex-col relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 font-bold border border-white/10 text-sm">${c.first_name[0]}${c.last_name[0]}</div>
+                        <div class="flex gap-1">
+                            ${isLeo ? `
+                                <button onclick="actions.addSuspectToReport('${c.id}')" class="text-xs bg-red-600/10 text-red-400 hover:bg-red-600 hover:text-white px-2 py-1.5 rounded-lg border border-red-600/20 transition-colors" title="Ajouter au rapport"><i data-lucide="file-plus" class="w-4 h-4"></i></button>
+                            ` : ''}
+                            <button onclick="actions.openDossier('${c.id}')" class="text-xs bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg border border-blue-600/20 transition-colors font-medium">Dossier</button>
+                        </div>
+                    </div>
+                    <div class="font-bold text-white text-sm mb-0.5 truncate">${c.first_name} ${c.last_name}</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-3">${c.id.split('-')[0]}</div>
+                    <div class="mt-auto pt-3 border-t border-white/5 flex justify-between items-center text-xs text-gray-400"><span>${c.age} Ans</span><span>${c.job === 'unemployed' ? 'Sans Emploi' : c.job.toUpperCase()}</span></div>
+                </div>
+            `).join('') : '<div class="col-span-full text-center py-10 text-gray-500 italic">Aucun résultat.</div>';
         }
 
         content = `
             <div class="flex flex-col h-full overflow-hidden">
-                <div class="flex gap-4 mb-4 shrink-0">
+                <div class="flex flex-col md:flex-row gap-4 mb-4 shrink-0">
                     <div class="relative flex-1">
                         <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-500"></i>
-                        <input type="text" oninput="actions.searchServices(this.value)" value="${state.servicesSearchQuery}" placeholder="Rechercher nom, prénom..." class="glass-input pl-10 w-full p-2.5 rounded-xl text-sm bg-black/20 focus:bg-black/40 transition-colors">
+                        <input type="text" oninput="actions.searchServices(this.value)" value="${state.servicesSearchQuery}" placeholder="Rechercher..." class="glass-input pl-10 w-full p-2.5 rounded-xl text-sm bg-black/20 focus:bg-black/40 transition-colors">
                     </div>
-                    <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-xs text-gray-400 flex items-center gap-2"><i data-lucide="database" class="w-3 h-3"></i> ${citizens.length} Citoyens</div>
+                    <div class="flex gap-2">
+                        <button onclick="actions.toggleDirectoryMode('citizens')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all border ${!showReports ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/5 text-gray-400 border-white/5'}">Citoyens</button>
+                        <button onclick="actions.toggleDirectoryMode('reports')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all border ${showReports ? 'bg-orange-600 text-white border-orange-600' : 'bg-white/5 text-gray-400 border-white/5'}">Rapports</button>
+                    </div>
                 </div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar pb-6 pr-2">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        ${citizens.map(c => `
-                            <div class="bg-white/5 rounded-xl border border-white/5 p-4 hover:bg-white/10 hover:border-blue-500/30 transition-all group flex flex-col relative overflow-hidden">
-                                <div class="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <div class="flex justify-between items-start mb-3">
-                                    <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-400 font-bold border border-white/10 text-sm">${c.first_name[0]}${c.last_name[0]}</div>
-                                    <button onclick="actions.openDossier('${c.id}')" class="text-xs bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg border border-blue-600/20 transition-colors font-medium">Dossier</button>
-                                </div>
-                                <div class="font-bold text-white text-sm mb-0.5 truncate">${c.first_name} ${c.last_name}</div>
-                                <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-3">${c.id.split('-')[0]}</div>
-                                <div class="mt-auto pt-3 border-t border-white/5 flex justify-between items-center text-xs text-gray-400"><span>${c.age} Ans</span><span>${c.job === 'unemployed' ? 'Sans Emploi' : c.job.toUpperCase()}</span></div>
-                            </div>
-                        `).join('')}
-                        ${citizens.length === 0 ? '<div class="col-span-full text-center py-10 text-gray-500 italic">Aucun résultat.</div>' : ''}
+                        ${contentList}
                     </div>
                 </div>
             </div>
         `;
     }
 
-    // === 3. DOSSIER DETAIL PAGE (NEW FULL PAGE) ===
+    // === 3. DOSSIER DETAIL PAGE ===
     else if (isDossierView) {
         const c = state.dossierTarget;
         const points = c.driver_license_points !== undefined ? c.driver_license_points : 12;
@@ -300,15 +341,16 @@ export const ServicesView = () => {
                     </div>
                     <div class="flex gap-2">
                         <button onclick="actions.openCriminalRecord('${c.id}')" class="glass-btn-secondary px-4 py-2 rounded-lg text-sm flex items-center gap-2"><i data-lucide="file-clock" class="w-4 h-4"></i> Casier</button>
-                        <button onclick="actions.performPoliceSearch('${c.id}', '${c.first_name} ${c.last_name}')" class="glass-btn-secondary px-4 py-2 rounded-lg text-sm flex items-center gap-2 text-purple-400 border-purple-500/30 hover:bg-purple-500/10"><i data-lucide="search" class="w-4 h-4"></i> Fouille</button>
-                        <button onclick="actions.addSuspectToReport('${c.id}')" class="glass-btn px-4 py-2 rounded-lg text-sm flex items-center gap-2 bg-red-600 hover:bg-red-500"><i data-lucide="file-plus" class="w-4 h-4"></i> Signaler</button>
+                        ${isLeo ? `
+                            <button onclick="actions.performPoliceSearch('${c.id}', '${c.first_name} ${c.last_name}')" class="glass-btn-secondary px-4 py-2 rounded-lg text-sm flex items-center gap-2 text-purple-400 border-purple-500/30 hover:bg-purple-500/10"><i data-lucide="search" class="w-4 h-4"></i> Fouille</button>
+                            <button onclick="actions.addSuspectToReport('${c.id}')" class="glass-btn px-4 py-2 rounded-lg text-sm flex items-center gap-2 bg-red-600 hover:bg-red-500"><i data-lucide="file-plus" class="w-4 h-4"></i> Signaler</button>
+                        ` : ''}
                     </div>
                 </div>
 
                 <!-- Main Grid -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    
-                    <!-- Left Column: Identity & Status -->
+                    <!-- Left Column -->
                     <div class="space-y-6">
                         <div class="glass-panel p-6 rounded-2xl border border-blue-500/10 relative overflow-hidden">
                             <div class="absolute top-0 right-0 p-6 opacity-5"><i data-lucide="fingerprint" class="w-32 h-32 text-white"></i></div>
@@ -322,7 +364,7 @@ export const ServicesView = () => {
                                 ${dots}
                             </div>
 
-                            ${isLicenseValid ? `
+                            ${isLicenseValid && isLeo ? `
                                 <div class="grid grid-cols-3 gap-3">
                                     <button onclick="actions.updateLicensePoints('${c.id}', 1)" class="py-3 bg-white/5 hover:bg-red-900/20 hover:border-red-500/30 text-gray-300 hover:text-red-400 text-xs font-bold rounded-xl border border-white/5 transition-colors flex flex-col items-center gap-1">
                                         <span class="text-lg font-bold">-1</span> Point
@@ -334,13 +376,7 @@ export const ServicesView = () => {
                                         <span class="text-lg font-bold">-6</span> Points
                                     </button>
                                 </div>
-                            ` : `
-                                <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
-                                    <i data-lucide="ban" class="w-8 h-8 text-red-500 mx-auto mb-2"></i>
-                                    <div class="font-bold text-red-400">Permis Suspendu</div>
-                                    <div class="text-xs text-red-300/60 mt-1">Le citoyen n'a plus le droit de conduire.</div>
-                                </div>
-                            `}
+                            ` : ''}
                         </div>
 
                         <div class="glass-panel p-6 rounded-2xl border border-white/5">
@@ -359,15 +395,6 @@ export const ServicesView = () => {
                                     <span class="text-blue-300 text-sm">@${c.discord_username || 'N/A'}</span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column: Vehicles & Properties (Placeholder for future) -->
-                    <div class="space-y-6">
-                        <div class="glass-panel p-6 rounded-2xl border border-white/5 h-full flex flex-col justify-center items-center text-center opacity-50">
-                            <i data-lucide="car" class="w-16 h-16 text-gray-600 mb-4"></i>
-                            <h3 class="text-lg font-bold text-gray-400">Véhicules Enregistrés</h3>
-                            <p class="text-sm text-gray-500 mt-2">Aucun véhicule personnel détecté (Module en cours de dév).</p>
                         </div>
                     </div>
                 </div>
@@ -452,14 +479,11 @@ export const ServicesView = () => {
                                     let team = 'Civil';
                                     let colorClass = 'bg-gray-800 text-gray-400 border-gray-700';
                                     
-                                    // Priority 1: API Team Field
                                     if (v.Team) {
                                         if (v.Team === 'Police' || v.Team === 'Sheriff') { team = 'Police'; colorClass = 'bg-blue-900/50 text-blue-300 border-blue-500/20'; }
                                         else if (v.Team === 'Fire' || v.Team === 'EMS') { team = 'Urgence'; colorClass = 'bg-red-900/50 text-red-300 border-red-500/20'; }
                                         else if (v.Team === 'DOT') { team = 'DOT'; colorClass = 'bg-yellow-900/50 text-yellow-300 border-yellow-500/20'; }
-                                    } 
-                                    // Priority 2: Keyword Match
-                                    else {
+                                    } else {
                                         const name = (v.Name || '').toLowerCase();
                                         const texture = (v.Texture || '').toLowerCase();
                                         if (name.includes('police') || name.includes('sheriff') || name.includes('undercover') || name.includes('fbi') || texture.includes('police')) {

@@ -33,7 +33,7 @@ export const setupRealtimeListener = () => {
                     type: "success"
                 });
                 if (state.activeHubPanel) {
-                     if (state.activeHubPanel === 'illicit') setIllicitTab(state.activeIllicitTab);
+                     if (state.activeHubPanel === 'illicit' && window.actions.setIllicitTab) window.actions.setIllicitTab(state.activeIllicitTab);
                      if (state.activeHubPanel === 'enterprise') fetchEnterpriseMarket();
                      render();
                 }
@@ -51,12 +51,15 @@ export const setupRealtimeListener = () => {
             await fetchGlobalHeists();
             
             if (state.activeCharacter) {
-                await fetchActiveHeistLobby(state.activeCharacter.id);
-                await fetchAvailableLobbies(state.activeCharacter.id);
-                
+                // If the lobby I was in is deleted (host left), clear my state
                 if (payload.eventType === 'DELETE' && state.activeHeistLobby && state.activeHeistLobby.id === payload.old.id) {
-                    showToast("Le braquage a été annulé par le chef.", "info");
+                    state.activeHeistLobby = null;
+                    state.heistMembers = [];
+                    showToast("Le braquage a été annulé (Chef parti ou terminé).", "info");
+                } else {
+                    await fetchActiveHeistLobby(state.activeCharacter.id);
                 }
+                await fetchAvailableLobbies(state.activeCharacter.id);
                 render();
             }
         })
@@ -67,7 +70,7 @@ export const setupRealtimeListener = () => {
 
             if (payload.new?.character_id === state.activeCharacter.id || payload.old?.character_id === state.activeCharacter.id) {
                 await fetchActiveHeistLobby(state.activeCharacter.id);
-                if (payload.eventType === 'UPDATE' && payload.new.status === 'accepted') {
+                if (payload.eventType === 'UPDATE' && payload.new.status === 'accepted' && payload.new.character_id === state.activeCharacter.id) {
                     showToast("Vous avez été accepté dans l'équipe !", "success");
                 }
                 render();
@@ -111,15 +114,18 @@ export const setupRealtimeListener = () => {
         });
 };
 
-// ... (Other standard fetch functions) ...
 export const fetchDiscordWidgetData = async () => {
     try {
-        const response = await fetch(`https://discord.com/api/guilds/${CONFIG.REQUIRED_GUILD_ID}/widget.json`);
+        // Use the specific JSON API
+        const response = await fetch(`https://discord.com/api/guilds/1279455759414857759/widget.json`);
         if (!response.ok) return;
         const data = await response.json();
         const memberMap = {};
         if (data.members) {
-            data.members.forEach(m => { memberMap[m.id] = m.status; });
+            data.members.forEach(m => { 
+                // Store by ID. Status is 'online', 'idle', 'dnd'
+                memberMap[m.id] = m.status; 
+            });
         }
         state.discordStatuses = memberMap;
     } catch (e) { console.warn("Failed to fetch Discord Widget", e); }
@@ -151,13 +157,19 @@ export const fetchCharactersWithProfiles = async (statusFilter = null) => {
         const bank = accounts?.find(a => a.character_id === char.id) || { bank_balance: 0, cash_balance: 0 };
         return {
             ...char,
-            discord_username: profile ? profile.username : 'Unknown',
+            discord_username: profile ? profile.username : 'N/A', // Fixed N/A issue if profile found
+            discord_id: profile ? profile.id : null,
             discord_avatar: profile ? profile.avatar_url : null,
             bank_balance: bank.bank_balance,
             cash_balance: bank.cash_balance,
             bank_id: bank.id 
         };
     });
+};
+
+export const fetchAllReports = async () => {
+    const { data } = await state.supabase.from('police_reports').select('*, police_report_suspects(suspect_name)').order('created_at', { ascending: false }).limit(50);
+    state.globalReports = data || [];
 };
 
 export const fetchPendingApplications = async () => { state.pendingApplications = await fetchCharactersWithProfiles('pending'); };
@@ -173,10 +185,11 @@ export const fetchStaffProfiles = async () => {
 };
 
 export const fetchOnDutyStaff = async () => {
-    const { data } = await state.supabase.from('profiles').select('username, avatar_url').eq('is_on_duty', true);
+    const { data } = await state.supabase.from('profiles').select('username, avatar_url, id').eq('is_on_duty', true);
     state.onDutyStaff = data || [];
 };
 
+// ... (toggleStaffDuty, assignJob, searchProfiles, fetchGlobalHeists, fetchLastFinishedHeist remain same) ...
 export const toggleStaffDuty = async () => {
     if (!state.user) return;
     if (!state.activeGameSession) { showToast("Impossible : Aucune session de jeu active.", 'error'); return; }
@@ -212,7 +225,7 @@ export const fetchLastFinishedHeist = async () => {
     return data ? new Date(data.end_time) : null;
 };
 
-// --- GAME SESSIONS ---
+// ... (Session functions remain same) ...
 export const fetchActiveSession = async () => {
     if (!state.supabase) return;
     const { data } = await state.supabase.from('game_sessions').select('*').eq('status', 'active').maybeSingle();
@@ -257,7 +270,7 @@ export const stopSession = async () => {
     } else { showToast("Erreur fermeture session.", 'error'); }
 };
 
-// ... (ERLC API, Emergency Calls, Reports, Stats same as before) ...
+// ... (ERLC API, Emergency Calls, Reports, Stats) ...
 const getERLCApiKey = async () => {
     try { const { data, error } = await state.supabase.rpc('get_erlc_api_key'); if (!error && data) return data; } catch(e) {}
     return CONFIG.ERLC_API_KEY;
@@ -307,9 +320,29 @@ export const fetchEmergencyCalls = async () => {
 
 export const createEmergencyCall = async (service, location, description) => {
     const { error } = await state.supabase.from('emergency_calls').insert({
-        caller_id: `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}`, service, location, description, status: 'pending'
+        caller_id: `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}`, service, location, description, status: 'pending', joined_units: []
     });
     if(!error) showToast("Appel d'urgence envoyé au central.", 'success'); else showToast("Erreur lors de l'appel.", 'error');
+};
+
+export const joinEmergencyCall = async (callId) => {
+    const { data: call } = await state.supabase.from('emergency_calls').select('joined_units').eq('id', callId).single();
+    if(!call) return;
+    
+    const myUnit = { 
+        name: `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}`, 
+        id: state.activeCharacter.id,
+        badge: state.activeCharacter.job === 'leo' ? 'POLICE' : state.activeCharacter.job === 'lafd' ? 'EMS' : 'DOT'
+    };
+    
+    const currentUnits = call.joined_units || [];
+    // Check if already joined
+    if (currentUnits.some(u => u.id === myUnit.id)) return showToast("Vous êtes déjà sur cet appel.", "warning");
+    
+    const updatedUnits = [...currentUnits, myUnit];
+    
+    await state.supabase.from('emergency_calls').update({ joined_units: updatedUnits }).eq('id', callId);
+    await fetchEmergencyCalls();
 };
 
 export const fetchCharacterReports = async (charId) => {
@@ -331,6 +364,7 @@ export const createPoliceReport = async (reportData, suspects) => {
     showToast("Rapport archivé avec succès.", 'success'); return true;
 };
 
+// ... (Server Stats, Transactions, Gangs, Bounties, Enterprise - mostly unchanged) ...
 export const fetchServerStats = async () => {
     const { data: accounts } = await state.supabase.from('bank_accounts').select('bank_balance, cash_balance');
     let tBank = 0, tCash = 0;
@@ -340,7 +374,6 @@ export const fetchServerStats = async () => {
     let tGang = 0;
     if (gangs) gangs.forEach(g => tGang += (g.balance || 0));
     
-    // NEW: Fetch Enterprise Balance
     const { data: enterprises } = await state.supabase.from('enterprises').select('balance');
     let tEnt = 0;
     if (enterprises) enterprises.forEach(e => tEnt += (e.balance || 0));
@@ -375,7 +408,6 @@ export const updateEnterpriseBalance = async (entId, newBalance) => {
     if(error) console.error("Ent balance update failed", error);
 };
 
-// ... (Rest of existing functions) ...
 export const fetchPendingHeistReviews = async () => {
     const { data: lobbies } = await state.supabase.from('heist_lobbies').select('*, characters(first_name, last_name), heist_members(count)').in('status', ['pending_review', 'active']);
     state.pendingHeistReviews = lobbies || [];
@@ -474,7 +506,7 @@ export const resolveBounty = async (bountyId, winnerId) => {
     await fetchBounties();
 };
 
-// --- ENTERPRISE SERVICES ---
+// ... (Enterprise Services - same) ...
 export const fetchEnterprises = async () => { 
     // Join with leader to get name for admin table
     const { data } = await state.supabase.from('enterprises').select('*, leader:characters!enterprises_leader_id_fkey(first_name, last_name)'); 
@@ -581,34 +613,23 @@ export const fetchEnterpriseDetails = async (entId) => {
 export const claimAdventReward = async (targetDay) => {
     const today = new Date();
     const currentDay = today.getDate();
-    // For testing/demo purposes, we allow forcing date, but normal logic applies
-    // To strictly follow logic:
-    // const month = today.getMonth() + 1; // Dec = 12
-    // if (month !== 12) return showToast("Ce n'est pas Noël !", 'error');
     
     if (targetDay < 12 || targetDay > 25) {
         showToast("Date invalide (12-25 Décembre).", 'error');
         return;
     }
 
-    // Cooldown/Date check
-    // If targetDay > currentDay, it means it's in the future
     if (targetDay > currentDay) {
         showToast("Patience ! Cette case est verrouillée.", 'error');
         return;
     }
 
-    // Check if already claimed
     const claimedDays = state.user.advent_calendar || [];
     if (claimedDays.includes(targetDay)) {
         showToast("Vous avez déjà ouvert cette case.", 'warning');
         return;
     }
 
-    // Calculate Reward
-    // 12th -> 1000, 13th -> 2000 ... 24th -> 13000.
-    // 25th -> 25000.
-    
     let reward = 0;
     if (targetDay === 25) {
         reward = 25000;
@@ -619,7 +640,6 @@ export const claimAdventReward = async (targetDay) => {
     let extraItemMessage = "";
     const charId = state.activeCharacter.id;
 
-    // Update DB
     const newClaimed = [...claimedDays, targetDay];
     const { error } = await state.supabase.from('profiles').update({ advent_calendar: newClaimed }).eq('id', state.user.id);
     
@@ -628,14 +648,12 @@ export const claimAdventReward = async (targetDay) => {
         return;
     }
 
-    // Give Money (Bank)
     const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
     await state.supabase.from('bank_accounts').update({ bank_balance: (bank.bank_balance || 0) + reward }).eq('character_id', charId);
     await state.supabase.from('transactions').insert({ sender_id: null, receiver_id: charId, amount: reward, type: 'deposit', description: `Calendrier Avent (Jour ${targetDay})` });
 
-    // Update State
     state.user.advent_calendar = newClaimed;
-    await fetchBankData(charId); // Refresh UI
+    await fetchBankData(charId); 
     
     showModal({
         title: `🎁 Case du ${targetDay} Décembre`,
@@ -652,7 +670,6 @@ export const claimAdventReward = async (targetDay) => {
     render();
 };
 
-// ... (Other functions like fetchBankData, fetchInventory, etc. remain unchanged) ...
 export const fetchBankData = async (charId) => {
     let { data: bank, error } = await state.supabase
         .from('bank_accounts')
@@ -691,7 +708,6 @@ export const fetchInventory = async (charId) => {
         .eq('character_id', charId);
     state.inventory = items || [];
 
-    // Check for required virtual items and inject them if missing
     const requiredVirtualItems = [
         { id: 'virtual-id-card', name: "Carte d'Identité", icon: 'id-card' },
         { id: 'virtual-credit-card', name: "Carte Bancaire", icon: 'credit-card' },
@@ -717,6 +733,7 @@ export const fetchInventory = async (charId) => {
     state.patrimonyTotal = total;
 };
 
+// ... (Other functions match previous versions) ...
 export const fetchDrugLab = async (charId) => {
     let { data: lab } = await state.supabase.from('drug_labs').select('*').eq('character_id', charId).maybeSingle();
     

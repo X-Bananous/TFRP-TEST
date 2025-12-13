@@ -10,49 +10,45 @@ export const LoginView = () => {
         const bIsFounder = CONFIG.ADMIN_IDS.includes(b.id);
         if (aIsFounder && !bIsFounder) return -1;
         if (!aIsFounder && bIsFounder) return 1;
-        return 0; // Keep original order otherwise
+        return 0;
     });
 
-    // 2. GENERATE STAFF HTML
-    const staffHtml = sortedStaff.length > 0 ? sortedStaff.map(s => {
-        const isFounder = CONFIG.ADMIN_IDS.includes(s.id);
-        // Get Discord Status from widget data
-        const discordStatus = state.discordStatuses[s.id] || 'offline';
-        const discordColor = {
-            online: 'bg-green-500',
-            idle: 'bg-yellow-500',
-            dnd: 'bg-red-500',
-            offline: 'bg-gray-500'
-        }[discordStatus] || 'bg-gray-500';
+    const founders = sortedStaff.filter(s => CONFIG.ADMIN_IDS.includes(s.id));
+    const others = sortedStaff.filter(s => !CONFIG.ADMIN_IDS.includes(s.id));
 
+    // Render logic helper
+    const renderCard = (s, isFounder) => {
+        const status = state.discordStatuses[s.id] || 'offline';
+        const color = { online: 'bg-green-500', idle: 'bg-yellow-500', dnd: 'bg-red-500', offline: 'bg-gray-500' }[status];
         return `
-        <div class="snap-start shrink-0 w-36 glass-card p-3 rounded-2xl flex flex-col items-center justify-center border ${isFounder ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-white/5'} hover:bg-white/5 transition-colors group relative">
-            <div class="w-12 h-12 rounded-full border-2 ${s.is_on_duty ? 'border-green-500' : 'border-white/10'} p-0.5 mb-2 relative">
-                <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-full object-cover">
-                <!-- Panel Status Dot (Left) -->
-                ${s.is_on_duty ? '<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border border-black animate-pulse" title="En Service Panel"></div>' : ''}
+            <div class="glass-card w-40 p-4 rounded-2xl flex flex-col items-center border ${isFounder ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-white/5'} shrink-0 relative overflow-hidden group">
+                <div class="w-16 h-16 rounded-full border-2 ${s.is_on_duty ? 'border-green-500' : 'border-white/10'} p-0.5 mb-3 relative">
+                    <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-full object-cover">
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${color} border border-black" title="Discord Status"></div>
+                </div>
+                <div class="text-center w-full">
+                    <div class="font-bold text-white text-sm truncate">${s.username}</div>
+                    ${isFounder ? '<div class="text-[10px] text-yellow-400 font-bold uppercase mt-1">Fondateur</div>' : '<div class="text-[10px] text-gray-400 mt-1">Staff</div>'}
+                </div>
             </div>
-            
-            <div class="text-xs font-bold text-white truncate w-full text-center flex flex-col items-center">
-                ${s.username}
-                ${isFounder ? '<span class="text-[9px] text-yellow-400 font-bold uppercase mt-1 tracking-wider">👑 Fondateur</span>' : ''}
-            </div>
-            
-            <div class="flex items-center gap-3 mt-2 w-full justify-center bg-black/20 rounded py-1">
-                 <div class="flex flex-col items-center gap-0.5" title="Panel Status">
-                     <div class="w-2 h-2 rounded-full ${s.is_on_duty ? 'bg-green-400' : 'bg-gray-600'}"></div>
-                     <span class="text-[8px] text-gray-500 uppercase">Panel</span>
-                 </div>
-                 <div class="w-[1px] h-4 bg-white/10"></div>
-                 <div class="flex flex-col items-center gap-0.5" title="Discord Status">
-                     <div class="w-2 h-2 rounded-full ${discordColor}"></div>
-                     <span class="text-[8px] text-gray-500 uppercase">Discord</span>
-                 </div>
-            </div>
-        </div>
-    `}).join('') : '<div class="text-gray-500 text-xs text-center w-full py-4">Aucun membre du staff listé.</div>';
+        `;
+    };
 
     return `
+    <style>
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .staff-carousel {
+            display: flex;
+            gap: 1rem;
+            width: max-content;
+            animation: scroll 30s linear infinite;
+        }
+        .staff-carousel:hover { animation-play-state: paused; }
+    </style>
+
     <div class="flex-1 flex flex-col relative overflow-hidden h-full w-full bg-[#050505]">
         <div class="landing-gradient-bg"></div>
         
@@ -113,61 +109,74 @@ export const LoginView = () => {
                                 Connexion Citoyen
                             </button>
                         `}
-                        
-                        ${!state.user ? `
-                            <a href="${CONFIG.INVITE_URL}" target="_blank" class="glass-btn-secondary h-14 px-8 rounded-full font-bold text-lg flex items-center justify-center gap-3 transition-transform hover:scale-105 cursor-pointer bg-white/5 hover:bg-white/10">
-                                <i data-lucide="message-circle" class="w-6 h-6"></i>
-                                Communauté
-                            </a>
-                        ` : ''}
                     </div>
 
-                    <!-- Info Bubbles Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full mx-auto px-4 mb-12">
-                        <!-- Bubble 1: Context -->
-                        <div class="glass-panel p-6 rounded-2xl text-left border border-blue-500/20 hover:border-blue-500/40 transition-colors">
-                            <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 text-blue-400">
-                                <i data-lucide="globe-2" class="w-5 h-5"></i>
+                    <!-- Layout: Left Info, Right Widget -->
+                    <div class="flex flex-col lg:flex-row gap-12 w-full max-w-6xl items-start">
+                        
+                        <!-- Left Content -->
+                        <div class="flex-1 w-full space-y-12">
+                             <!-- Info Bubbles Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                                <div class="glass-panel p-6 rounded-2xl text-left border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+                                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 text-blue-400">
+                                        <i data-lucide="globe-2" class="w-5 h-5"></i>
+                                    </div>
+                                    <h3 class="font-bold text-white text-lg mb-2">Global City</h3>
+                                    <p class="text-sm text-gray-400 leading-relaxed">
+                                        Plongez au cœur de la Mégalopole Californienne. Une immersion réaliste dans une ville qui ne dort jamais.
+                                    </p>
+                                </div>
+
+                                <div class="glass-panel p-6 rounded-2xl text-left border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+                                    <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 text-purple-400">
+                                        <i data-lucide="users" class="w-5 h-5"></i>
+                                    </div>
+                                    <h3 class="font-bold text-white text-lg mb-2">Liberté Totale</h3>
+                                    <p class="text-sm text-gray-400 leading-relaxed">
+                                        RP Légal, Illégal, Gérant d'entreprise ou simple Fermier. Tout est possible, votre imagination est la seule limite.
+                                    </p>
+                                </div>
                             </div>
-                            <h3 class="font-bold text-white text-lg mb-2">Global City</h3>
-                            <p class="text-sm text-gray-400 leading-relaxed">
-                                Plongez au cœur de la Mégalopole Californienne. Une immersion réaliste dans une ville qui ne dort jamais.
-                            </p>
+
+                            <!-- Staff Section -->
+                            <div>
+                                <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                    <i data-lucide="shield" class="w-5 h-5 text-purple-400"></i> La Fondation
+                                </h3>
+                                
+                                <!-- Founders Fixed -->
+                                <div class="flex justify-center gap-4 mb-6">
+                                    ${founders.map(f => renderCard(f, true)).join('')}
+                                </div>
+
+                                <!-- Auto Carousel for Others -->
+                                ${others.length > 0 ? `
+                                    <div class="overflow-hidden w-full relative mask-gradient">
+                                        <div class="staff-carousel">
+                                            ${others.map(s => renderCard(s, false)).join('')}
+                                            ${others.map(s => renderCard(s, false)).join('')} <!-- Duplicate for infinite loop -->
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
 
-                        <!-- Bubble 2: Gameplay -->
-                        <div class="glass-panel p-6 rounded-2xl text-left border border-purple-500/20 hover:border-purple-500/40 transition-colors">
-                            <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 text-purple-400">
-                                <i data-lucide="users" class="w-5 h-5"></i>
+                        <!-- Right: Discord Widget -->
+                        <div class="hidden lg:block w-[350px] shrink-0">
+                            <div class="glass-panel p-1 rounded-xl border border-indigo-500/20 shadow-2xl">
+                                <iframe src="https://discord.com/widget?id=${CONFIG.REQUIRED_GUILD_ID}&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts" class="rounded-lg"></iframe>
                             </div>
-                            <h3 class="font-bold text-white text-lg mb-2">Liberté Totale</h3>
-                            <p class="text-sm text-gray-400 leading-relaxed">
-                                RP Légal, Illégal, Gérant d'entreprise ou simple Fermier. Tout est possible, votre imagination est la seule limite.
-                            </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Stats & Staff (Footer) -->
-                <div class="shrink-0 relative z-10 py-12 border-t border-white/5 bg-[#050505]/90 backdrop-blur-md mt-auto w-full">
-                    <div class="max-w-6xl mx-auto px-6">
-                        
-                        <!-- Staff Carousel -->
-                        <div>
-                            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                <i data-lucide="shield" class="w-5 h-5 text-purple-400"></i> Équipe Staff
-                            </h3>
-                            <div class="flex gap-3 overflow-x-auto snap-x custom-scrollbar pb-4">
-                                ${staffHtml}
-                            </div>
-                        </div>
-
-                        <!-- Legal Links -->
-                        <div class="mt-8 pt-8 border-t border-white/5 flex justify-center gap-6 text-xs text-gray-500">
-                            <button onclick="ui.showModal({title:'Conditions d\\'Utilisation', content: window.LEGAL_TERMS, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Conditions d'utilisation</button>
-                            <button onclick="ui.showModal({title:'Politique de Confidentialité', content: window.LEGAL_PRIVACY, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Politique de confidentialité</button>
-                            <span>&copy; 2024 TFRP</span>
-                        </div>
+                <!-- Footer -->
+                <div class="shrink-0 relative z-10 py-8 border-t border-white/5 bg-[#050505]/90 backdrop-blur-md mt-12 w-full text-center">
+                    <div class="max-w-6xl mx-auto px-6 flex justify-center gap-6 text-xs text-gray-500">
+                        <button onclick="ui.showModal({title:'Conditions d\\'Utilisation', content: window.LEGAL_TERMS, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Conditions d'utilisation</button>
+                        <button onclick="ui.showModal({title:'Politique de Confidentialité', content: window.LEGAL_PRIVACY, confirmText: 'Fermer'})" class="hover:text-white transition-colors">Politique de confidentialité</button>
+                        <span>&copy; 2024 TFRP</span>
                     </div>
                 </div>
             </div>
