@@ -11,7 +11,22 @@ import { ui } from '../ui.js';
 import { HEIST_DATA } from './illicit.js';
 import { CONFIG } from '../config.js';
 
-// ... [AdventCalendarView Code Omitted for Brevity - Keeping Existing Logic] ...
+const refreshBanner = `
+    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-500/5 border-b border-blue-500/10 gap-3 shrink-0">
+        <div class="text-xs text-blue-200 flex items-center gap-2">
+             <div class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </div>
+            <span><span class="font-bold">Hub Central</span> • Données en temps réel</span>
+        </div>
+        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-xs text-blue-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser
+        </button>
+    </div>
+`;
+
+// ... [AdventCalendarView Code] ...
 const AdventCalendarView = () => {
     const today = new Date();
     const currentDay = today.getDate();
@@ -61,62 +76,53 @@ const AdventCalendarView = () => {
     }
 
     return `
-        <div class="animate-fade-in max-w-5xl mx-auto h-full flex flex-col">
-            <div class="text-center mb-10 mt-4">
-                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-400 text-sm font-bold border border-red-500/20 mb-4">
-                    <i data-lucide="snowflake" class="w-4 h-4"></i> Édition Spéciale Noël
-                </div>
-                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Calendrier de l'Avent</h1>
-                <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 12 au 25 Décembre pour débloquer des récompenses exclusives.</p>
-                <div class="mt-4 text-xs font-mono text-emerald-400 bg-black/40 inline-block px-3 py-1 rounded border border-emerald-500/20">
-                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${nextUnlockStr}
-                </div>
-            </div>
+        <div class="animate-fade-in h-full flex flex-col">
+            ${refreshBanner}
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                <div class="max-w-5xl mx-auto">
+                    <div class="text-center mb-10">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-400 text-sm font-bold border border-red-500/20 mb-4">
+                            <i data-lucide="snowflake" class="w-4 h-4"></i> Édition Spéciale Noël
+                        </div>
+                        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Calendrier de l'Avent</h1>
+                        <p class="text-gray-400 max-w-lg mx-auto">Connectez-vous chaque jour du 12 au 25 Décembre pour débloquer des récompenses exclusives.</p>
+                        <div class="mt-4 text-xs font-mono text-emerald-400 bg-black/40 inline-block px-3 py-1 rounded border border-emerald-500/20">
+                            <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> ${nextUnlockStr}
+                        </div>
+                    </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar pb-10">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 px-4">
-                    ${days.map(d => `
-                        <button 
-                            ${d.isAvailable ? `onclick="actions.claimAdventReward(${d.day})"` : 'disabled'}
-                            class="relative aspect-square rounded-2xl border ${d.bgClass} flex flex-col items-center justify-center gap-2 group transition-all transform hover:scale-105 ${d.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'} ${d.day === 25 ? 'col-span-2 md:col-span-1 lg:col-span-1 border-yellow-500/50' : ''}">
-                            
-                            <div class="absolute top-3 left-4 font-black text-4xl text-white/10 select-none">${d.day}</div>
-                            
-                            <div class="relative z-10 p-3 rounded-full bg-black/20 backdrop-blur-sm">
-                                <i data-lucide="${d.day === 25 ? 'star' : d.icon}" class="w-8 h-8 ${d.day === 25 ? 'text-yellow-400' : d.textClass}"></i>
-                            </div>
-                            
-                            <div class="relative z-10 text-sm font-bold ${d.day === 25 ? 'text-yellow-400' : d.textClass} uppercase tracking-wider">
-                                ${d.statusText}
-                            </div>
-                            
-                            ${d.isAvailable ? '<div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>' : ''}
-                        </button>
-                    `).join('')}
-                </div>
-                
-                <div class="mt-12 text-center">
-                    <div class="inline-block p-4 bg-white/5 rounded-xl border border-white/5 max-w-md">
-                        <h4 class="text-white font-bold mb-1 flex items-center justify-center gap-2"><i data-lucide="gift" class="w-4 h-4 text-yellow-400"></i> Le 25 Décembre</h4>
-                        <p class="text-xs text-gray-400">Une prime exceptionnelle de <b>$25,000</b> vous attend pour Noël !</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                        ${days.map(d => `
+                            <button 
+                                ${d.isAvailable ? `onclick="actions.claimAdventReward(${d.day})"` : 'disabled'}
+                                class="relative aspect-square rounded-2xl border ${d.bgClass} flex flex-col items-center justify-center gap-2 group transition-all transform hover:scale-105 ${d.isLocked ? 'opacity-50 cursor-not-allowed grayscale' : 'cursor-pointer'} ${d.day === 25 ? 'col-span-2 md:col-span-1 lg:col-span-1 border-yellow-500/50' : ''}">
+                                
+                                <div class="absolute top-3 left-4 font-black text-4xl text-white/10 select-none">${d.day}</div>
+                                
+                                <div class="relative z-10 p-3 rounded-full bg-black/20 backdrop-blur-sm">
+                                    <i data-lucide="${d.day === 25 ? 'star' : d.icon}" class="w-8 h-8 ${d.day === 25 ? 'text-yellow-400' : d.textClass}"></i>
+                                </div>
+                                
+                                <div class="relative z-10 text-sm font-bold ${d.day === 25 ? 'text-yellow-400' : d.textClass} uppercase tracking-wider">
+                                    ${d.statusText}
+                                </div>
+                                
+                                ${d.isAvailable ? '<div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>' : ''}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-12 text-center pb-10">
+                        <div class="inline-block p-4 bg-white/5 rounded-xl border border-white/5 max-w-md">
+                            <h4 class="text-white font-bold mb-1 flex items-center justify-center gap-2"><i data-lucide="gift" class="w-4 h-4 text-yellow-400"></i> Le 25 Décembre</h4>
+                            <p class="text-xs text-gray-400">Une prime exceptionnelle de <b>$25,000</b> vous attend pour Noël !</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
 };
-
-const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between p-4 mb-6 bg-blue-500/5 border border-blue-500/10 rounded-xl gap-3">
-        <div class="text-xs text-blue-200 flex items-center gap-2">
-             <i data-lucide="info" class="w-4 h-4 text-blue-400"></i>
-            <span><span class="font-bold">Besoin d'actualiser ?</span> Vous ne trouvez pas ce que vous cherchez ?</span>
-        </div>
-        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="glass-btn-secondary px-3 py-1.5 rounded-lg text-xs hover:bg-blue-500/10 hover:text-blue-300 flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap w-full md:w-auto justify-center">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Recharger les données
-        </button>
-    </div>
-`;
 
 export const HubView = () => {
     // --- CHECK ALIGNMENT ---
@@ -262,133 +268,134 @@ export const HubView = () => {
         `;
 
         content = `
-            <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
+            <div class="animate-fade-in h-full flex flex-col">
                  <!-- DASHBOARD HEADER & BANNER -->
                  ${refreshBanner}
                  
-                <div class="mb-6 relative rounded-3xl overflow-hidden h-48 group shadow-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-black border border-white/10">
-                    <div class="absolute inset-0 p-8 flex flex-col justify-center">
-                        <div class="flex justify-between items-end">
-                            <div>
-                                <h1 class="text-3xl font-bold text-white mb-2">Team French RolePlay</h1>
-                                <p class="text-gray-300 mb-4 flex items-center gap-2">
-                                    <span class="w-2 h-2 ${isSessionActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'} rounded-full"></span>
-                                    ${isSessionActive ? 'Serveur Privé ERLC' : 'Session Fermée'}
-                                </p>
-                                <div class="flex items-center gap-4">
-                                    <div class="bg-white/10 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 text-xs text-white">
-                                        <span class="text-gray-400 uppercase tracking-wide mr-2">Joueurs</span>
-                                        <span class="font-mono font-bold text-lg">${currentPlayers}/${maxPlayers}</span>
+                 <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
+                    <div class="max-w-7xl mx-auto space-y-6">
+                        <div class="mb-6 relative rounded-3xl overflow-hidden h-48 group shadow-2xl bg-gradient-to-r from-gray-900 via-gray-800 to-black border border-white/10 shrink-0">
+                            <div class="absolute inset-0 p-8 flex flex-col justify-center">
+                                <div class="flex justify-between items-end">
+                                    <div>
+                                        <h1 class="text-3xl font-bold text-white mb-2">Team French RolePlay</h1>
+                                        <p class="text-gray-300 mb-4 flex items-center gap-2">
+                                            <span class="w-2 h-2 ${isSessionActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'} rounded-full"></span>
+                                            ${isSessionActive ? 'Serveur Privé ERLC' : 'Session Fermée'}
+                                        </p>
+                                        <div class="flex items-center gap-4">
+                                            <div class="bg-white/10 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 text-xs text-white">
+                                                <span class="text-gray-400 uppercase tracking-wide mr-2">Joueurs</span>
+                                                <span class="font-mono font-bold text-lg">${currentPlayers}/${maxPlayers}</span>
+                                            </div>
+                                            <div class="bg-white/10 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 text-xs text-white">
+                                                <span class="text-gray-400 uppercase tracking-wide mr-2">File</span>
+                                                <span class="font-mono font-bold text-lg erlc-queue-count">${queue ? queue.length : 0}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="bg-white/10 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10 text-xs text-white">
-                                        <span class="text-gray-400 uppercase tracking-wide mr-2">File</span>
-                                        <span class="font-mono font-bold text-lg erlc-queue-count">${queue ? queue.length : 0}</span>
+                                    
+                                    <div class="text-right hidden md:block">
+                                        ${isSessionActive ? `
+                                            <div class="text-sm text-gray-400 mb-2 uppercase tracking-widest font-bold">Code Serveur</div>
+                                            <div class="text-4xl font-mono font-bold text-white tracking-widest mb-4 text-glow">${joinKey}</div>
+                                            <a href="${robloxUrl}" class="glass-btn px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform bg-white text-black shadow-lg shadow-white/10">
+                                                <i data-lucide="play" class="w-5 h-5 fill-current"></i>
+                                                Rejoindre
+                                            </a>
+                                        ` : `
+                                            <div class="flex flex-col items-end">
+                                                <div class="px-4 py-2 bg-red-500/10 rounded-xl border border-red-500/20 text-red-400 text-sm font-bold flex items-center gap-2 mb-2">
+                                                    <i data-lucide="lock" class="w-4 h-4"></i> Accès Restreint
+                                                </div>
+                                                <p class="text-gray-500 text-xs max-w-[200px] leading-relaxed">
+                                                    Aucune session de jeu n'est en cours. Attendez l'ouverture par le staff.
+                                                </p>
+                                            </div>
+                                        `}
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="text-right hidden md:block">
-                                ${isSessionActive ? `
-                                    <div class="text-sm text-gray-400 mb-2 uppercase tracking-widest font-bold">Code Serveur</div>
-                                    <div class="text-4xl font-mono font-bold text-white tracking-widest mb-4 text-glow">${joinKey}</div>
-                                    <a href="${robloxUrl}" class="glass-btn px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform bg-white text-black shadow-lg shadow-white/10">
-                                        <i data-lucide="play" class="w-5 h-5 fill-current"></i>
-                                        Rejoindre
-                                    </a>
-                                ` : `
-                                    <div class="flex flex-col items-end">
-                                        <div class="px-4 py-2 bg-red-500/10 rounded-xl border border-red-500/20 text-red-400 text-sm font-bold flex items-center gap-2 mb-2">
-                                            <i data-lucide="lock" class="w-4 h-4"></i> Accès Restreint
-                                        </div>
-                                        <p class="text-gray-500 text-xs max-w-[200px] leading-relaxed">
-                                            Aucune session de jeu n'est en cours. Attendez l'ouverture par le staff.
-                                        </p>
-                                    </div>
-                                `}
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="flex-1 overflow-y-auto custom-scrollbar space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${newsHtml}
-                        ${callBubble}
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- CARDS OMITTED FOR BREVITY BUT KEPT IN LOGIC -->
-                        ${/* Same card logic as before */ ''}
-                        <button onclick="actions.setHubPanel('advent')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-red-500/20">
-                            <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)]"><i data-lucide="gift" class="w-6 h-6"></i></div>
-                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Calendrier Avent</h3><p class="text-sm text-gray-400 mt-1">Cadeaux Quotidiens (12-25)</p></div>
-                        </button>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${newsHtml}
+                            ${callBubble}
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- CARDS -->
+                            <button onclick="actions.setHubPanel('advent')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-red-500/20">
+                                <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)]"><i data-lucide="gift" class="w-6 h-6"></i></div>
+                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Calendrier Avent</h3><p class="text-sm text-gray-400 mt-1">Cadeaux Quotidiens (12-25)</p></div>
+                            </button>
 
-                        <button onclick="actions.setHubPanel('bank')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-emerald-500/20">
-                            <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"><i data-lucide="landmark" class="w-6 h-6"></i></div>
-                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Ma Banque</h3><p class="text-sm text-gray-400 mt-1">Solde, Retraits & Virements</p></div>
-                        </button>
+                            <button onclick="actions.setHubPanel('bank')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-emerald-500/20">
+                                <div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"><i data-lucide="landmark" class="w-6 h-6"></i></div>
+                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Ma Banque</h3><p class="text-sm text-gray-400 mt-1">Solde, Retraits & Virements</p></div>
+                            </button>
 
-                        <button onclick="actions.setHubPanel('assets')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-indigo-500/20">
-                            <div class="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"><i data-lucide="gem" class="w-6 h-6"></i></div>
-                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Patrimoine</h3><p class="text-sm text-gray-400 mt-1">Inventaire & Valeur Totale</p></div>
-                        </button>
+                            <button onclick="actions.setHubPanel('assets')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-indigo-500/20">
+                                <div class="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div class="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)]"><i data-lucide="gem" class="w-6 h-6"></i></div>
+                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Patrimoine</h3><p class="text-sm text-gray-400 mt-1">Inventaire & Valeur Totale</p></div>
+                            </button>
 
-                        <button onclick="actions.setHubPanel('enterprise')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-blue-500/20">
-                            <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"><i data-lucide="building-2" class="w-6 h-6"></i></div>
-                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Entreprise</h3><p class="text-sm text-gray-400 mt-1">Gestion Société & Employés</p></div>
-                        </button>
-
-                        ${hasServiceAccess ? `
-                            <button onclick="actions.setHubPanel('services')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer ${!inServiceGuild ? 'border-red-500/30 opacity-90' : ''}">
-                                ${!inServiceGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
+                            <button onclick="actions.setHubPanel('enterprise')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-blue-500/20">
                                 <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"><i data-lucide="siren" class="w-6 h-6"></i></div>
+                                <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"><i data-lucide="building-2" class="w-6 h-6"></i></div>
+                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Entreprise</h3><p class="text-sm text-gray-400 mt-1">Gestion Société & Employés</p></div>
+                            </button>
+
+                            ${hasServiceAccess ? `
+                                <button onclick="actions.setHubPanel('services')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer ${!inServiceGuild ? 'border-red-500/30 opacity-90' : ''}">
+                                    ${!inServiceGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
+                                    <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:bg-blue-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)]"><i data-lucide="siren" class="w-6 h-6"></i></div>
+                                    <div class="relative z-10">
+                                        <h3 class="text-xl font-bold text-white">Services Publics</h3>
+                                        <p class="text-sm text-gray-400 mt-1">Dispatch, Annuaire & Rapports</p>
+                                        <div class="inline-block px-2 py-0.5 mt-2 rounded bg-blue-500/20 text-blue-300 text-xs font-bold uppercase">${job}</div>
+                                    </div>
+                                </button>
+                            ` : isIllegal ? `
+                                <button onclick="actions.setHubPanel('illicit')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-red-500/20 ${!inIllegalGuild ? 'border-red-500/40 opacity-90' : ''}">
+                                    ${!inIllegalGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
+                                    <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"><i data-lucide="skull" class="w-6 h-6"></i></div>
+                                    <div class="relative z-10"><h3 class="text-xl font-bold text-white">Monde Criminel</h3><p class="text-sm text-gray-400 mt-1">Mafias, Gangs & Marché Noir</p></div>
+                                </button>
+                            ` : `
+                                <div class="glass-card p-6 rounded-[24px] h-64 flex flex-col justify-center items-center text-center border-white/5 opacity-50">
+                                    <i data-lucide="briefcase" class="w-10 h-10 text-gray-500 mb-4"></i>
+                                    <h3 class="text-lg font-bold text-gray-400">Accès Civil</h3>
+                                    <p class="text-sm text-gray-600 mt-1">Rejoignez un métier (LEO/EMS) ou le crime pour débloquer.</p>
+                                </div>
+                            `}
+
+                            <button onclick="actions.setHubPanel('staff_list')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-yellow-500/20">
+                                <div class="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 mb-4 group-hover:bg-yellow-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(234,179,8,0.3)]"><i data-lucide="users-round" class="w-6 h-6"></i></div>
+                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Liste du Staff</h3><p class="text-sm text-gray-400 mt-1">Disponibilité & Statut</p></div>
+                            </button>
+
+                            ${showStaffCard ? `
+                            <button onclick="actions.setHubPanel('staff')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden border-purple-500/20 cursor-pointer ${!inStaffGuild ? 'border-red-500/40 opacity-90' : ''}">
+                                ${!inStaffGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
+                                <div class="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"><i data-lucide="shield-alert" class="w-6 h-6"></i></div>
                                 <div class="relative z-10">
-                                    <h3 class="text-xl font-bold text-white">Services Publics</h3>
-                                    <p class="text-sm text-gray-400 mt-1">Dispatch, Annuaire & Rapports</p>
-                                    <div class="inline-block px-2 py-0.5 mt-2 rounded bg-blue-500/20 text-blue-300 text-xs font-bold uppercase">${job}</div>
+                                    <h3 class="text-xl font-bold text-white">Administration</h3>
+                                    <p class="text-sm text-gray-400 mt-1">Gestion Joueurs & Whitelist</p>
+                                    ${state.pendingApplications.length > 0 ? `<div class="absolute top-0 right-0 mt-6 mr-6 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>` : ''}
                                 </div>
                             </button>
-                        ` : isIllegal ? `
-                            <button onclick="actions.setHubPanel('illicit')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-red-500/20 ${!inIllegalGuild ? 'border-red-500/40 opacity-90' : ''}">
-                                ${!inIllegalGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
-                                <div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400 mb-4 group-hover:bg-red-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"><i data-lucide="skull" class="w-6 h-6"></i></div>
-                                <div class="relative z-10"><h3 class="text-xl font-bold text-white">Monde Criminel</h3><p class="text-sm text-gray-400 mt-1">Mafias, Gangs & Marché Noir</p></div>
-                            </button>
-                        ` : `
-                            <div class="glass-card p-6 rounded-[24px] h-64 flex flex-col justify-center items-center text-center border-white/5 opacity-50">
-                                <i data-lucide="briefcase" class="w-10 h-10 text-gray-500 mb-4"></i>
-                                <h3 class="text-lg font-bold text-gray-400">Accès Civil</h3>
-                                <p class="text-sm text-gray-600 mt-1">Rejoignez un métier (LEO/EMS) ou le crime pour débloquer.</p>
-                            </div>
-                        `}
-
-                        <button onclick="actions.setHubPanel('staff_list')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden cursor-pointer border-yellow-500/20">
-                            <div class="absolute inset-0 bg-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 mb-4 group-hover:bg-yellow-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(234,179,8,0.3)]"><i data-lucide="users-round" class="w-6 h-6"></i></div>
-                            <div class="relative z-10"><h3 class="text-xl font-bold text-white">Liste du Staff</h3><p class="text-sm text-gray-400 mt-1">Disponibilité & Statut</p></div>
-                        </button>
-
-                        ${showStaffCard ? `
-                        <button onclick="actions.setHubPanel('staff')" class="glass-card group text-left p-6 rounded-[24px] h-64 flex flex-col justify-between relative overflow-hidden border-purple-500/20 cursor-pointer ${!inStaffGuild ? 'border-red-500/40 opacity-90' : ''}">
-                             ${!inStaffGuild ? '<div class="absolute top-4 right-4 text-red-500 bg-red-500/10 p-2 rounded-full"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
-                            <div class="absolute inset-0 bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                            <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:bg-purple-500 group-hover:text-white transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"><i data-lucide="shield-alert" class="w-6 h-6"></i></div>
-                            <div class="relative z-10">
-                                <h3 class="text-xl font-bold text-white">Administration</h3>
-                                <p class="text-sm text-gray-400 mt-1">Gestion Joueurs & Whitelist</p>
-                                ${state.pendingApplications.length > 0 ? `<div class="absolute top-0 right-0 mt-6 mr-6 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>` : ''}
-                            </div>
-                        </button>
-                        ` : ''}
+                            ` : ''}
+                        </div>
                     </div>
-                </div>
+                 </div>
             </div>
         `;
     } else if (state.activeHubPanel === 'advent') {
@@ -402,8 +409,9 @@ export const HubView = () => {
         });
 
         content = `
-            <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="animate-fade-in h-full flex flex-col">
+                ${refreshBanner}
+                <div class="shrink-0 p-6 pb-0 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                             <i data-lucide="users-round" class="w-6 h-6 text-blue-400"></i>
@@ -411,41 +419,40 @@ export const HubView = () => {
                         </h2>
                         <p class="text-gray-400 text-sm">Membres de l'équipe et statut de connexion.</p>
                     </div>
-                    <button onclick="actions.refreshCurrentView()" class="glass-btn-secondary px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualiser
-                    </button>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto custom-scrollbar p-1">
-                    ${staffList.map(s => {
-                        const isFounder = CONFIG.ADMIN_IDS.includes(s.id);
-                        const discordStatus = state.discordStatuses[s.id] || 'offline';
-                        const discordColor = { online: 'bg-green-500', idle: 'bg-yellow-500', dnd: 'bg-red-500', offline: 'bg-gray-500' }[discordStatus] || 'bg-gray-500';
-                        
-                        return `
-                        <div class="glass-panel p-4 rounded-xl border border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors">
-                            <div class="w-14 h-14 rounded-full border border-white/10 shrink-0">
-                                <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-full object-cover">
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <h3 class="font-bold text-white truncate">${s.username}</h3>
-                                    ${isFounder ? '<span class="text-[9px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-bold uppercase">Fondateur</span>' : ''}
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+                        ${staffList.map(s => {
+                            const isFounder = CONFIG.ADMIN_IDS.includes(s.id);
+                            const discordStatus = state.discordStatuses[s.id] || 'offline';
+                            const discordColor = { online: 'bg-green-500', idle: 'bg-yellow-500', dnd: 'bg-red-500', offline: 'bg-gray-500' }[discordStatus] || 'bg-gray-500';
+                            
+                            return `
+                            <div class="glass-panel p-4 rounded-xl border border-white/5 flex items-center gap-4 hover:bg-white/5 transition-colors">
+                                <div class="w-14 h-14 rounded-full border border-white/10 shrink-0">
+                                    <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-full object-cover">
                                 </div>
-                                <div class="flex items-center gap-3 mt-2 text-xs">
-                                     <div class="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded-full border border-white/5">
-                                         <div class="w-2 h-2 rounded-full ${s.is_on_duty ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}"></div>
-                                         <span class="text-gray-400 uppercase text-[9px]">Panel</span>
-                                     </div>
-                                     <div class="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded-full border border-white/5">
-                                         <div class="w-2 h-2 rounded-full ${discordColor}"></div>
-                                         <span class="text-gray-400 uppercase text-[9px]">Discord</span>
-                                     </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-bold text-white truncate">${s.username}</h3>
+                                        ${isFounder ? '<span class="text-[9px] bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded font-bold uppercase">Fondateur</span>' : ''}
+                                    </div>
+                                    <div class="flex items-center gap-3 mt-2 text-xs">
+                                        <div class="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded-full border border-white/5">
+                                            <div class="w-2 h-2 rounded-full ${s.is_on_duty ? 'bg-green-500 animate-pulse' : 'bg-gray-600'}"></div>
+                                            <span class="text-gray-400 uppercase text-[9px]">Panel</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded-full border border-white/5">
+                                            <div class="w-2 h-2 rounded-full ${discordColor}"></div>
+                                            <span class="text-gray-400 uppercase text-[9px]">Discord</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        `;
-                    }).join('')}
+                            `;
+                        }).join('')}
+                    </div>
                 </div>
             </div>
         `;
@@ -465,8 +472,9 @@ export const HubView = () => {
     } else if (state.activeHubPanel === 'emergency_call') {
         // ... (Emergency Call View Code) ...
         content = `
-            <div class="animate-fade-in max-w-7xl mx-auto h-full flex flex-col">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="animate-fade-in h-full flex flex-col">
+                ${refreshBanner}
+                <div class="shrink-0 p-6 pb-0 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                             <i data-lucide="phone-call" class="w-6 h-6 text-red-500"></i>
@@ -475,7 +483,7 @@ export const HubView = () => {
                         <p class="text-gray-400 text-sm">Central 911 • Los Angeles</p>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar flex items-center justify-center">
+                <div class="flex-1 overflow-y-auto custom-scrollbar flex items-center justify-center p-6">
                     <div class="glass-panel p-8 rounded-2xl w-full max-w-2xl border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.1)]">
                         ${isSessionActive ? `
                             <form onsubmit="actions.createEmergencyCall(event)" class="space-y-6">
@@ -712,8 +720,8 @@ export const HubView = () => {
                     </div>
                 </div>
 
-                <!-- Main Content with bottom padding for mobile nav -->
-                <div class="flex-1 overflow-y-auto p-4 md:p-8 relative z-0 custom-scrollbar pb-32 md:pb-[env(safe-area-inset-bottom)]">
+                <!-- Main Content (Removed Wrapper Padding/Scroll to allow Full Height views) -->
+                <div class="flex-1 overflow-hidden relative z-0 flex flex-col pb-32 md:pb-[env(safe-area-inset-bottom)]">
                     ${content}
                 </div>
             </main>
