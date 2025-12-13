@@ -8,7 +8,8 @@ import {
     fetchGlobalHeists, fetchEmergencyCalls, fetchAllCharacters, fetchERLCData, 
     fetchPendingApplications, fetchStaffProfiles, fetchOnDutyStaff, 
     fetchServerStats, fetchPendingHeistReviews, fetchAvailableLobbies,
-    fetchActiveSession, fetchSessionHistory, fetchEnterpriseMarket, fetchMyEnterprises, fetchEnterpriseDetails
+    fetchActiveSession, fetchSessionHistory, fetchEnterpriseMarket, fetchMyEnterprises, fetchEnterpriseDetails,
+    fetchDailyEconomyStats
 } from '../services.js';
 import { hasPermission } from '../utils.js';
 
@@ -89,9 +90,13 @@ export const setHubPanel = async (panel) => {
             state.inventoryFilter = '';
             await fetchInventory(state.activeCharacter.id);
         } else if (panel === 'enterprise') {
-            // Placeholder for future data fetching
-            if(state.activeEnterpriseTab === 'market') await fetchEnterpriseMarket();
-            else if(state.activeEnterpriseTab === 'my_companies' && state.activeCharacter) await fetchMyEnterprises(state.activeCharacter.id);
+            // Fetch Market & Economy Stats for the new design
+            const promises = [fetchDailyEconomyStats()];
+            if(state.activeEnterpriseTab === 'market') promises.push(fetchEnterpriseMarket());
+            else if(state.activeEnterpriseTab === 'my_companies' && state.activeCharacter) promises.push(fetchMyEnterprises(state.activeCharacter.id));
+            
+            await Promise.all(promises);
+
         } else if (panel === 'illicit' && state.activeCharacter) {
             state.activeIllicitTab = 'dashboard'; 
             state.blackMarketSearch = ''; 
@@ -105,7 +110,10 @@ export const setHubPanel = async (panel) => {
                 fetchAllCharacters() // Needed for Bounty Search suggestions
             ]);
         } else if (panel === 'services' && state.activeCharacter) {
-            state.activeServicesTab = 'dispatch';
+            state.activeServicesTab = 'directory'; // Default to directory for lawyers/police
+            // If police, maybe default to dispatch? Keep logic simple.
+            if(state.activeCharacter.job === 'leo') state.activeServicesTab = 'dispatch';
+            
             state.servicesSearchQuery = '';
             state.reportSuspects = [];
             
@@ -113,7 +121,9 @@ export const setHubPanel = async (panel) => {
                 fetchGlobalHeists(),
                 fetchEmergencyCalls()
             ];
-            if(state.activeCharacter.job === 'leo') {
+            
+            // FIX: Load characters for Lawyers too so the directory works
+            if(state.activeCharacter.job === 'leo' || state.activeCharacter.job === 'lawyer') {
                 promises.push(fetchAllCharacters());
                 promises.push(fetchERLCData());
             }
@@ -176,7 +186,7 @@ export const refreshCurrentView = async () => {
             if (state.activeIllicitTab === 'market') await fetchBankData(charId);
         }
         else if (state.activeHubPanel === 'services') {
-            if (state.activeServicesTab === 'directory') await fetchAllCharacters();
+            if (state.activeServicesTab === 'directory' || state.activeServicesTab === 'full_reports') await fetchAllCharacters();
             if (state.activeServicesTab === 'map') await fetchERLCData();
             if (state.activeServicesTab === 'dispatch') { await fetchEmergencyCalls(); await fetchGlobalHeists(); }
         }
@@ -185,6 +195,7 @@ export const refreshCurrentView = async () => {
             await fetchOnDutyStaff();
         }
         else if (state.activeHubPanel === 'enterprise') {
+             await fetchDailyEconomyStats();
              if (state.activeEnterpriseTab === 'market') await fetchEnterpriseMarket();
              if (state.activeEnterpriseTab === 'my_companies' && charId) await fetchMyEnterprises(charId);
              if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) await fetchEnterpriseDetails(state.activeEnterpriseManagement.id);

@@ -133,6 +133,15 @@ export const toggleDirectoryMode = async (mode) => {
     render();
 };
 
+export const openFullReports = async () => {
+    state.isPanelLoading = true;
+    render();
+    await services.fetchAllReports();
+    state.activeServicesTab = 'full_reports';
+    state.isPanelLoading = false;
+    render();
+};
+
 export const openCallPage = () => {
     if(window.actions) window.actions.setHubPanel('emergency_call');
 };
@@ -160,7 +169,7 @@ export const searchServices = (query) => {
     state.servicesSearchQuery = query;
     render();
     setTimeout(() => {
-         const input = document.querySelector('input[placeholder*="Rechercher"]');
+         const input = document.querySelector('input[placeholder*="Recherche"]');
          if(input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
     }, 0);
 };

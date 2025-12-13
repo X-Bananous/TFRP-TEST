@@ -110,23 +110,29 @@ export const ServicesView = () => {
         `;
     }
 
-    // TABS
+    // TABS CONFIGURATION
     let tabs = [];
-    if (isLeo || isLawyer) {
+    if (isLawyer) {
+        // LAWYER SPECIFIC TABS (No Dispatch)
+        tabs = [
+            { id: 'directory', label: 'Annuaire & Rapports', icon: 'folder-search' }
+        ];
+    } else if (isLeo) {
+        // LEO TABS
         tabs = [
             { id: 'dispatch', label: 'Dispatch', icon: 'radio' },
-            { id: 'directory', label: 'Annuaire', icon: 'folder-search' }
+            { id: 'directory', label: 'Annuaire', icon: 'folder-search' },
+            { id: 'reports', label: 'Rédiger Rapport', icon: 'file-plus' },
+            { id: 'map', label: 'Véhicules', icon: 'car-front' }
         ];
-        if (isLeo) {
-            tabs.push({ id: 'reports', label: 'Rédiger Rapport', icon: 'file-plus' });
-            tabs.push({ id: 'map', label: 'Véhicules', icon: 'car-front' });
-        }
     } else {
+        // EMS / DOT
          tabs = [ { id: 'dispatch', label: 'Dispatch', icon: 'radio' } ];
     }
 
-    // Determine current logic view (Dossier detail overrides standard tabs visually but uses same container)
+    // Determine current logic view
     const isDossierView = state.activeServicesTab === 'dossier_detail' && state.dossierTarget;
+    const isFullReportsView = state.activeServicesTab === 'full_reports';
 
     // CONTENT SWITCHER
     let content = '';
@@ -137,7 +143,7 @@ export const ServicesView = () => {
         const activeAlerts = heists.filter(h => (Date.now() - new Date(h.start_time).getTime()) > 30000); 
         const allCalls = state.emergencyCalls || [];
         const filteredCalls = allCalls.filter(c => {
-            if (isLawyer) return true; // Lawyers see all dispatch
+            if (isLawyer) return false; // Double check: Lawyer shouldn't see calls logic
             if (job === 'leo') return c.service === 'police';
             if (job === 'lafd') return c.service === 'ems';
             if (job === 'ladot') return c.service === 'dot';
@@ -289,11 +295,85 @@ export const ServicesView = () => {
                     <div class="flex gap-2">
                         <button onclick="actions.toggleDirectoryMode('citizens')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all border ${!showReports ? 'bg-blue-600 text-white border-blue-600' : 'bg-white/5 text-gray-400 border-white/5'}">Citoyens</button>
                         <button onclick="actions.toggleDirectoryMode('reports')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all border ${showReports ? 'bg-orange-600 text-white border-orange-600' : 'bg-white/5 text-gray-400 border-white/5'}">Rapports</button>
+                        ${showReports ? `
+                            <button onclick="actions.openFullReports()" class="px-4 py-2 rounded-xl text-xs font-bold transition-all border bg-white/5 text-blue-400 border-blue-500/30 hover:bg-blue-500/10 flex items-center gap-2">
+                                <i data-lucide="maximize-2" class="w-3 h-3"></i> Archives Complètes
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar pb-6 pr-2">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         ${contentList}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // === NEW: FULL REPORTS VIEW (ARCHIVES) ===
+    else if (isFullReportsView) {
+        let reports = state.globalReports || [];
+        if(state.servicesSearchQuery) {
+            const q = state.servicesSearchQuery.toLowerCase();
+            reports = reports.filter(r => r.title.toLowerCase().includes(q) || r.author_id.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
+        }
+
+        content = `
+            <div class="flex flex-col h-full overflow-hidden animate-fade-in">
+                <div class="flex items-center justify-between mb-6 shrink-0 border-b border-white/5 pb-4">
+                    <div class="flex items-center gap-4">
+                        <button onclick="actions.setServicesTab('directory')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        </button>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <i data-lucide="archive" class="w-6 h-6 text-orange-500"></i> Archives Centrales
+                        </h2>
+                    </div>
+                    <div class="relative w-72">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-500"></i>
+                        <input type="text" oninput="actions.searchServices(this.value)" value="${state.servicesSearchQuery}" placeholder="Recherche textuelle..." class="glass-input pl-10 pr-4 py-2 rounded-xl w-full text-sm">
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                    <div class="space-y-4">
+                        ${reports.length > 0 ? reports.map(r => `
+                            <div class="bg-white/5 rounded-xl border border-white/5 p-6 hover:border-white/10 transition-colors">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-500">
+                                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold text-white text-lg">${r.title}</h3>
+                                            <p class="text-xs text-gray-500">Enregistré le ${new Date(r.created_at).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Officier</div>
+                                        <div class="text-white font-medium bg-white/10 px-2 py-0.5 rounded text-xs">${r.author_id}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-black/30 p-4 rounded-lg border border-white/5 text-gray-300 text-sm leading-relaxed whitespace-pre-wrap mb-4 font-mono">
+                                    ${r.description}
+                                </div>
+
+                                <div class="flex items-center justify-between pt-4 border-t border-white/5">
+                                    <div class="flex gap-4">
+                                        <div class="flex items-center gap-2 text-xs">
+                                            <span class="text-gray-500 uppercase font-bold">Amende:</span>
+                                            <span class="text-red-400 font-mono font-bold">$${r.fine_amount}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs">
+                                            <span class="text-gray-500 uppercase font-bold">Peine:</span>
+                                            <span class="text-blue-400 font-mono font-bold">${Math.round(r.jail_time / 60)} min</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('') : '<div class="text-center py-20 text-gray-500 italic">Aucune archive trouvée.</div>'}
                     </div>
                 </div>
             </div>
@@ -521,7 +601,7 @@ export const ServicesView = () => {
         
         <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
             ${refreshBanner}
-            ${!isDossierView ? `
+            ${!isDossierView && !isFullReportsView ? `
                 <div class="px-6 pb-4 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/5 shrink-0">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2"><i data-lucide="shield-check" class="w-6 h-6 text-blue-500"></i> Terminal Services</h2>
