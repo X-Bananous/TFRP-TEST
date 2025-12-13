@@ -3,7 +3,7 @@ import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 
 const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0">
+    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0 z-20 relative">
         <div class="text-xs text-blue-200 flex items-center gap-2">
              <div class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -263,9 +263,13 @@ export const EnterpriseView = () => {
                     <div class="flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-1">
                         <!-- BANQUE -->
                         <div class="bg-white/5 border border-white/5 rounded-xl p-4">
-                            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <i data-lucide="landmark" class="w-4 h-4 text-emerald-500"></i> Opérations Bancaires
-                            </h3>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                    <i data-lucide="landmark" class="w-4 h-4 text-emerald-500"></i> Opérations Bancaires
+                                </h3>
+                                <div class="text-sm font-mono font-bold text-emerald-400 bg-black/30 px-2 py-1 rounded border border-emerald-500/20 shadow-inner">$ ${(ent.balance || 0).toLocaleString()}</div>
+                            </div>
+                            
                             <div class="grid grid-cols-2 gap-4">
                                 <form onsubmit="actions.entDeposit(event)" class="flex gap-2">
                                     <div class="relative flex-1">
@@ -402,7 +406,7 @@ export const EnterpriseView = () => {
             
             ${!state.activeEnterpriseManagement ? `
                 <!-- HEADER STANDARD -->
-                <div class="px-6 pb-4 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/5 shrink-0">
+                <div class="px-6 pb-4 pt-4 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-white/5 shrink-0 z-10 relative">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                             <i data-lucide="building-2" class="w-6 h-6 text-blue-500"></i>
@@ -424,7 +428,7 @@ export const EnterpriseView = () => {
                 </div>
             ` : `
                 <!-- HEADER GESTION (Remplace le header standard) -->
-                <div class="px-6 pb-4 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-white/5 shrink-0">
+                <div class="px-6 pb-4 pt-4 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-white/5 shrink-0 z-10 relative">
                     <div class="flex items-center gap-4 w-full">
                         <button onclick="actions.setEnterpriseTab('my_companies')" class="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5">
                             <i data-lucide="arrow-left" class="w-5 h-5"></i>

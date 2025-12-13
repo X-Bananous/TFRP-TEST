@@ -7,6 +7,12 @@ import { CONFIG } from '../config.js';
 
 export const setEnterpriseTab = async (tab) => {
     state.activeEnterpriseTab = tab;
+    
+    // Clear management details if leaving the management view
+    if (tab !== 'manage') {
+        state.activeEnterpriseManagement = null;
+    }
+
     state.isPanelLoading = true;
     render();
     try {
