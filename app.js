@@ -48,6 +48,8 @@ window.router = router;
  * Cinematic Intro Sequence
  */
 const startIntro = async () => {
+    // Si l'intro a déjà été jouée dans cette session, on l'ignore.
+    // Pour forcer le re-test, videz le sessionStorage ou fermez l'onglet.
     if (sessionStorage.getItem('tfrp_intro_played')) return;
 
     const intro = document.getElementById('intro-screen');
@@ -60,27 +62,30 @@ const startIntro = async () => {
 
     if (!intro) return;
 
-    // Ensure App is hidden
-    const appEl = document.getElementById('app');
-    appEl.classList.add('opacity-0', 'pointer-events-none');
-
-    // Preparation
-    intro.classList.remove('opacity-0', 'pointer-events-none');
-    intro.classList.add('opacity-100', 'pointer-events-auto');
-
     // Helper function for delays
     const wait = (ms) => new Promise(res => setTimeout(res, ms));
 
+    // Préparation : Masquer l'application et forcer l'affichage du container d'intro
+    const appEl = document.getElementById('app');
+    appEl.classList.add('opacity-0', 'pointer-events-none');
+    
+    intro.classList.remove('opacity-0', 'pointer-events-none');
+    intro.style.opacity = '1';
+    intro.style.pointerEvents = 'auto';
+
+    await wait(500); // Petit temps mort pour stabiliser le rendu
+
     // Sequence
     for (let i = 0; i < phases.length; i++) {
+        if (!phases[i]) continue;
+        
         phases[i].classList.add('active');
-        await wait(3000);
+        await wait(3500); // Temps d'affichage
         phases[i].classList.remove('active');
-        phases[i].style.opacity = '0';
-        await wait(500);
+        await wait(600); // Temps de transition entre phases
     }
 
-    // Final Fade out of intro
+    // Sortie de l'intro
     intro.style.opacity = '0';
     sessionStorage.setItem('tfrp_intro_played', 'true');
     await wait(1000);
@@ -326,7 +331,7 @@ const initApp = async () => {
             await handleAuthenticatedSession(session); 
         } else {
             const appEl = document.getElementById('app');
-            appEl.classList.remove('opacity-0');
+            appEl.classList.remove('opacity-0', 'pointer-events-none');
             router('login');
         }
         startPolling();
@@ -355,14 +360,14 @@ const handleLegacySession = async (token) => {
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // SEQUENCE : Intro -> Loading -> Character Select
-        appEl.classList.add('opacity-0'); // Keep landing hidden
+        appEl.classList.add('opacity-0'); 
         await startIntro();
         
         loadingScreen.classList.remove('pointer-events-none');
         loadingScreen.style.opacity = '1';
         await finalizeLoginLogic();
         loadingScreen.style.opacity = '0';
-        appEl.classList.remove('opacity-0');
+        appEl.classList.remove('opacity-0', 'pointer-events-none');
         setTimeout(() => loadingScreen.remove(), 700);
     } catch(e) { console.error("Legacy Auth Error", e); ui.showToast("Erreur connexion Legacy.", 'error'); router('login'); appEl.classList.remove('opacity-0'); }
 };
@@ -394,14 +399,14 @@ const handleAuthenticatedSession = async (session) => {
         state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, advent_calendar: profile?.advent_calendar || [], deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
         
         // SEQUENCE : Intro -> Loading -> Character Select
-        appEl.classList.add('opacity-0');
+        appEl.classList.add('opacity-0', 'pointer-events-none');
         await startIntro();
         
         loadingScreen.classList.remove('pointer-events-none');
         loadingScreen.style.opacity = '1';
         await finalizeLoginLogic();
         loadingScreen.style.opacity = '0';
-        appEl.classList.remove('opacity-0');
+        appEl.classList.remove('opacity-0', 'pointer-events-none');
         appEl.classList.remove('scale-[0.98]');
         setTimeout(() => loadingScreen.remove(), 700);
     } catch (e) { console.error("Auth Error:", e); await window.actions.logout(); }
