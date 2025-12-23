@@ -29,91 +29,6 @@ const refreshBanner = (color = 'blue') => `
     </div>
 `;
 
-const AdventCalendarView = () => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const startDay = 12;
-    const endDay = 25;
-    const days = [];
-    
-    let nextUnlockStr = '';
-    if (currentDay < startDay) {
-        nextUnlockStr = `Ouverture le ${startDay} Décembre`;
-    } else if (currentDay >= endDay) {
-        nextUnlockStr = "Joyeuses Fêtes !";
-    } else {
-        const tomorrow = new Date(today);
-        tomorrow.setDate(currentDay + 1);
-        tomorrow.setHours(0,0,0,0);
-        const diffMs = tomorrow - today;
-        const h = Math.floor(diffMs / (1000 * 60 * 60));
-        const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diffMs % (1000 * 60)) / 1000);
-        nextUnlockStr = `Prochain cadeau : ${h}h ${m}m ${s}s`;
-    }
-
-    for (let i = startDay; i <= endDay; i++) {
-        const isClaimed = state.user.advent_calendar?.includes(i);
-        const isLocked = i > currentDay;
-        const isMissed = i < currentDay && !isClaimed;
-        let isAvailable = i === currentDay && !isClaimed;
-        
-        let bgClass = 'bg-white/5 border-white/5';
-        let icon = 'lock';
-        let textClass = 'text-gray-500';
-        let statusText = 'Bloqué';
-        
-        if (isClaimed) {
-            bgClass = 'bg-emerald-900/20 border-emerald-500/30';
-            icon = 'check-circle';
-            textClass = 'text-emerald-400';
-            statusText = 'Ouvert';
-        } else if (isMissed) {
-            bgClass = 'bg-gray-800/50 border-white/5 opacity-50 grayscale';
-            icon = 'x-circle';
-            textClass = 'text-gray-600';
-            statusText = 'Expiré';
-        } else if (isAvailable) {
-            bgClass = 'bg-gradient-to-br from-red-600 to-red-800 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] animate-pulse-slow';
-            icon = 'gift';
-            textClass = 'text-white';
-            statusText = 'Ouvrir !';
-        }
-        days.push({ day: i, isAvailable, bgClass, icon, textClass, statusText });
-    }
-
-    return `
-        <div class="animate-fade-in h-full flex flex-col bg-[#050505]">
-            ${refreshBanner('red')}
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
-                <div class="max-w-6xl mx-auto">
-                    <div class="text-center mb-16">
-                        <h1 class="text-5xl font-black text-white mb-4 uppercase italic tracking-tighter drop-shadow-2xl">Calendrier de l'Avent</h1>
-                        <div class="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-red-500/10 text-red-400 text-xs font-black border border-red-500/20 uppercase tracking-widest">
-                            <i data-lucide="snowflake" class="w-4 h-4"></i> ${nextUnlockStr}
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 pb-20">
-                        ${days.map(d => `
-                            <button 
-                                ${d.isAvailable ? `onclick="actions.claimAdventReward(${d.day})"` : 'disabled'}
-                                class="relative aspect-square rounded-[32px] border ${d.bgClass} flex flex-col items-center justify-center gap-2 group transition-all transform ${d.isAvailable ? 'hover:scale-105 cursor-pointer shadow-2xl' : 'cursor-not-allowed'}">
-                                <div class="absolute top-4 left-5 font-black text-5xl text-white/5 select-none">${d.day}</div>
-                                <div class="relative z-10 p-4 rounded-2xl bg-black/20 backdrop-blur-md border border-white/5">
-                                    <i data-lucide="${d.icon}" class="w-8 h-8 ${d.textClass}"></i>
-                                </div>
-                                <div class="relative z-10 text-[10px] font-black ${d.textClass} uppercase tracking-[0.2em] mt-2">
-                                    ${d.statusText}
-                                </div>
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
 const LawyersListView = () => {
     const lawyers = state.lawyers || [];
     const onDutyLawyers = lawyers.filter(l => l.is_on_duty).length;
@@ -457,7 +372,6 @@ export const HubView = () => {
     // Fallback views
     else if (state.activeHubPanel === 'profile') content = ProfileView();
     else if (state.activeHubPanel === 'notifications') content = NotificationsView();
-    else if (state.activeHubPanel === 'advent') content = AdventCalendarView();
     else if (state.activeHubPanel === 'jobs') content = JobCenterView();
     else if (state.activeHubPanel === 'lawyers_list') content = LawyersListView();
     else if (state.activeHubPanel === 'staff_list') {

@@ -721,57 +721,6 @@ export const deleteEnterprisePromo = async (promoId) => { await state.supabase.f
 export const fetchPlayerInvoices = async (charId) => { const { data = [] } = await state.supabase.from('invoices').select('*, enterprises(name)').eq('buyer_id', charId).order('created_at', { ascending: false }); state.invoices = data || []; state.hasFetchedInvoices = true; };
 export const adminCreateCharacter = async (charData) => { const { error = null } = await state.supabase.from('characters').insert([charData]); return !error; };
 
-export const claimAdventReward = async (targetDay) => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    const charId = state.activeCharacter.id;
-    const claimedDays = state.user.advent_calendar || [];
-
-    if (targetDay === 16 && claimedDays.includes(16)) {
-        const { data: hasItem } = await state.supabase.from('inventory').select('id').eq('character_id', charId).eq('name', "Anniversaire de la patate 2025").maybeSingle();
-        if (!hasItem) {
-             await state.supabase.from('inventory').insert({ character_id: charId, name: "Anniversaire de la patate 2025", quantity: 1, estimated_value: 5000 });
-            showToast("Objet 'Patate 2025' récupéré avec succès (Correctif).", 'success');
-            await fetchInventory(charId);
-            render();
-            return;
-        }
-    }
-
-    if (targetDay < 12 || targetDay > 25) { showToast("Date invalide (12-25 Décembre).", 'error'); return; }
-    if (targetDay > currentDay) { showToast("Patience ! Cette case est verrouillée.", 'error'); return; }
-    if (targetDay < currentDay) { showToast("Trop tard ! Vous avez manqué cette case.", 'error'); return; }
-    if (claimedDays.includes(targetDay)) { showToast("Vous avez déjà ouvert cette case.", 'warning'); return; }
-    
-    let reward = 0; if (targetDay === 25) { reward = 25000; } else { reward = (targetDay - 11) * 1000; }
-    let extraItemMessage = ""; 
-    
-    if (targetDay === 16) {
-        try {
-            const { error = null } = await state.supabase.from('inventory').insert({ character_id: charId, name: "Anniversaire de la patate 2025", quantity: 1, estimated_value: 5000 });
-            if (!error) extraItemMessage = "<br><br><span class='text-yellow-400 font-bold'>+ Objet Collector : Anniversaire de la patate 2025</span>";
-        } catch(e) { console.error("Advent Item Insert Error", e); }
-    }
-
-    const newClaimed = [...claimedDays, targetDay];
-    const { error = null } = await state.supabase.from('profiles').update({ advent_calendar: newClaimed }).eq('id', state.user.id);
-    if (error) { showToast("Erreur de sauvegarde.", 'error'); return; }
-    
-    const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
-    await state.supabase.from('bank_accounts').update({ bank_balance: (bank.bank_balance || 0) + reward }).eq('character_id', charId);
-    await state.supabase.from('transactions').insert({ sender_id: null, receiver_id: charId, amount: reward, type: 'deposit', description: `Calendrier Avent (Jour ${targetDay})` });
-    
-    state.user.advent_calendar = newClaimed; 
-    await fetchBankData(charId); 
-    
-    showModal({ 
-        title: `🎁 Case du ${targetDay} Décembre`, 
-        content: `<div class="text-center"><div class="text-4xl mb-4">🎄</div><div class="text-xl font-bold text-white mb-2">${targetDay === 25 ? "Joyeux Noël !" : "Récompense du jour"}</div><p class="text-gray-300">Vous avez reçu un virement de <span class="text-emerald-400 font-bold">$${reward.toLocaleString()}</span>.${extraItemMessage}</p></div>`, 
-        confirmText: "Merci !" 
-    });
-    render();
-};
-
 export const fetchBankData = async (charId) => {
     let { data: bank, error = null } = await state.supabase.from('bank_accounts').select('*').eq('character_id', charId).maybeSingle(); 
     
@@ -846,7 +795,7 @@ export const fetchInventory = async (charId) => {
     requiredVirtualItems.forEach(vItem => { 
         const exists = state.inventory.some(i => i.name === vItem.name); 
         if (!exists) { 
-            state.inventory.unshift({ 
+            state.inventory.unshif({ 
                 id: vItem.id, 
                 name: vItem.name, 
                 quantity: 1, 

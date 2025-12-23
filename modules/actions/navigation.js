@@ -133,7 +133,7 @@ export const setHubPanel = async (panel) => {
         } else if (panel === 'illicit' && state.activeCharacter) {
             state.activeIllicitTab = 'dashboard'; 
             await fetchActiveGang(state.activeCharacter.id);
-            const illicitPromises = [
+            const illicit promises = [
                 fetchBankData(state.activeCharacter.id),
                 fetchGangs(),
                 fetchBounties(),
@@ -166,8 +166,6 @@ export const setHubPanel = async (panel) => {
             await Promise.all([fetchActiveSession(), fetchStaffProfiles(), fetchOnDutyStaff()]);
         } else if (panel === 'lawyers_list') {
             await Promise.all([fetchActiveSession(), fetchLawyers()]);
-        } else if (panel === 'advent' && state.activeCharacter) {
-            await fetchInventory(state.activeCharacter.id);
         } else if (panel === 'staff') {
             if (hasPermission('can_approve_characters')) state.activeStaffTab = 'applications';
             else if (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal')) state.activeStaffTab = 'economy';

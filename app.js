@@ -1,3 +1,4 @@
+
 /**
  * TFRP Core Application
  * Entry Point & Aggregator
@@ -13,12 +14,12 @@ import { initSecurity } from './modules/security.js'; // Import Security
 import * as AuthActions from './modules/actions/auth.js';
 import * as NavActions from './modules/actions/navigation.js';
 import * as CharacterActions from './modules/actions/character.js';
-import * as EconomyActions from './modules/actions/economy.js';
+import * * EconomyActions from './modules/actions/economy.js';
 import * as IllicitActions from './modules/actions/illicit.js';
 import * as ServicesActions from './modules/actions/services.js';
-import * as EnterpriseActions from './modules/actions/enterprise.js'; 
-import * as StaffActions from './modules/actions/staff.js';
-import * as ProfileActions from './modules/actions/profile.js';
+import * * EnterpriseActions from './modules/actions/enterprise.js'; 
+import * * StaffActions from './modules/actions/staff.js';
+import * * ProfileActions from './modules/actions/profile.js';
 
 import { setupRealtimeListener, fetchERLCData, fetchActiveHeistLobby, fetchDrugLab, fetchGlobalHeists, fetchOnDutyStaff, loadCharacters, fetchPublicLandingData, fetchActiveSession, fetchSecureConfig, fetchActiveGang, checkAndCompleteDrugBatch, fetchBankData } from './modules/services.js';
 
@@ -355,8 +356,8 @@ const handleLegacySession = async (token) => {
         
         let isFounder = state.adminIds.includes(discordUser.id);
         await state.supabase.from('profiles').upsert({ id: discordUser.id, username: discordUser.username, avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, updated_at: new Date() });
-        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar, deletion_requested_at').eq('id', discordUser.id).maybeSingle();
-        state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, advent_calendar: profile?.advent_calendar || [], deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
+        const { data: profile } = await state.supabase.from('profiles').select('permissions, deletion_requested_at').eq('id', discordUser.id).maybeSingle();
+        state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // SEQUENCE : Intro -> Loading -> Character Select
@@ -395,8 +396,8 @@ const handleAuthenticatedSession = async (session) => {
         }
         let isFounder = state.adminIds.includes(discordUser.id);
         await state.supabase.from('profiles').upsert({ id: discordUser.id, username: discordUser.username, avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, updated_at: new Date() });
-        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar, deletion_requested_at').eq('id', discordUser.id).maybeSingle();
-        state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, advent_calendar: profile?.advent_calendar || [], deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
+        const { data: profile } = await state.supabase.from('profiles').select('permissions, deletion_requested_at').eq('id', discordUser.id).maybeSingle();
+        state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
         
         // SEQUENCE : Intro -> Loading -> Character Select
         appEl.classList.add('opacity-0', 'pointer-events-none');

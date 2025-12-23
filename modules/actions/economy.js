@@ -429,7 +429,3 @@ export const confirmGiveItem = async (itemId, itemName, estValue) => {
         }
     });
 };
-
-export const claimAdventReward = async (day) => {
-    await services.claimAdventReward(day);
-};
