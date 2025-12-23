@@ -8,6 +8,7 @@ import { ServicesView } from './services.js';
 import { EnterpriseView } from './enterprise.js';
 import { NotificationsView } from './notifications.js';
 import { ProfileView } from './profile.js';
+import { JobCenterView } from './jobs.js';
 import { hasPermission, router } from '../utils.js';
 import { ui } from '../ui.js';
 import { HEIST_DATA } from './illicit.js';
@@ -291,7 +292,7 @@ export const HubView = () => {
                             <div class="relative z-10 p-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-10">
                                 <div class="text-center md:text-left">
                                     <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] border border-blue-500/20 mb-6 rounded-lg">
-                                        <i data-lucide="shield-check" class="w-3 h-3"></i> Unified Portal v4.5
+                                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Unified Portal v4.5
                                     </div>
                                     <h1 class="text-5xl md:text-6xl font-black text-white mb-2 tracking-tighter uppercase italic drop-shadow-2xl">Team French <br><span class="text-blue-500">Roleplay</span></h1>
                                     <p class="text-gray-500 text-sm font-bold uppercase tracking-widest mb-8">Serveur Privé • California State</p>
@@ -355,14 +356,14 @@ export const HubView = () => {
                                 ${state.notifications.length > 0 ? `<div class="absolute top-8 right-8 w-3 h-3 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>` : ''}
                             </button>
 
-                            <!-- ADVENT -->
-                            <button onclick="actions.setHubPanel('advent')" class="glass-panel group p-8 rounded-[32px] border border-red-500/20 bg-[#0c0a0a] hover:border-red-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
-                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-red-500/5 rounded-full blur-2xl group-hover:bg-red-500/10 transition-all"></div>
-                                <div class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-400 mb-auto border border-red-500/20 group-hover:scale-110 transition-transform">
-                                    <i data-lucide="gift" class="w-7 h-7"></i>
+                            <!-- JOBS -->
+                            <button onclick="actions.setHubPanel('jobs')" class="glass-panel group p-8 rounded-[32px] border border-emerald-500/20 bg-[#0a0c0a] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                                <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all"></div>
+                                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-auto border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                                    <i data-lucide="briefcase" class="w-7 h-7"></i>
                                 </div>
-                                <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter">Noël TFRP</h3>
-                                <p class="text-xs text-gray-600 font-bold uppercase tracking-widest mt-1">Calendrier de l'Avent</p>
+                                <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter">Pôle Emploi</h3>
+                                <p class="text-xs text-gray-600 font-bold uppercase tracking-widest mt-1">Métiers & Carrières</p>
                             </button>
 
                             <!-- LAWYERS -->
@@ -453,10 +454,11 @@ export const HubView = () => {
             </div>
         `;
     } 
-    // Fallback views (already polished in previous steps)
+    // Fallback views
     else if (state.activeHubPanel === 'profile') content = ProfileView();
     else if (state.activeHubPanel === 'notifications') content = NotificationsView();
     else if (state.activeHubPanel === 'advent') content = AdventCalendarView();
+    else if (state.activeHubPanel === 'jobs') content = JobCenterView();
     else if (state.activeHubPanel === 'lawyers_list') content = LawyersListView();
     else if (state.activeHubPanel === 'staff_list') {
         const staffList = [...(state.staffMembers || [])];
@@ -649,7 +651,7 @@ export const HubView = () => {
         const explorationHtml = `
             ${navItem('main', 'layout-grid', 'Accueil', 'text-blue-400')}
             ${navItem('notifications', 'bell', 'Actualités', 'text-blue-400')}
-            ${navItem('advent', 'snowflake', 'Cadeaux', 'text-red-400')}
+            ${navItem('jobs', 'briefcase', 'Pôle Emploi', 'text-emerald-400')}
             ${navItem('lawyers_list', 'scale', 'Avocats', 'text-purple-400')}
             ${navItem('staff_list', 'users-round', 'Administration', 'text-yellow-400')}
         `;
@@ -678,7 +680,7 @@ export const HubView = () => {
             <button onclick="actions.setHubPanel('notifications')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'notifications' ? 'text-blue-500' : 'text-gray-600'}"><i data-lucide="bell" class="w-6 h-6"></i></button>
             <button onclick="actions.toggleSidebar()" class="flex-1 py-3 flex flex-col items-center gap-1 text-white relative group"><div class="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center border border-white/10 -mt-6 shadow-2xl backdrop-blur-xl group-active:scale-95 transition-all"><i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-7 h-7"></i></div></button>
             <button onclick="actions.setHubPanel('bank')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-500' : 'text-gray-600'}"><i data-lucide="landmark" class="w-6 h-6"></i></button>
-            <button onclick="actions.setHubPanel('assets')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'assets' ? 'text-indigo-500' : 'text-gray-600'}"><i data-lucide="gem" class="w-6 h-6"></i></button>
+            <button onclick="actions.setHubPanel('jobs')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'jobs' ? 'text-emerald-500' : 'text-gray-600'}"><i data-lucide="briefcase" class="w-6 h-6"></i></button>
         </div>
     `;
 

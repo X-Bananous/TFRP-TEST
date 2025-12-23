@@ -7,9 +7,9 @@ import {
     fetchGangs, fetchActiveGang, fetchBounties, fetchDrugLab, 
     fetchGlobalHeists, fetchEmergencyCalls, fetchAllCharacters, fetchAllReports, fetchEnterprises,
     fetchERLCData, fetchPendingApplications, fetchStaffProfiles, fetchOnDutyStaff, 
-    fetchServerStats, fetchPendingHeistReviews, fetchAvailableLobbies,
-    fetchActiveSession, fetchSessionHistory, fetchEnterpriseMarket, fetchMyEnterprises, fetchEnterpriseDetails,
-    fetchDailyEconomyStats, fetchPlayerInvoices, fetchTopSellers, fetchNotifications, fetchSecureConfig, fetchLawyers
+    fetchServerStats, fetchPendingHeistReviews, fetchDailyEconomyStats, fetchPlayerInvoices, 
+    fetchTopSellers, fetchNotifications, fetchSecureConfig, fetchLawyers, fetchActiveSession, fetchSessionHistory,
+    fetchEnterpriseMarket, fetchMyEnterprises, fetchEnterpriseDetails, fetchClientAppointments
 } from '../services.js';
 import { hasPermission } from '../utils.js';
 
@@ -54,12 +54,12 @@ export const selectCharacter = async (charId) => {
         
         try {
              await Promise.all([
-                fetchActiveSession(), // Ensure session status is known immediately
+                fetchActiveSession(), 
                 fetchGlobalHeists(),
                 fetchERLCData(),
                 fetchOnDutyStaff(),
                 fetchNotifications(),
-                fetchSecureConfig() // Load economy keys on select
+                fetchSecureConfig() 
             ]);
         } catch(e) {
             console.warn("Initial hub fetch failed", e);
@@ -77,7 +77,6 @@ export const goToCreate = () => {
 export const cancelCreate = () => router('select');
 
 export const goBackFromLegal = () => {
-    // Contextual Back Navigation
     if (state.user) {
         if (state.activeCharacter) {
             router('hub');
@@ -91,15 +90,12 @@ export const goBackFromLegal = () => {
 
 export const setHubPanel = async (panel) => {
     state.activeHubPanel = panel;
-    
-    // Save Panel State
     sessionStorage.setItem('tfrp_hub_panel', panel);
     
-    state.isPanelLoading = true; // Show loader
+    state.isPanelLoading = true;
     render(); 
     
     try {
-        // --- LAZY DATA LOADING ---
         if (panel === 'main') {
             await Promise.all([
                 fetchActiveSession(),
@@ -109,10 +105,10 @@ export const setHubPanel = async (panel) => {
                 fetchNotifications(),
                 fetchSecureConfig()
             ]);
-        } else if (panel === 'profile') {
-            // Nothing special to load for profile yet
         } else if (panel === 'notifications') {
             await fetchNotifications();
+        } else if (panel === 'jobs') {
+            await fetchEnterprises();
         } else if (panel === 'bank' && state.activeCharacter) {
             state.selectedRecipient = null;
             state.filteredRecipients = [];
@@ -125,9 +121,7 @@ export const setHubPanel = async (panel) => {
             ]);
         } else if (panel === 'enterprise') {
             const promises = [fetchDailyEconomyStats(), fetchSecureConfig()];
-            if (state.activeCharacter) {
-                promises.push(fetchBankData(state.activeCharacter.id));
-            }
+            if (state.activeCharacter) promises.push(fetchBankData(state.activeCharacter.id));
             if(state.activeEnterpriseTab === 'market') {
                 promises.push(fetchEnterpriseMarket());
                 promises.push(fetchTopSellers()); 
@@ -136,11 +130,8 @@ export const setHubPanel = async (panel) => {
                 promises.push(fetchMyEnterprises(state.activeCharacter.id));
             }
             await Promise.all(promises);
-
         } else if (panel === 'illicit' && state.activeCharacter) {
             state.activeIllicitTab = 'dashboard'; 
-            state.blackMarketSearch = ''; 
-            // Fetch gang first, then lab
             await fetchActiveGang(state.activeCharacter.id);
             const illicitPromises = [
                 fetchBankData(state.activeCharacter.id),
@@ -149,25 +140,15 @@ export const setHubPanel = async (panel) => {
                 fetchActiveHeistLobby(state.activeCharacter.id),
                 fetchAllCharacters(),
                 fetchSecureConfig(),
-                fetchAllReports() // Required for Risk Index
+                fetchAllReports()
             ];
-            if (state.activeGang) {
-                illicitPromises.push(fetchDrugLab(state.activeGang.id));
-            }
+            if (state.activeGang) illicitPromises.push(fetchDrugLab(state.activeGang.id));
             await Promise.all(illicitPromises);
-
         } else if (panel === 'services' && state.activeCharacter) {
             const job = state.activeCharacter.job;
-            if (job === 'maire' || job === 'adjoint') {
-                state.activeServicesTab = 'gov';
-            } else if (job === 'leo') {
-                state.activeServicesTab = 'dispatch';
-            } else {
-                state.activeServicesTab = 'directory';
-            }
-            
-            state.servicesSearchQuery = '';
-            state.reportSuspects = [];
+            if (job === 'maire' || job === 'adjoint') state.activeServicesTab = 'gov';
+            else if (job === 'leo') state.activeServicesTab = 'dispatch';
+            else state.activeServicesTab = 'directory';
             
             const promises = [
                 fetchGlobalHeists(), 
@@ -177,44 +158,25 @@ export const setHubPanel = async (panel) => {
                 fetchAllReports(),
                 fetchEnterprises(),
                 fetchServerStats(),
-                fetchDailyEconomyStats() // AJOUTÉ : Pour que le Maire ait ses stats au premier chargement
+                fetchDailyEconomyStats()
             ];
-            
-            if(job === 'leo' || job === 'lawyer' || job === 'lafd' || job === 'ladot') {
-                promises.push(fetchERLCData());
-            }
-            
+            if(job === 'leo' || job === 'lawyer' || job === 'lafd' || job === 'ladot') promises.push(fetchERLCData());
             await Promise.all(promises);
-            
         } else if (panel === 'staff_list') {
-            await fetchActiveSession();
-            await fetchStaffProfiles();
-            await fetchOnDutyStaff();
+            await Promise.all([fetchActiveSession(), fetchStaffProfiles(), fetchOnDutyStaff()]);
         } else if (panel === 'lawyers_list') {
-            await fetchActiveSession();
-            await fetchLawyers();
+            await Promise.all([fetchActiveSession(), fetchLawyers()]);
         } else if (panel === 'advent' && state.activeCharacter) {
             await fetchInventory(state.activeCharacter.id);
         } else if (panel === 'staff') {
-            state.staffSearchQuery = ''; 
             if (hasPermission('can_approve_characters')) state.activeStaffTab = 'applications';
             else if (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal')) state.activeStaffTab = 'economy';
             else if (hasPermission('can_manage_staff')) state.activeStaffTab = 'permissions';
             else state.activeStaffTab = 'database'; 
             
-            const promises = [
-                fetchActiveSession(),
-                fetchPendingApplications(), 
-                fetchAllCharacters(),
-                fetchStaffProfiles(),
-                fetchOnDutyStaff(),
-                fetchSecureConfig()
-            ];
+            const promises = [fetchActiveSession(), fetchPendingApplications(), fetchAllCharacters(), fetchStaffProfiles(), fetchOnDutyStaff(), fetchSecureConfig()];
             if(hasPermission('can_manage_economy') || hasPermission('can_manage_illegal')) promises.push(fetchServerStats());
-            if(hasPermission('can_manage_illegal')) {
-                promises.push(fetchPendingHeistReviews());
-                promises.push(fetchGangs());
-            }
+            if(hasPermission('can_manage_illegal')) { promises.push(fetchPendingHeistReviews(), fetchGangs()); }
             await Promise.all(promises);
             await fetchERLCData(); 
         }
@@ -229,44 +191,26 @@ export const setHubPanel = async (panel) => {
 
 export const clearNotifications = async () => {
     if (!state.user || !state.supabase) return;
-    
     ui.showModal({
         title: "Nettoyage du Centre",
         content: "Voulez-vous effacer toutes vos notifications personnelles ? Les annonces globales ne seront pas affectées.",
         confirmText: "Tout effacer",
         type: "danger",
         onConfirm: async () => {
-            const { error } = await state.supabase
-                .from('notifications')
-                .delete()
-                .eq('user_id', state.user.id);
-            
+            const { error } = await state.supabase.from('notifications').delete().eq('user_id', state.user.id);
             if (!error) {
                 ui.showToast("Flux personnel réinitialisé.", "success");
                 await fetchNotifications();
                 render();
-            } else {
-                ui.showToast("Erreur lors de la suppression.", "error");
-            }
+            } else ui.showToast("Erreur lors de la suppression.", "error");
         }
     });
 };
 
 export const deleteNotification = async (id) => {
     if (!state.user || !state.supabase) return;
-    
-    const { error } = await state.supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', state.user.id);
-    
-    if (!error) {
-        await fetchNotifications();
-        render();
-    } else {
-        ui.showToast("Impossible de supprimer cette entrée.", "error");
-    }
+    const { error } = await state.supabase.from('notifications').delete().eq('id', id).eq('user_id', state.user.id);
+    if (!error) { await fetchNotifications(); render(); } else ui.showToast("Impossible de supprimer cette entrée.", "error");
 };
 
 export const refreshCurrentView = async () => {
@@ -278,17 +222,11 @@ export const refreshCurrentView = async () => {
     }
 
     const charId = state.activeCharacter?.id;
-
     try {
         await fetchSecureConfig();
-
-        if (state.activeHubPanel === 'notifications') {
-            await fetchNotifications();
-        }
-        else if (state.activeHubPanel === 'assets') {
-            await fetchInventory(charId);
-            await fetchPlayerInvoices(charId);
-        }
+        if (state.activeHubPanel === 'notifications') await fetchNotifications();
+        else if (state.activeHubPanel === 'jobs') await fetchEnterprises();
+        else if (state.activeHubPanel === 'assets') { await fetchInventory(charId); await fetchPlayerInvoices(charId); }
         else if (state.activeHubPanel === 'illicit') {
             await fetchActiveGang(charId);
             if (state.activeIllicitTab === 'heists') await fetchAvailableLobbies(charId);
@@ -299,28 +237,16 @@ export const refreshCurrentView = async () => {
             await fetchAllReports();
         }
         else if (state.activeHubPanel === 'services') {
-            await fetchAllCharacters();
-            await fetchEnterprises();
-            await fetchAllReports();
-            await fetchServerStats(); // Refresh stats also
-            await fetchDailyEconomyStats();
+            await Promise.all([fetchAllCharacters(), fetchEnterprises(), fetchAllReports(), fetchServerStats(), fetchDailyEconomyStats()]);
             if (state.activeServicesTab === 'map') await fetchERLCData();
             if (state.activeServicesTab === 'dispatch') { await fetchEmergencyCalls(); await fetchGlobalHeists(); }
         }
-        else if (state.activeHubPanel === 'staff_list') {
-            await fetchStaffProfiles();
-            await fetchOnDutyStaff();
-        }
-        else if (state.activeHubPanel === 'lawyers_list') {
-            await fetchLawyers();
-        }
+        else if (state.activeHubPanel === 'staff_list') { await fetchStaffProfiles(); await fetchOnDutyStaff(); }
+        else if (state.activeHubPanel === 'lawyers_list') await fetchLawyers();
         else if (state.activeHubPanel === 'enterprise') {
              await fetchDailyEconomyStats();
              if(charId) await fetchBankData(charId); 
-             if (state.activeEnterpriseTab === 'market') {
-                 await fetchEnterpriseMarket();
-                 await fetchTopSellers(); 
-             }
+             if (state.activeEnterpriseTab === 'market') { await fetchEnterpriseMarket(); await fetchTopSellers(); }
              if (state.activeEnterpriseTab === 'my_companies' && charId) await fetchMyEnterprises(charId);
              if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) await fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
         }
@@ -332,10 +258,7 @@ export const refreshCurrentView = async () => {
             if (state.activeStaffTab === 'sessions' || state.activeStaffTab === 'logs') { await fetchActiveSession(); await fetchERLCData(); await fetchSessionHistory(); }
         }
         ui.showToast("Données actualisées.", 'success');
-    } catch(e) {
-        ui.showToast("Erreur lors de l'actualisation.", 'error');
-    }
-
+    } catch(e) { ui.showToast("Erreur lors de l'actualisation.", 'error'); }
     render();
 };
 
