@@ -1,0 +1,136 @@
+
+import { state } from '../state.js';
+
+export const ProfileView = () => {
+    const u = state.user;
+    const deletionDate = u.deletion_requested_at ? new Date(u.deletion_requested_at) : null;
+    const isDeleting = !!deletionDate;
+    
+    let timeRemainingStr = "";
+    if (isDeleting) {
+        const expiry = new Date(deletionDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+        const now = new Date();
+        const diff = expiry - now;
+        if (diff > 0) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            timeRemainingStr = `${days}j ${hours}h`;
+        } else {
+            timeRemainingStr = "Imminente";
+        }
+    }
+
+    const perms = u.permissions || {};
+    const permKeys = Object.keys(perms).filter(k => perms[k] === true);
+
+    return `
+    <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
+        <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-blue-900/10 to-transparent pointer-events-none"></div>
+        
+        <div class="px-8 pb-4 pt-8 flex flex-col md:flex-row justify-between items-end gap-6 relative z-10 shrink-0">
+            <div>
+                <h2 class="text-3xl font-black text-white flex items-center gap-3 uppercase italic tracking-tighter">
+                    <i data-lucide="user-circle" class="w-8 h-8 text-blue-500"></i>
+                    Profil Citoyen
+                </h2>
+                <div class="flex items-center gap-3 mt-1">
+                     <span class="text-[10px] text-blue-500/60 font-black uppercase tracking-widest">Identité Numérique TFRP</span>
+                     <span class="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
+                     <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Accès Certifié</span>
+                </div>
+            </div>
+            <div class="bg-white/5 border border-white/5 px-6 py-2 rounded-2xl flex items-center gap-4 shadow-xl">
+                <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest">Ancienneté Système</div>
+                <div class="text-xl font-mono font-black text-white">GEN-4</div>
+                <i data-lucide="cpu" class="w-4 h-4 text-blue-500"></i>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+            <div class="max-w-4xl mx-auto space-y-8 pb-20">
+                
+                <!-- MAIN IDENTITY BLOCK -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div class="lg:col-span-5 glass-panel p-10 rounded-[48px] border border-white/5 bg-[#0a0a0c] flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-b from-blue-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                        <div class="relative mb-8">
+                            <div class="w-40 h-40 rounded-full p-1.5 border-4 border-white/10 bg-black relative z-10 shadow-[0_0_50px_rgba(59,130,246,0.15)] group-hover:scale-105 transition-transform duration-700">
+                                <img src="${u.avatar}" class="w-full h-full rounded-full object-cover">
+                            </div>
+                            ${u.avatar_decoration ? `<img src="${u.avatar_decoration}" class="absolute top-1/2 left-1/2 w-[125%] h-[125%] -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none" style="max-width:none">` : ''}
+                            <div class="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-[#050505] border-4 border-blue-500 flex items-center justify-center text-blue-500 z-30 shadow-2xl">
+                                <i data-lucide="verified" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-black text-white italic uppercase tracking-tighter mb-2 group-hover:text-blue-400 transition-colors">${u.username}</h3>
+                        <p class="text-xs text-gray-600 font-mono tracking-widest mb-8">UID : ${u.id}</p>
+                        
+                        <div class="flex flex-wrap justify-center gap-2">
+                            ${u.isFounder ? `<span class="px-4 py-1.5 rounded-xl bg-yellow-500/10 text-yellow-500 text-[10px] font-black uppercase tracking-widest border border-yellow-500/20 italic">Fondation</span>` : ''}
+                            <span class="px-4 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20 italic">Citoyen</span>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7 space-y-6">
+                        <!-- PERMISSIONS CARD -->
+                        <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] h-full flex flex-col">
+                            <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                                <i data-lucide="shield-check" class="w-4 h-4"></i> Accréditations & Droits
+                            </h4>
+                            <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 max-h-64">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    ${permKeys.length > 0 ? permKeys.map(key => `
+                                        <div class="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3 group hover:border-blue-500/30 transition-all">
+                                            <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all"><i data-lucide="check" class="w-4 h-4"></i></div>
+                                            <span class="text-xs font-bold text-gray-300 uppercase tracking-wide truncate">${key.replace('can_', '').replace(/_/g, ' ')}</span>
+                                        </div>
+                                    `).join('') : `
+                                        <div class="col-span-full py-12 text-center text-gray-700 italic border-2 border-dashed border-white/5 rounded-3xl">
+                                            <p class="text-xs font-black uppercase tracking-widest">Aucune permission spéciale</p>
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RGPD & SECURITY SECTION -->
+                <div class="glass-panel p-10 rounded-[48px] border ${isDeleting ? 'border-orange-500/40 bg-orange-950/10 shadow-orange-900/10' : 'border-red-500/10 bg-red-950/[0.02]'} relative overflow-hidden transition-all duration-700">
+                    <div class="absolute top-0 right-0 w-64 h-64 ${isDeleting ? 'bg-orange-500/5' : 'bg-red-500/5'} rounded-full blur-[100px] pointer-events-none"></div>
+                    
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-10 relative z-10">
+                        <div class="text-center md:text-left flex-1">
+                            <h4 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-2 flex items-center gap-4 justify-center md:justify-start">
+                                <i data-lucide="${isDeleting ? 'shield-alert' : 'fingerprint'}" class="w-8 h-8 ${isDeleting ? 'text-orange-500' : 'text-red-500'}"></i>
+                                Sécurité des Données & Droit à l'Oubli
+                            </h4>
+                            <p class="text-gray-400 text-sm leading-relaxed max-w-xl font-medium">
+                                Conformément aux directives RGPD, vous disposez d'un contrôle total sur vos informations. La suppression de compte efface l'intégralité de vos personnages, inventaires et actifs bancaires de façon irréversible.
+                            </p>
+                        </div>
+                        
+                        <div class="shrink-0 w-full md:w-auto">
+                            ${isDeleting ? `
+                                <div class="bg-black/60 p-8 rounded-[32px] border border-orange-500/30 text-center shadow-2xl animate-pulse">
+                                    <div class="text-[10px] text-orange-400 font-black uppercase tracking-[0.2em] mb-2">Compte en phase de purge</div>
+                                    <div class="text-4xl font-mono font-black text-white tracking-tighter mb-4">${timeRemainingStr}</div>
+                                    <button onclick="actions.cancelDataDeletion()" class="w-full py-4 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform shadow-xl shadow-white/10">INTERROMPRE LA SUPPRESSION</button>
+                                </div>
+                            ` : `
+                                <button onclick="actions.requestDataDeletion()" class="w-full md:w-auto px-10 py-5 rounded-[24px] bg-red-600/10 border border-red-500/30 text-red-500 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-red-600 hover:text-white transition-all shadow-xl shadow-red-900/20 group">
+                                    DÉTRUIRE TOUTES MES DONNÉES <i data-lucide="trash-2" class="w-4 h-4 inline-block ml-2 group-hover:rotate-12 transition-transform"></i>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center pt-20 pb-10 opacity-30">
+                    <div class="text-[9px] font-black uppercase tracking-[0.6em] text-gray-700">Unified Citizenship Portal • Final Layer v4.5.1</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+};
