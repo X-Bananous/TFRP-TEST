@@ -3,16 +3,16 @@ import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 
 const refreshBanner = `
-    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0 relative">
-        <div class="text-xs text-blue-200 flex items-center gap-2">
+    <div class="flex flex-col md:flex-row items-center justify-between px-6 py-3 bg-blue-900/10 border-b border-blue-500/10 gap-3 shrink-0 relative z-20">
+        <div class="text-[10px] text-blue-200 flex items-center gap-2 font-black uppercase tracking-[0.2em]">
              <div class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </div>
-            <span><span class="font-bold">DÉPARTEMENT DU TRAVAIL</span> • Offres d'Emploi en Temps Réel</span>
+            <span>Terminal d'Emploi • Flux de Recrutement Certifié</span>
         </div>
-        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-xs text-blue-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Actualiser les offres
+        <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Synchroniser Offres
         </button>
     </div>
 `;
@@ -52,14 +52,14 @@ export const JobCenterView = () => {
                 <div class="absolute -right-10 -top-10 w-32 h-32 bg-${color}-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-${color}-500/10 transition-all duration-700"></div>
                 
                 <div class="flex justify-between items-start mb-6 relative z-10">
-                    <div class="w-12 h-12 rounded-2xl bg-${color}-500/10 flex items-center justify-center text-${color}-400 border border-${color}-500/20 group-hover:scale-110 transition-transform">
+                    <div class="w-12 h-12 rounded-2xl bg-${color}-500/10 flex items-center justify-center text-${color}-400 border border-${color}-500/20 group-hover:scale-110 transition-transform shadow-lg">
                         <i data-lucide="${icon}" class="w-6 h-6"></i>
                     </div>
                     <span class="text-[9px] font-black text-gray-600 uppercase tracking-widest">${category}</span>
                 </div>
 
                 <h4 class="text-xl font-black text-white mb-2 uppercase italic tracking-tight group-hover:text-${color}-400 transition-colors">${title}</h4>
-                <p class="text-xs text-gray-500 leading-relaxed mb-6 font-medium">${description}</p>
+                <p class="text-xs text-gray-500 leading-relaxed mb-6 font-medium line-clamp-3">${description}</p>
                 
                 <div class="mt-auto pt-4 border-t border-white/5">
                     <div class="px-3 py-1.5 rounded-xl border ${badgeColor} text-[10px] font-black uppercase tracking-widest text-center shadow-lg">
@@ -72,22 +72,36 @@ export const JobCenterView = () => {
 
     return `
         <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
-            ${refreshBanner}
-            
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
-                <div class="max-w-7xl mx-auto space-y-12 pb-20">
-                    
-                    <!-- HERO HEADER -->
-                    <div class="text-center mb-16">
-                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] border border-blue-500/20 mb-6">
-                            <i data-lucide="briefcase" class="w-3.5 h-3.5"></i> Opportunités de Carrière
+            <!-- Header Block Standardisé -->
+            <div class="flex flex-col shrink-0">
+                ${refreshBanner}
+                
+                <div class="px-8 pb-4 pt-4 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/5 bg-[#050505] relative">
+                    <div>
+                        <h2 class="text-3xl font-black text-white flex items-center gap-3 uppercase italic tracking-tighter">
+                            <i data-lucide="briefcase" class="w-8 h-8 text-blue-500"></i>
+                            Pôle Emploi L.A.
+                        </h2>
+                        <div class="flex items-center gap-3 mt-1">
+                             <span class="text-[10px] text-blue-500/60 font-black uppercase tracking-widest">Service Municipal de l'Emploi</span>
+                             <span class="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
+                             <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Opportunités de Carrière</span>
                         </div>
-                        <h2 class="text-5xl font-black text-white tracking-tighter uppercase italic drop-shadow-2xl">Pôle Emploi <span class="text-blue-500">L.A.</span></h2>
-                        <p class="text-gray-500 text-sm font-bold uppercase tracking-widest mt-2 max-w-2xl mx-auto leading-relaxed">
-                            Définissez votre avenir au sein de la métropole. Des services d'urgence aux corporations privées, trouvez la voie qui vous correspond.
-                        </p>
                     </div>
+                    <div class="flex gap-2">
+                        <div class="bg-white/5 border border-white/10 px-6 py-2 rounded-2xl flex items-center gap-4 shadow-xl">
+                            <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest">Postes Ouverts</div>
+                            <div class="text-xl font-mono font-black text-white">${ents.length + 8}</div>
+                            <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Content Area Scrollable -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+                <div class="max-w-7xl mx-auto space-y-16 pb-20">
+                    
                     <!-- PUBLIC SERVICES SECTION -->
                     <div class="space-y-6">
                         <h3 class="text-xs font-black text-blue-400 uppercase tracking-[0.4em] flex items-center gap-4 px-2">
@@ -159,7 +173,7 @@ export const JobCenterView = () => {
                                         </div>
                                     </div>
                                     <h4 class="text-2xl font-black text-white mb-2 uppercase italic tracking-tight group-hover:text-blue-400 transition-colors">${ent.name}</h4>
-                                    <p class="text-xs text-gray-500 mb-8 flex-1 italic">"Entreprise privée enregistrée. Postulez via le panel et confirmez sur le Discord de la société."</p>
+                                    <p class="text-xs text-gray-500 mb-8 flex-1 italic line-clamp-3">"Entreprise privée enregistrée. Postulez via le panel et confirmez sur le Discord de la société."</p>
                                     <button onclick="actions.setHubPanel('enterprise'); setTimeout(() => actions.setEnterpriseTab('directory'), 100);" class="mt-auto glass-btn-secondary w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all">
                                         VOIR FICHE RECRUTEMENT
                                     </button>
