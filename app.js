@@ -15,10 +15,10 @@ import * as AuthActions from './modules/actions/auth.js';
 import * as NavActions from './modules/actions/navigation.js';
 import * as CharacterActions from './modules/actions/character.js';
 import * as EconomyActions from './modules/actions/economy.js';
-import * * as IllicitActions from './modules/actions/illicit.js';
-import * * * as ServicesActions from './modules/actions/services.js';
-import * * * * * as StaffActions from './modules/actions/staff.js';
-import * * * * * * as ProfileActions from './modules/actions/profile.js';
+import *  as IllicitActions from './modules/actions/illicit.js';
+import * as ServicesActions from './modules/actions/services.js';
+import * as StaffActions from './modules/actions/staff.js';
+import * as ProfileActions from './modules/actions/profile.js';
 
 // Correcting the above messed up imports (cleaning for the user)
 const finalActions = {
