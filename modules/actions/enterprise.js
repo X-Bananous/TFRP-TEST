@@ -554,6 +554,15 @@ export const confirmBuyItem = async (itemId, quantity, promoCode) => {
         sender_id: charId, amount: totalPriceTTC, type: 'withdraw', description: `Achat boutique: ${item.name} (TTC)`
     });
 
+    // NOTIFICATION POUR L'ACHETEUR (FACTURE)
+    await services.createNotification(
+        "FACTURE REÇUE",
+        `Nouvelle facture acquittée pour : ${quantity}x ${item.name}. Total TTC : $${totalPriceTTC.toLocaleString()}. Vendeur : ${item.enterprises?.name || 'Commerce'}`,
+        "info",
+        false,
+        state.user.id
+    );
+
     if (isService) {
         await state.supabase.from('enterprise_appointments').insert({ enterprise_id: entId, client_id: charId, service_name: item.name, item_price: totalPriceTTC, status: 'pending' });
         ui.showToast("Rendez-vous réservé.", 'success');
@@ -564,7 +573,7 @@ export const confirmBuyItem = async (itemId, quantity, promoCode) => {
         ui.showToast(`Achat effectué.`, 'success');
     }
     
-    const { data: entData } = await state.supabase.from('enterprises').select('balance, name').eq('id', entId).single();
+    const { data: entData } = await state.supabase.from('enterprises').select('balance, name, leader_id').eq('id', entId).single();
     if(entData) {
         if (entData.name === "L.A. Auto School") {
             const newGouvBalance = (Number(state.gouvBank) || 0) + priceHT;
@@ -572,6 +581,18 @@ export const confirmBuyItem = async (itemId, quantity, promoCode) => {
             state.gouvBank = newGouvBalance;
         } else {
             await state.supabase.from('enterprises').update({ balance: (entData.balance || 0) + priceHT }).eq('id', entId);
+            
+            // NOTIFICATION POUR LE PDG (VENTE)
+            const { data: leader } = await state.supabase.from('characters').select('user_id').eq('id', entData.leader_id).single();
+            if (leader?.user_id && leader.user_id !== state.user.id) {
+                await services.createNotification(
+                    "VENTE EFFECTUÉE",
+                    `${state.activeCharacter.first_name} a acheté ${quantity}x ${item.name} pour $${totalPriceTTC.toLocaleString()}. Les fonds ont été crédités au coffre.`,
+                    "success",
+                    false,
+                    leader.user_id
+                );
+            }
         }
     }
     

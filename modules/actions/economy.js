@@ -170,6 +170,18 @@ export const bankTransfer = async (e) => {
                 const { data: lastTx } = await state.supabase.from('transactions').select('id').eq('sender_id', state.activeCharacter.id).eq('type', 'transfer').order('created_at', { ascending: false }).limit(1).single();
                 if (lastTx) await state.supabase.from('transactions').update({ description: description }).eq('id', lastTx.id);
                 
+                // NOTIFICATION POUR LE DESTINATAIRE
+                const { data: receiver } = await state.supabase.from('characters').select('user_id').eq('id', targetId).single();
+                if (receiver?.user_id) {
+                    await services.createNotification(
+                        "VIREMENT REÇU",
+                        `Vous avez reçu un virement de $${amount.toLocaleString()} de la part de ${state.activeCharacter.first_name} ${state.activeCharacter.last_name}. Motif : ${description}`,
+                        "success",
+                        false,
+                        receiver.user_id
+                    );
+                }
+
                 ui.showToast("Virement envoyé avec succès.", 'success');
                 state.selectedRecipient = null;
                 await services.fetchBankData(state.activeCharacter.id);
