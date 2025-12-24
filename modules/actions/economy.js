@@ -106,7 +106,7 @@ export const bankDeposit = async (e) => {
     
     if (error) { ui.showToast("Erreur dépôt", 'error'); }
     else {
-        await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'deposit' });
+        await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'deposit', description: 'Dépôt ATM' });
         await services.fetchBankData(charId);
         ui.showToast(`Dépôt effectué: +$${amount}`, 'success');
         render();
@@ -133,7 +133,7 @@ export const bankWithdraw = async (e) => {
     
     if (error) { ui.showToast("Erreur retrait", 'error'); }
     else {
-        await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'withdraw' });
+        await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'withdraw', description: 'Retrait ATM' });
         await services.fetchBankData(charId);
         ui.showToast(`Retrait effectué: -$${amount}`, 'success');
         render();
@@ -195,6 +195,7 @@ export const transferToSavings = async (e) => {
     }).eq('character_id', charId);
 
     if (!error) {
+        await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'withdraw', description: 'Placement Épargne' });
         ui.showToast(`$${amount} transférés vers votre épargne.`, 'success');
         await services.fetchBankData(charId);
     } else {
@@ -219,6 +220,7 @@ export const withdrawFromSavings = async (e) => {
     }).eq('character_id', charId);
 
     if (!error) {
+        await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'deposit', description: 'Liquidation Épargne' });
         ui.showToast(`$${amount} débloqués vers votre compte courant.`, 'info');
         await services.fetchBankData(charId);
     } else {

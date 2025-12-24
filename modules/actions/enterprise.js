@@ -257,7 +257,7 @@ export const createPromo = async (e) => {
         await services.fetchEnterpriseDetails(ent.id);
         e.target.reset();
     } catch (err) {
-        ui.showToast("Code déjà existant ou invalide.", "error");
+        ui.showToast("Code déjà expiré ou invalide.", "error");
     } finally {
         toggleBtnLoading(btn, false);
         render();
@@ -460,7 +460,7 @@ export const openBuyModal = (itemId) => {
     const isService = (item.enterprises && item.enterprises.name === "L.A. Auto School") || (item.description && item.description.toLowerCase().includes('rdv')) || item.requires_appointment;
 
     ui.showModal({
-        title: isService ? "Réserver Service (TTC)" : "Détails Produit (TTC)",
+        title: isService ? "RéSERVER SERVICE (TTC)" : "DéTAILS PRODUIT (TTC)",
         content: `
             <div class="flex gap-4 mb-4">
                 <div class="w-20 h-20 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 shrink-0 border border-blue-500/20"><i data-lucide="${itemIcon}" class="w-10 h-10"></i></div>
@@ -549,6 +549,11 @@ export const confirmBuyItem = async (itemId, quantity, promoCode) => {
     
     await state.supabase.from('bank_accounts').update(updateBank).eq('character_id', charId);
     
+    // ARCHIVAGE TRANSACTION ACHAT
+    await state.supabase.from('transactions').insert({
+        sender_id: charId, amount: totalPriceTTC, type: 'withdraw', description: `Achat boutique: ${item.name} (TTC)`
+    });
+
     if (isService) {
         await state.supabase.from('enterprise_appointments').insert({ enterprise_id: entId, client_id: charId, service_name: item.name, item_price: totalPriceTTC, status: 'pending' });
         ui.showToast("Rendez-vous réservé.", 'success');
@@ -611,8 +616,13 @@ export const entDeposit = async (e) => {
     const amt = Number(new FormData(e.target).get('amount'));
     const { data: bank } = await state.supabase.from('bank_accounts').select('cash_balance').eq('character_id', state.activeCharacter.id).single();
     if(bank.cash_balance < amt) return ui.showToast("Liquide insuffisant.", 'error');
+    
     await state.supabase.from('bank_accounts').update({ cash_balance: bank.cash_balance - amt }).eq('character_id', state.activeCharacter.id);
     await state.supabase.from('enterprises').update({ balance: (ent.balance || 0) + amt }).eq('id', ent.id);
+    
+    // LOG
+    await state.supabase.from('transactions').insert({ sender_id: state.activeCharacter.id, amount: amt, type: 'withdraw', description: `Dépôt coffre entreprise: ${ent.name}` });
+    
     ui.showToast(`Dépôt effectué.`, 'success');
     await services.fetchEnterpriseDetails(ent.id);
     render();
@@ -625,9 +635,14 @@ export const entWithdraw = async (e) => {
     const amt = Number(new FormData(e.target).get('amount'));
     if (ent.myRank !== 'leader') return ui.showToast("Réservé au patron.", 'error');
     if ((ent.balance || 0) < amt) return ui.showToast("Fonds insuffisants.", 'error');
+    
     await state.supabase.from('enterprises').update({ balance: ent.balance - amt }).eq('id', ent.id);
     const { data: bank } = await state.supabase.from('bank_accounts').select('cash_balance').eq('character_id', state.activeCharacter.id).single();
     await state.supabase.from('bank_accounts').update({ cash_balance: bank.cash_balance + amt }).eq('character_id', state.activeCharacter.id);
+    
+    // LOG
+    await state.supabase.from('transactions').insert({ receiver_id: state.activeCharacter.id, amount: amt, type: 'deposit', description: `Retrait coffre entreprise: ${ent.name}` });
+
     ui.showToast(`Retrait effectué.`, 'success');
     await services.fetchEnterpriseDetails(ent.id);
     render();

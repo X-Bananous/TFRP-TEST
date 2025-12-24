@@ -287,6 +287,9 @@ export const gangDeposit = async (e) => {
     await state.supabase.from('bank_accounts').update({ cash_balance: bank.cash_balance - amount }).eq('character_id', charId);
     await services.updateGangBalance(gang.id, (gang.balance || 0) + amount);
     
+    // ARCHIVAGE TRANSACTION
+    await state.supabase.from('transactions').insert({ sender_id: charId, amount: amount, type: 'withdraw', description: `Dépôt coffre gang: ${gang.name}` });
+
     await services.fetchActiveGang(charId);
     await services.fetchBankData(charId);
     ui.showToast("Dépôt effectué.", 'success');
@@ -315,6 +318,9 @@ export const gangWithdraw = async (e) => {
     await services.updateGangBalance(gang.id, gang.balance - amount);
     await state.supabase.from('bank_accounts').update({ cash_balance: bank.cash_balance + amount }).eq('character_id', charId);
     
+    // ARCHIVAGE TRANSACTION
+    await state.supabase.from('transactions').insert({ receiver_id: charId, amount: amount, type: 'deposit', description: `Retrait coffre gang: ${gang.name}` });
+
     await services.fetchActiveGang(charId);
     await services.fetchBankData(charId);
     ui.showToast("Retrait effectué.", 'success');
@@ -340,6 +346,15 @@ export const gangDistribute = async (targetId, targetName) => {
             await services.updateGangBalance(gang.id, gang.balance - amount);
             await state.supabase.from('bank_accounts').update({ cash_balance: targetBank.cash_balance + amount }).eq('character_id', targetId);
             
+            // ARCHIVAGE TRANSACTION
+            await state.supabase.from('transactions').insert({ 
+                sender_id: state.activeCharacter.id, 
+                receiver_id: targetId, 
+                amount: amount, 
+                type: 'transfer', 
+                description: `Distribution fonds de gang (${gang.name})` 
+            });
+
             await services.fetchActiveGang(state.activeCharacter.id);
             ui.showToast(`Envoyé $${amount} à ${targetName}`, 'success');
             render();
@@ -486,6 +501,10 @@ export const buyLabComponent = async (type, price) => {
         confirmText: "Payer",
         onConfirm: async () => {
             await state.supabase.from('bank_accounts').update({ cash_balance: bank.cash_balance - price }).eq('character_id', charId);
+            
+            // LOG ACHAT LABO
+            await state.supabase.from('transactions').insert({ sender_id: charId, amount: price, type: 'withdraw', description: `Achat installation labo: ${type}` });
+
             const updates = {};
             if(type === 'building') updates.has_building = true;
             if(type === 'equipment') updates.has_equipment = true;

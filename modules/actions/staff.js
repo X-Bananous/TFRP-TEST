@@ -713,11 +713,14 @@ export const executeEconomyAction = async (e) => {
                 const col = balanceType === 'bank' ? 'bank_balance' : 'cash_balance';
                 let currentBalance = Number(account[col]);
                 let newBalance = currentBalance;
+                let logAmount = 0;
 
                 if (mode === 'fixed') {
+                    logAmount = amountVal;
                     if (action === 'add') newBalance += amountVal; else newBalance -= amountVal;
                 } else {
                     const delta = currentBalance * (amountVal / 100);
+                    logAmount = Math.abs(delta);
                     if (action === 'add') newBalance += delta; else newBalance -= delta;
                 }
                 newBalance = Math.round(newBalance);
@@ -725,9 +728,9 @@ export const executeEconomyAction = async (e) => {
                 await state.supabase.from('transactions').insert({
                     sender_id: null, 
                     receiver_id: account.character_id, 
-                    amount: (action === 'remove' ? -1 : 1) * (mode === 'fixed' ? amountVal : 0),
+                    amount: logAmount,
                     type: 'admin_adjustment', 
-                    description: `${description} (${action} ${amountVal} ${mode} on ${balanceType})`
+                    description: `${description} (${action === 'add' ? '+' : '-'} ${amountVal}${mode === 'percent' ? '%' : '$'} on ${balanceType})`
                 });
                 
                 const updatePayload = {};
