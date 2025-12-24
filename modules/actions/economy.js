@@ -53,7 +53,6 @@ export const selectRecipient = (id, name, mode = 'bank') => {
         const confirmBtn = document.getElementById('confirm-give-btn');
         if (confirmBtn) confirmBtn.disabled = false;
         
-        // Show tax summary if exists
         updateGiveTaxDisplay();
     } else {
         state.selectedRecipient = { id, name };
@@ -342,7 +341,6 @@ export const openGiveItemModal = (itemId, itemName, currentQty, estValue) => {
         cancelText: "Annuler"
     });
     
-    // Inject the helper globally for the modal
     window.updateGiveTaxDisplay = updateGiveTaxDisplay;
     if(window.lucide) lucide.createIcons();
 };
@@ -375,7 +373,6 @@ export const confirmGiveItem = async (itemId, itemName, estValue) => {
         onConfirm: async () => {
             const charId = state.activeCharacter.id;
             
-            // 1. Check Tax Funds if applicable
             if (taxAmount > 0) {
                 const { data: bank } = await state.supabase.from('bank_accounts').select('*').eq('character_id', charId).single();
                 let canPay = false;
@@ -397,18 +394,14 @@ export const confirmGiveItem = async (itemId, itemName, estValue) => {
                 });
             }
 
-            // 2. Perform Transfer
-            // Fetch source item to get full data (icon, etc.)
             const { data: sourceItem } = await state.supabase.from('inventory').select('*').eq('id', itemId).single();
             
-            // Deduct from source
             if (sourceItem.quantity <= qty) {
                 await state.supabase.from('inventory').delete().eq('id', itemId);
             } else {
                 await state.supabase.from('inventory').update({ quantity: sourceItem.quantity - qty }).eq('id', itemId);
             }
 
-            // Add to target
             const { data: targetItem } = await state.supabase.from('inventory').select('*').eq('character_id', target.id).eq('name', itemName).maybeSingle();
             
             if (targetItem) {

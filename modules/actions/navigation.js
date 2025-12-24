@@ -17,7 +17,6 @@ export const backToSelect = async () => {
     state.activeCharacter = null;
     state.bankAccount = null;
     
-    // Clean Session Storage for character
     sessionStorage.removeItem('tfrp_active_char');
     sessionStorage.removeItem('tfrp_hub_panel');
     
@@ -45,12 +44,10 @@ export const selectCharacter = async (charId) => {
         state.activeHubPanel = 'main';
         state.alignmentModalShown = false; 
         
-        // Save to Session
         sessionStorage.setItem('tfrp_active_char', charId);
         
-        // Trigger initial data fetch for the Hub before rendering
         state.isPanelLoading = true;
-        router('hub'); // Switch view to Hub (will show loader)
+        router('hub'); 
         
         try {
              await Promise.all([
@@ -133,7 +130,7 @@ export const setHubPanel = async (panel) => {
         } else if (panel === 'illicit' && state.activeCharacter) {
             state.activeIllicitTab = 'dashboard'; 
             await fetchActiveGang(state.activeCharacter.id);
-            const illicit promises = [
+            const illicitPromises = [
                 fetchBankData(state.activeCharacter.id),
                 fetchGangs(),
                 fetchBounties(),

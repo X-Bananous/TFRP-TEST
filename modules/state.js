@@ -123,14 +123,14 @@ export const state = {
         modal: { isOpen: false, type: null, data: null }, 
         toasts: [],
         sidebarOpen: false, // Mobile Sidebar State
-        sidebarCollapsedSections: [] // NEW: Sections rétractées
+        sidebarCollapsedSections: [] // Sections rétractées
     },
 
     economyModal: { 
         isOpen: false,
         targetId: null, 
         targetName: null,
-        transactions: [] // Added for staff view
+        transactions: [] 
     },
 
     inventoryModal: {
@@ -179,9 +179,9 @@ export const state = {
         bountyId: null
     },
     
-    // Enterprises (NEW)
+    // Enterprises
     activeEnterpriseTab: 'market', // market, my_companies, manage, appointments
-    activeEnterpriseManageTab: 'dashboard', // dashboard, staff, stock, appointments (NEW)
+    activeEnterpriseManageTab: 'dashboard', // dashboard, staff, stock, appointments
     enterprises: [],
     myEnterprises: [], // Companies I am part of
     enterpriseMarket: [], // Items for sale (public)
@@ -202,11 +202,11 @@ export const state = {
     servicesSearchQuery: '', 
     reportsSearchQuery: '', 
     reportSuspects: [],
-    editingReport: null, // Rapport en cours de modification
+    editingReport: null, 
     criminalRecordTarget: null, 
     criminalRecordReports: [],
     policeSearchTarget: null,
-    dossierTarget: null, // For LEO Citizen Dossier
+    dossierTarget: null, 
     
     // Global News
     globalActiveHeists: [], 
@@ -215,7 +215,7 @@ export const state = {
     currentView: 'login', 
     activeHubPanel: 'main', 
     activeStaffTab: 'applications',
-    activeEconomySubTab: 'players', // New sub-tab for economy
+    activeEconomySubTab: 'players', 
     alignmentModalShown: false, 
     
     supabase: null,

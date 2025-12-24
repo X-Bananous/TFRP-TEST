@@ -315,7 +315,6 @@ export const startSession = async () => {
 export const stopSession = async () => {
     if (!state.supabase) return;
     
-    // On re-fetch la session active pour être sûr d'avoir le bon ID
     const { data: currentSession } = await state.supabase.from('game_sessions').select('*').eq('status', 'active').maybeSingle();
     
     if (!currentSession) {
@@ -642,7 +641,6 @@ export const fetchClientAppointments = async (charId) => {
 
 export const fetchEnterpriseDetails = async (entId) => {
     try {
-        console.log("[Ent] Chargement des détails pour:", entId);
         const { data: ent, error: entError } = await state.supabase.from('enterprises').select('*').eq('id', entId).single();
         if(entError || !ent) throw new Error("Entreprise introuvable.");
 
@@ -709,7 +707,6 @@ export const fetchEnterpriseDetails = async (entId) => {
             myRank: myMember ? myMember.rank : null 
         };
 
-        console.log("[Ent] Détails chargés.");
     } catch (e) {
         console.error("[Ent] Erreur fatale fetchEnterpriseDetails:", e);
         throw e;
@@ -731,13 +728,11 @@ export const fetchBankData = async (charId) => {
         }]).select().single(); 
         bank = newBank; 
     } else if (!bank.taux_int_delivery) {
-        // CORRECTION : Si le compte existe mais pas le timer, on le crée (7 jours par défaut)
         const nextDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         await state.supabase.from('bank_accounts').update({ taux_int_delivery: nextDelivery }).eq('id', bank.id);
         bank.taux_int_delivery = nextDelivery;
     }
 
-    // LOGIQUE DE VERSEMENT AUTOMATIQUE DES INTÉRÊTS (Si expiré)
     if (bank.taux_int_delivery && new Date(bank.taux_int_delivery) <= new Date()) {
         try {
             const { error: rpcError } = await state.supabase.rpc('claim_savings_interests', { p_char_id: charId });
@@ -748,7 +743,6 @@ export const fetchBankData = async (charId) => {
                     showToast("Intérêts d'épargne versés automatiquement.", "success");
                 }
             } else {
-                // Fail-safe : Si le RPC échoue (ex: pas de fonds bloqués), on repousse le timer de 7 jours quand même
                 const nextRetry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
                 await state.supabase.from('bank_accounts').update({ taux_int_delivery: nextRetry }).eq('id', bank.id);
                 bank.taux_int_delivery = nextRetry;
@@ -795,7 +789,7 @@ export const fetchInventory = async (charId) => {
     requiredVirtualItems.forEach(vItem => { 
         const exists = state.inventory.some(i => i.name === vItem.name); 
         if (!exists) { 
-            state.inventory.unshif({ 
+            state.inventory.unshift({ 
                 id: vItem.id, 
                 name: vItem.name, 
                 quantity: 1, 
@@ -826,19 +820,12 @@ export const fetchDrugLab = async (gangId) => {
     state.drugLab = lab;
 };
 
-/**
- * checkAndCompleteDrugBatch
- * Logique sécurisée avec verrou et re-fetch pour éviter les boucles infinies
- * et les stocks qui ne se mettent pas à jour.
- */
 export const checkAndCompleteDrugBatch = async (gangId) => {
     if (!gangId || state._completingDrugBatch) return;
     
-    // On verrouille pour éviter les appels concurrents (race conditions)
     state._completingDrugBatch = true;
 
     try {
-        // 1. Fetcher les données les plus fraîches directement
         const { data: lab, error: fetchError } = await state.supabase
             .from('drug_labs')
             .select('*')
@@ -858,7 +845,7 @@ export const checkAndCompleteDrugBatch = async (gangId) => {
             const updates = { current_batch: null };
             const type = batch.type;
             const stage = batch.stage;
-            const amount = Number(batch.amount) || 0; // Cast sécurisé
+            const amount = Number(batch.amount) || 0; 
 
             let logMsg = "";
 
@@ -876,7 +863,6 @@ export const checkAndCompleteDrugBatch = async (gangId) => {
                 const prices = { coke: 60, weed: 20 };
                 const reward = amount * (prices[type] || 0);
                 
-                // Fetch direct du gang pour éviter le déséquilibre du coffre
                 const { data: gang } = await state.supabase.from('gangs').select('balance').eq('id', gangId).single();
                 if(gang) {
                     await state.supabase.from('gangs').update({ balance: (Number(gang.balance) || 0) + reward }).eq('id', gangId);
@@ -884,7 +870,6 @@ export const checkAndCompleteDrugBatch = async (gangId) => {
                 logMsg = `Vente terminée (Gang) : +$${reward.toLocaleString()} dans le coffre.`;
             }
 
-            // 2. Appliquer les changements et vider le batch (Crucial pour arrêter la boucle)
             const { error: updateError } = await state.supabase
                 .from('drug_labs')
                 .update(updates)
@@ -892,17 +877,13 @@ export const checkAndCompleteDrugBatch = async (gangId) => {
 
             if (!updateError) {
                 showToast(logMsg, 'success');
-                // On met à jour l'état local immédiatement
                 state.drugLab = { ...lab, ...updates };
                 render();
-            } else {
-                console.error("[Lab] Erreur finale de complétion:", updateError);
             }
         }
     } catch (e) {
         console.error("[Lab] Exception lors de la complétion:", e);
     } finally {
-        // 3. On déverrouille quoi qu'il arrive
         state._completingDrugBatch = false;
     }
 };
