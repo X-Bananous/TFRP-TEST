@@ -1,3 +1,4 @@
+
 import { state } from '../state.js';
 import { DispatchView } from './services/dispatch.js';
 import { LEOReportsView, LEOMapView } from './services/leo.js';
@@ -22,7 +23,8 @@ const refreshBanner = `
 `;
 
 export const ServicesView = () => {
-    const job = state.activeCharacter?.job || 'unemployed';
+    const char = state.activeCharacter;
+    const job = char?.job || 'unemployed';
     const isLeo = job === 'leo';
     const isLawyer = job === 'lawyer';
     const isGov = job === 'maire' || job === 'adjoint';
@@ -39,7 +41,8 @@ export const ServicesView = () => {
          </div>`;
     }
 
-    if ((isLawyer || isJustice) && !state.user.bar_passed) {
+    // Le barreau est maintenant vérifié sur le personnage actif
+    if ((isLawyer || isJustice) && !char.bar_passed) {
         return LawyerExamView();
     }
 

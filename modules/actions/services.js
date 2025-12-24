@@ -1,3 +1,4 @@
+
 import { state } from '../state.js';
 import { render } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -9,60 +10,114 @@ export const startBarExam = () => {
     state.activeExam = {
         questions: shuffled.slice(0, 15),
         currentIndex: 0,
-        score: 0
+        score: 0,
+        timeLeft: 10,
+        timer: null
     };
+    
+    // Bloquer la sortie accidentelle
+    window.onbeforeunload = () => "Examen en cours. Quitter entraînera un échec immédiat.";
+    
+    startExamTimer();
     render();
+};
+
+const startExamTimer = () => {
+    if (state.activeExam.timer) clearInterval(state.activeExam.timer);
+    
+    state.activeExam.timeLeft = 10;
+    state.activeExam.timer = setInterval(() => {
+        state.activeExam.timeLeft--;
+        
+        if (state.activeExam.timeLeft <= 0) {
+            // Temps écoulé : Réponse fausse et on passe à la suivante
+            answerExamQuestion(-1);
+        } else {
+            const timerEl = document.getElementById('exam-timer-bar');
+            if (timerEl) {
+                timerEl.style.width = `${(state.activeExam.timeLeft / 10) * 100}%`;
+                if (state.activeExam.timeLeft <= 3) timerEl.classList.add('bg-red-500');
+                else timerEl.classList.remove('bg-red-500');
+            }
+            const timerSecs = document.getElementById('exam-timer-seconds');
+            if (timerSecs) timerSecs.textContent = state.activeExam.timeLeft + 's';
+        }
+    }, 1000);
 };
 
 export const answerExamQuestion = async (answerIdx) => {
     const exam = state.activeExam;
-    const currentQ = exam.questions[exam.currentIndex];
+    if (!exam) return;
+
+    if (exam.timer) clearInterval(exam.timer);
     
+    const currentQ = exam.questions[exam.currentIndex];
     if (answerIdx === currentQ.r) {
         exam.score++;
     }
     
     if (exam.currentIndex < 14) {
         exam.currentIndex++;
+        startExamTimer();
         render();
     } else {
-        const finalScore = exam.score;
-        const passed = finalScore >= 13;
-        state.activeExam = null;
-        
-        const now = new Date().toISOString();
-        try {
-            const { error } = await state.supabase
-                .from('profiles')
-                .update({ 
-                    bar_passed: passed, 
-                    last_bar_attempt: now 
-                })
-                .eq('id', state.user.id);
+        await finishBarExam();
+    }
+};
 
-            if (error) throw error;
+const finishBarExam = async (forcedFailure = false) => {
+    const exam = state.activeExam;
+    if (!exam && !forcedFailure) return;
 
-            state.user.bar_passed = passed;
-            state.user.last_bar_attempt = now;
+    if (exam?.timer) clearInterval(exam.timer);
+    window.onbeforeunload = null;
 
-            if (passed) {
-                ui.showModal({
-                    title: "Admis au Barreau",
-                    content: `<div class="text-center"><div class="text-4xl mb-4">⚖️</div><p>Félicitations ! Vous avez obtenu <b>${finalScore}/15</b>. Vous êtes officiellement accrédité par le département de la Justice de Los Angeles.</p></div>`,
-                    confirmText: "Accéder au Panel"
-                });
-            } else {
-                ui.showModal({
-                    title: "Échec au Barreau",
-                    content: `<div class="text-center"><div class="text-4xl mb-4">❌</div><p>Score : <b>${finalScore}/15</b>. Vous avez échoué. Le barreau est suspendu pour 2 heures.</p></div>`,
-                    confirmText: "Compris"
-                });
-            }
-        } catch (err) {
-            console.error("Exam save error:", err);
-            ui.showToast("Erreur lors de la sauvegarde du résultat.", "error");
+    const finalScore = forcedFailure ? 0 : exam.score;
+    const passed = !forcedFailure && finalScore >= 13;
+    const char = state.activeCharacter;
+    
+    state.activeExam = null;
+    const now = new Date().toISOString();
+
+    try {
+        const { error } = await state.supabase
+            .from('characters')
+            .update({ 
+                bar_passed: passed, 
+                last_bar_attempt: now 
+            })
+            .eq('id', char.id);
+
+        if (error) throw error;
+
+        // Mise à jour locale
+        char.bar_passed = passed;
+        char.last_bar_attempt = now;
+
+        if (passed) {
+            ui.showModal({
+                title: "Admis au Barreau",
+                content: `<div class="text-center"><div class="text-4xl mb-4">⚖️</div><p>Félicitations <b>Maître ${char.last_name}</b> ! Vous avez obtenu <b>${finalScore}/15</b>. Vous êtes officiellement accrédité.</p></div>`,
+                confirmText: "Accéder au Panel"
+            });
+        } else {
+            ui.showModal({
+                title: forcedFailure ? "Abandon Sanctionné" : "Échec au Barreau",
+                content: `<div class="text-center"><div class="text-4xl mb-4">❌</div><p>${forcedFailure ? "Vous avez tenté d'esquiver l'épreuve." : `Score : <b>${finalScore}/15</b>. Vous avez échoué.`} Le barreau pour <b>${char.first_name}</b> est suspendu pour 2 heures.</p></div>`,
+                confirmText: "Compris"
+            });
         }
-        render();
+    } catch (err) {
+        console.error("Exam save error:", err);
+        ui.showToast("Erreur lors de la sauvegarde du résultat.", "error");
+    }
+    render();
+};
+
+// Hook de sécurité pour le changement de vue interne
+export const checkExamAborted = async () => {
+    if (state.activeExam) {
+        await finishBarExam(true);
     }
 };
 
@@ -180,6 +235,7 @@ export const searchVehicles = (query) => {
 };
 
 export const setServicesTab = async (tab) => {
+    await checkExamAborted(); // Sanctionner si on change d'onglet durant l'examen
     state.activeServicesTab = tab;
     state.isPanelLoading = true;
     if (tab !== 'reports') state.editingReport = null; 
