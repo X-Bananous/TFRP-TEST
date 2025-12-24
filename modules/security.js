@@ -17,13 +17,23 @@ export const initSecurity = async () => {
         }
     });
 
-    // Debugger Loop Trick (Freezes inspector if opened)
+    // Debugger Loop Trick
     setInterval(() => {
         const start = performance.now();
         debugger;
         const end = performance.now();
         if (end - start > 100) {
-            document.body.innerHTML = '<div style="background:black;color:red;height:100vh;display:flex;justify-content:center;align-items:center;font-family:sans-serif;font-weight:bold;">INSPECTION INTERDITE</div>';
+            document.body.innerHTML = `
+                <div style="background:#050505; color:white; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif; text-align:center; padding:20px;">
+                    <div style="font-size:5rem; margin-bottom:2rem; filter:drop-shadow(0 0 20px rgba(59,130,246,0.5));">🤔</div>
+                    <h1 style="font-size:2.5rem; font-weight:900; letter-spacing:-0.05em; margin-bottom:1rem; text-transform:uppercase; italic">EH Petit Malin...</h1>
+                    <p style="font-size:1.2rem; color:#94a3b8; max-width:500px; line-height:1.6;">...tu essayes de faire quoi au juste ? L'inspection du terminal est strictement réservée au commandement technique.</p>
+                    <div style="margin-top:3rem; padding:15px 30px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); rounded:15px; font-family:monospace; font-size:0.8rem; color:#475569;">
+                        SIGNAL_DÉTECTÉ: INSPECTOR_OPEN_ATTEMPT
+                    </div>
+                    <button onclick="window.location.reload()" style="margin-top:2rem; padding:12px 24px; background:#2563eb; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Relancer le terminal</button>
+                </div>
+            `;
         }
     }, 1000);
 
@@ -32,23 +42,8 @@ export const initSecurity = async () => {
         const res = await fetch('https://ipapi.co/json/');
         if (res.ok) {
             const data = await res.json();
-            // Check for known hosting/proxy ASNs or simple boolean if API provides it
-            // Note: ipapi.co free tier has limits. 
-            // Logic: If security field exists (paid) or strictly checking known proxy behaviors.
-            // Using a simpler heuristic or fallback if field missing.
-            
-            // Note: Usually requires a paid API for reliable "is_vpn" field. 
-            // We will simulate a check or block specific high-risk ISPs if needed.
-            // For this implementation, we will trust the user isn't using a VPN 
-            // unless we had a specific API key for a service like IPHub or ProxyCheck.
-            // HOWEVER, requested feature is "Block if VPN". 
-            
-            // Let's check typical datacenter fields if available in free response
-            // (Many free APIs don't explicitly say "VPN: true" reliably).
-            
-            // Placeholder for demonstration of blocking logic:
             if (data.hosting === true || data.proxy === true) {
-                blockAccess("Connexion VPN/Proxy détectée.");
+                blockAccess("EH Petit Malin tu essayes de faire quoi ? (VPN/Proxy détecté)");
             }
         }
     } catch (e) {
@@ -58,11 +53,10 @@ export const initSecurity = async () => {
 
 const blockAccess = (reason) => {
     document.body.innerHTML = `
-        <div style="background-color:#050505; color:white; height:100vh; width:100vw; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:sans-serif; z-index:9999; position:fixed; top:0; left:0;">
+        <div style="background-color:#050505; color:white; height:100vh; width:100vw; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:sans-serif; z-index:9999; position:fixed; top:0; left:0; text-align:center;">
             <div style="font-size:3rem; margin-bottom:1rem;">🛡️</div>
-            <h1 style="font-size:1.5rem; font-weight:bold; margin-bottom:0.5rem;">Accès Refusé</h1>
-            <p style="color:#ef4444;">${reason}</p>
-            <p style="color:#6b7280; font-size:0.8rem; margin-top:1rem;">Veuillez désactiver vos outils de contournement.</p>
+            <h1 style="font-size:1.8rem; font-weight:900; margin-bottom:0.5rem; uppercase italic">${reason}</h1>
+            <p style="color:#6b7280; font-size:0.9rem; margin-top:1rem; max-width:400px;">Veuillez désactiver vos outils de masquage IP pour accéder aux services gouvernementaux TFRP.</p>
         </div>
     `;
     throw new Error("Security Block");

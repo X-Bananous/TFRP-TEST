@@ -40,7 +40,7 @@ const LawyersListView = () => {
             <div class="px-8 pb-4 pt-4 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/5 bg-[#050505] relative z-10 shrink-0">
                 <div>
                     <h2 class="text-3xl font-black text-white flex items-center gap-3 uppercase italic tracking-tighter">
-                        <i data-lucide="scale" class="w-8 h-8 text-purple-500"></i>
+                        <i data-lucide="scale" class="w-8 h-8 text-purple-400"></i>
                         Barreau de Los Angeles
                     </h2>
                     <div class="flex items-center gap-3 mt-1">
@@ -590,7 +590,7 @@ export const HubView = () => {
 
     const mobileMenuOverlay = `
         <div class="md:hidden fixed inset-0 z-[110] bg-black/95 backdrop-blur-md transition-opacity duration-500 ${state.ui.sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}" onclick="actions.toggleSidebar()"></div>
-        <div class="md:hidden fixed top-0 left-0 h-full w-[85%] z-[120] bg-[#08080a]/98 border-r border-white/10 transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) transform ${state.ui.sidebarOpen ? 'translate-x-0 shadow-[0_0_100px_rgba(0,0,0,0.9)]' : '-translate-x-full'} flex flex-col overflow-hidden">
+        <div class="md:hidden fixed top-0 left-0 h-full w-[85%] z-[120] bg-[#08080a]/98 border-r border-white/10 transition-transform duration-500 transform ${state.ui.sidebarOpen ? 'translate-x-0 shadow-[0_0_100px_rgba(0,0,0,0.9)]' : '-translate-x-full'} flex flex-col overflow-hidden">
             
             <div onclick="actions.setHubPanel('profile'); actions.toggleSidebar();" class="p-8 border-b border-white/5 bg-gradient-to-b from-blue-900/10 to-transparent shrink-0">
                 <div class="flex items-center gap-4">

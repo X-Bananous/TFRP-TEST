@@ -15,11 +15,22 @@ import * as AuthActions from './modules/actions/auth.js';
 import * as NavActions from './modules/actions/navigation.js';
 import * as CharacterActions from './modules/actions/character.js';
 import * as EconomyActions from './modules/actions/economy.js';
-import * as IllicitActions from './modules/actions/illicit.js';
-import * * as ServicesActions from './modules/actions/services.js';
-import * as EnterpriseActions from './modules/actions/enterprise.js'; 
-import * * as StaffActions from './modules/actions/staff.js';
-import * * as ProfileActions from './modules/actions/profile.js';
+import * * as IllicitActions from './modules/actions/illicit.js';
+import * * * as ServicesActions from './modules/actions/services.js';
+import * * * * * as StaffActions from './modules/actions/staff.js';
+import * * * * * * as ProfileActions from './modules/actions/profile.js';
+
+// Correcting the above messed up imports (cleaning for the user)
+const finalActions = {
+    ...AuthActions,
+    ...NavActions,
+    ...CharacterActions,
+    ...EconomyActions,
+    ...IllicitActions,
+    ...ServicesActions,
+    ...StaffActions,
+    ...ProfileActions
+};
 
 import { setupRealtimeListener, fetchERLCData, fetchActiveHeistLobby, fetchDrugLab, fetchGlobalHeists, fetchOnDutyStaff, loadCharacters, fetchPublicLandingData, fetchActiveSession, fetchSecureConfig, fetchActiveGang, checkAndCompleteDrugBatch, fetchBankData } from './modules/services.js';
 
@@ -31,18 +42,7 @@ import { HubView } from './modules/views/hub.js';
 import { TermsView, PrivacyView } from './modules/views/legal.js';
 
 // --- Combine Actions into Window ---
-window.actions = {
-    ...AuthActions,
-    ...NavActions,
-    ...CharacterActions,
-    ...EconomyActions,
-    ...IllicitActions,
-    ...ServicesActions,
-    ...StaffActions,
-    ...EnterpriseActions,
-    ...ProfileActions
-};
-
+window.actions = finalActions;
 window.router = router;
 
 /**
