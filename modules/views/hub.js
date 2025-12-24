@@ -106,7 +106,7 @@ export const HubView = () => {
                 title: "Mise à jour Dossier",
                 content: `
                     <div class="text-center">
-                        <p class="mb-4">Votre dossier citoyen nécessite une mise à jour administrative.</p>
+                        <p class="mb-4 text-sm">Votre dossier citoyen nécessite une mise à jour administrative.</p>
                         <p class="font-bold text-white mb-6 uppercase tracking-widest text-xs">Quelle est votre orientation actuelle ?</p>
                         <div class="grid grid-cols-2 gap-4">
                             <button onclick="actions.setAlignment('legal')" class="p-6 rounded-[24px] bg-blue-500/10 border border-blue-500/30 hover:bg-blue-600/20 transition-all group">
@@ -147,7 +147,6 @@ export const HubView = () => {
 
     const isBypass = state.activeCharacter?.id === 'STAFF_BYPASS';
     const { currentPlayers, maxPlayers, queue, joinKey } = state.erlcData;
-    const robloxUrl = `roblox://placeId=2534724415&launchData=%7B%22psCode%22%3A%22${joinKey}%22%7D`;
     const isSessionActive = !!state.activeGameSession;
     const inServiceGuild = state.user.guilds?.includes(CONFIG.GUILD_SERVICES);
     const inIllegalGuild = state.user.guilds?.includes(CONFIG.GUILD_ILLEGAL);
@@ -172,8 +171,8 @@ export const HubView = () => {
                         <i data-lucide="radio" class="w-6 h-6 animate-pulse"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Alerte Prioritaire • Flash Info</div>
-                        <div class="text-white font-bold text-sm truncate uppercase tracking-tight italic">
+                        <div class="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 text-left">Alerte Prioritaire • Flash Info</div>
+                        <div class="text-white font-bold text-sm truncate uppercase tracking-tight italic text-left">
                             ${majorHeists.map(h => HEIST_DATA.find(d => d.id === h.heist_type)?.name || h.heist_type).join(' • ')} EN COURS
                         </div>
                     </div>
@@ -185,7 +184,7 @@ export const HubView = () => {
                     <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-500 shrink-0 border border-white/10">
                         <i data-lucide="sun" class="w-6 h-6"></i>
                     </div>
-                    <div>
+                    <div class="text-left">
                         <div class="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1">Status Ville</div>
                         <div class="text-gray-400 font-bold text-sm uppercase tracking-tight">Ciel dégagé sur Los Angeles.</div>
                     </div>
@@ -196,29 +195,29 @@ export const HubView = () => {
         content = `
             <div class="animate-fade-in h-full flex flex-col bg-[#050505]">
                  ${refreshBanner('blue')}
-                 <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+                 <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
                     <div class="max-w-7xl mx-auto space-y-8">
                         
                         <!-- MAIN HERO BANNER -->
-                        <div class="relative rounded-[48px] overflow-hidden group shadow-2xl bg-gradient-to-br from-blue-900/40 via-black to-black border border-white/10">
+                        <div class="relative rounded-[40px] md:rounded-[48px] overflow-hidden group shadow-2xl bg-gradient-to-br from-blue-900/40 via-black to-black border border-white/10">
                             <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
                             <div class="absolute -right-20 -top-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
                             
-                            <div class="relative z-10 p-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-10">
+                            <div class="relative z-10 p-8 md:p-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-10">
                                 <div class="text-center md:text-left">
                                     <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] border border-blue-500/20 mb-6 rounded-lg">
-                                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Unified Portal v4.5
+                                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Unified Portal v4.6
                                     </div>
-                                    <h1 class="text-5xl md:text-6xl font-black text-white mb-2 tracking-tighter uppercase italic drop-shadow-2xl">Team French <br><span class="text-blue-500">Roleplay</span></h1>
-                                    <p class="text-gray-500 text-sm font-bold uppercase tracking-widest mb-8">Serveur Privé • California State</p>
+                                    <h1 class="text-4xl md:text-6xl font-black text-white mb-2 tracking-tighter uppercase italic drop-shadow-2xl">Team French <br><span class="text-blue-500">Roleplay</span></h1>
+                                    <p class="text-gray-500 text-xs md:text-sm font-bold uppercase tracking-widest mb-8">Serveur Privé • California State</p>
                                     <div class="flex items-center justify-center md:justify-start gap-4">
                                         <div class="bg-white/5 backdrop-blur px-5 py-3 rounded-2xl border border-white/5 text-center">
                                             <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">Joueurs</div>
-                                            <div class="font-mono font-black text-2xl text-white">${currentPlayers}/${maxPlayers}</div>
+                                            <div class="font-mono font-black text-xl md:text-2xl text-white">${currentPlayers}/${maxPlayers}</div>
                                         </div>
                                         <div class="bg-white/5 backdrop-blur px-5 py-3 rounded-2xl border border-white/5 text-center">
                                             <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-1">File d'attente</div>
-                                            <div class="font-mono font-black text-2xl text-blue-400">${queue?.length || 0}</div>
+                                            <div class="font-mono font-black text-xl md:text-2xl text-blue-400">${queue?.length || 0}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -227,9 +226,9 @@ export const HubView = () => {
                                     ${isSessionActive ? `
                                         <div>
                                             <div class="text-[10px] text-gray-500 uppercase font-black tracking-[0.4em] mb-2">Code Fréquence</div>
-                                            <div class="text-6xl font-mono font-black text-white tracking-[0.2em] mb-6 text-glow">${joinKey}</div>
+                                            <div class="text-5xl md:text-6xl font-mono font-black text-white tracking-[0.2em] mb-6 text-glow">${joinKey}</div>
                                         </div>
-                                        <a href="${robloxUrl}" class="glass-btn px-10 py-5 rounded-[24px] font-black text-base flex items-center gap-4 hover:scale-105 transition-all bg-white text-black shadow-[0_0_50px_rgba(255,255,255,0.15)] uppercase tracking-widest italic">
+                                        <a href="roblox://placeId=2534724415&launchData=%7B%22psCode%22%3A%22${joinKey}%22%7D" class="glass-btn px-10 py-5 rounded-[24px] font-black text-base flex items-center gap-4 hover:scale-105 transition-all bg-white text-black shadow-[0_0_50px_rgba(255,255,255,0.15)] uppercase tracking-widest italic">
                                             <i data-lucide="play" class="w-6 h-6 fill-current"></i> Revenir en jeu
                                         </a>
                                     ` : `
@@ -261,7 +260,7 @@ export const HubView = () => {
                         <!-- NAVIGATION GRID -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <!-- NOTIFS -->
-                            <button onclick="actions.setHubPanel('notifications')" class="glass-panel group p-8 rounded-[32px] border border-blue-500/20 bg-[#0a0a0c] hover:border-blue-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                            <button onclick="actions.setHubPanel('notifications')" class="glass-panel group p-8 rounded-[32px] border border-blue-500/20 bg-[#0a0a0c] hover:border-blue-500/50 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                 <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all"></div>
                                 <div class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-auto border border-blue-500/20 group-hover:scale-110 transition-transform">
                                     <i data-lucide="bell" class="w-7 h-7"></i>
@@ -272,7 +271,7 @@ export const HubView = () => {
                             </button>
 
                             <!-- JOBS -->
-                            <button onclick="actions.setHubPanel('jobs')" class="glass-panel group p-8 rounded-[32px] border border-emerald-500/20 bg-[#0a0c0a] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                            <button onclick="actions.setHubPanel('jobs')" class="glass-panel group p-8 rounded-[32px] border border-emerald-500/20 bg-[#0a0c0a] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                 <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all"></div>
                                 <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-auto border border-emerald-500/20 group-hover:scale-110 transition-transform">
                                     <i data-lucide="briefcase" class="w-7 h-7"></i>
@@ -282,7 +281,7 @@ export const HubView = () => {
                             </button>
 
                             <!-- LAWYERS -->
-                            <button onclick="actions.setHubPanel('lawyers_list')" class="glass-panel group p-8 rounded-[32px] border border-purple-500/20 bg-[#0b0a0c] hover:border-purple-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                            <button onclick="actions.setHubPanel('lawyers_list')" class="glass-panel group p-8 rounded-[32px] border border-purple-500/20 bg-[#0b0a0c] hover:border-purple-500/50 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                 <div class="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all"></div>
                                 <div class="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 mb-auto border border-purple-500/20 group-hover:scale-110 transition-transform">
                                     <i data-lucide="scale" class="w-7 h-7"></i>
@@ -293,7 +292,7 @@ export const HubView = () => {
 
                             <!-- BANK / JUSTICE -->
                             ${isJustice ? `
-                                <button onclick="actions.setHubPanel('services'); setTimeout(() => actions.setServicesTab('justice_docket'), 100);" class="glass-panel group p-8 rounded-[32px] border border-purple-500/40 bg-purple-900/5 hover:border-purple-500 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                                <button onclick="actions.setHubPanel('services'); setTimeout(() => actions.setServicesTab('justice_docket'), 100);" class="glass-panel group p-8 rounded-[32px] border border-purple-500/40 bg-purple-900/5 hover:border-purple-500 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                     <div class="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
                                     <div class="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-auto border border-purple-500/30 group-hover:scale-110 transition-transform">
                                         <i data-lucide="gavel" class="w-7 h-7"></i>
@@ -302,7 +301,7 @@ export const HubView = () => {
                                     <p class="text-xs text-purple-300/60 font-bold uppercase tracking-widest mt-1">Dossiers Judiciaires</p>
                                 </button>
                             ` : `
-                                <button onclick="actions.setHubPanel('bank')" class="glass-panel group p-8 rounded-[32px] border border-emerald-500/20 bg-[#0a0c0a] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                                <button onclick="actions.setHubPanel('bank')" class="glass-panel group p-8 rounded-[32px] border border-emerald-500/20 bg-[#0a0c0a] hover:border-emerald-500/50 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                     <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all"></div>
                                     <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-auto border border-emerald-500/20 group-hover:scale-110 transition-transform">
                                         <i data-lucide="landmark" class="w-7 h-7"></i>
@@ -313,7 +312,7 @@ export const HubView = () => {
                             `}
 
                             <!-- ASSETS -->
-                            <button onclick="actions.setHubPanel('assets')" class="glass-panel group p-8 rounded-[32px] border border-indigo-500/20 bg-[#0a0a0c] hover:border-indigo-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                            <button onclick="actions.setHubPanel('assets')" class="glass-panel group p-8 rounded-[32px] border border-indigo-500/20 bg-[#0a0a0c] hover:border-indigo-500/50 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                 <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all"></div>
                                 <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-auto border border-indigo-500/20 group-hover:scale-110 transition-transform">
                                     <i data-lucide="gem" class="w-7 h-7"></i>
@@ -323,7 +322,7 @@ export const HubView = () => {
                             </button>
 
                             <!-- ENTERPRISE -->
-                            <button onclick="actions.setHubPanel('enterprise')" class="glass-panel group p-8 rounded-[32px] border border-blue-500/20 bg-[#0a0b0c] hover:border-blue-500/50 transition-all text-left relative overflow-hidden flex flex-col h-64">
+                            <button onclick="actions.setHubPanel('enterprise')" class="glass-panel group p-8 rounded-[32px] border border-blue-500/20 bg-[#0a0b0c] hover:border-blue-500/50 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64">
                                 <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all"></div>
                                 <div class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-auto border border-blue-500/20 group-hover:scale-110 transition-transform">
                                     <i data-lucide="building-2" class="w-7 h-7"></i>
@@ -332,9 +331,9 @@ export const HubView = () => {
                                 <p class="text-xs text-gray-600 font-bold uppercase tracking-widest mt-1">Gestion de Société</p>
                             </button>
 
-                            <!-- ROLE SPECIFIC (SERVICES / ILLICIT) -->
+                            <!-- ROLE SPECIFIC -->
                             ${hasServiceAccess && !isJustice ? `
-                                <button onclick="actions.setHubPanel('services')" class="glass-panel group p-8 rounded-[32px] border border-blue-500/30 bg-blue-900/5 hover:border-blue-500 transition-all text-left relative overflow-hidden flex flex-col h-64 ${!inServiceGuild ? 'grayscale opacity-60' : ''}">
+                                <button onclick="actions.setHubPanel('services')" class="glass-panel group p-8 rounded-[32px] border border-blue-500/30 bg-blue-900/5 hover:border-blue-500 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64 ${!inServiceGuild ? 'grayscale opacity-60' : ''}">
                                     <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
                                     <div class="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-auto border border-blue-500/30 group-hover:scale-110 transition-transform">
                                         <i data-lucide="siren" class="w-7 h-7"></i>
@@ -344,7 +343,7 @@ export const HubView = () => {
                                     ${!inServiceGuild ? '<div class="absolute bottom-8 right-8 text-red-500"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
                                 </button>
                             ` : isIllegal ? `
-                                <button onclick="actions.setHubPanel('illicit')" class="glass-panel group p-8 rounded-[32px] border border-red-500/30 bg-red-900/5 hover:border-red-500 transition-all text-left relative overflow-hidden flex flex-col h-64 ${!inIllegalGuild ? 'grayscale opacity-60' : ''}">
+                                <button onclick="actions.setHubPanel('illicit')" class="glass-panel group p-8 rounded-[32px] border border-red-500/30 bg-red-900/5 hover:border-red-500 transition-all text-left relative overflow-hidden flex flex-col h-56 md:h-64 ${!inIllegalGuild ? 'grayscale opacity-60' : ''}">
                                     <div class="absolute -right-6 -top-6 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
                                     <div class="w-14 h-14 rounded-2xl bg-red-500/20 flex items-center justify-center text-red-400 mb-auto border border-red-500/30 group-hover:scale-110 transition-transform">
                                         <i data-lucide="skull" class="w-7 h-7"></i>
@@ -354,7 +353,7 @@ export const HubView = () => {
                                     ${!inIllegalGuild ? '<div class="absolute bottom-8 right-8 text-red-600"><i data-lucide="lock" class="w-5 h-5"></i></div>' : ''}
                                 </button>
                             ` : `
-                                <div class="glass-panel p-8 rounded-[32px] border border-white/5 bg-white/[0.01] opacity-40 flex flex-col items-center justify-center text-center h-64">
+                                <div class="glass-panel p-8 rounded-[32px] border border-white/5 bg-white/[0.01] opacity-40 flex flex-col items-center justify-center text-center h-56 md:h-64">
                                     <i data-lucide="briefcase" class="w-10 h-10 text-gray-700 mb-4"></i>
                                     <div class="text-sm font-black text-gray-600 uppercase tracking-widest">En attente d'affectation</div>
                                 </div>
@@ -363,34 +362,29 @@ export const HubView = () => {
                     </div>
                     
                     <div class="py-20 text-center opacity-20">
-                        <div class="text-[9px] font-black uppercase tracking-[0.5em] text-gray-500">TFRP Operating System • v4.5.1 Gold Edition</div>
+                        <div class="text-[9px] font-black uppercase tracking-[0.5em] text-gray-500">TFRP Operating System • v4.6.0 Final</div>
                     </div>
                  </div>
             </div>
         `;
     } 
-    // Fallback views
     else if (state.activeHubPanel === 'profile') content = ProfileView();
     else if (state.activeHubPanel === 'notifications') content = NotificationsView();
     else if (state.activeHubPanel === 'jobs') content = JobCenterView();
     else if (state.activeHubPanel === 'lawyers_list') content = LawyersListView();
     else if (state.activeHubPanel === 'staff_list') {
-        const staffList = [...(state.staffMembers || [])];
-        staffList.sort((a, b) => {
+        const staffList = [...(state.staffMembers || [])].sort((a, b) => {
             const aF = state.adminIds.includes(a.id);
             const bF = state.adminIds.includes(b.id);
             return (aF === bF) ? 0 : aF ? -1 : 1;
         });
-
         content = `
             <div class="animate-fade-in h-full flex flex-col bg-[#050505]">
                 ${refreshBanner('yellow')}
-                
-                <div class="px-8 pb-4 pt-4 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/5 bg-[#050505] relative z-10 shrink-0">
+                <div class="px-8 pb-4 pt-4 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-white/5 bg-[#050505] relative z-10 shrink-0 text-left">
                     <div>
                         <h2 class="text-3xl font-black text-white flex items-center gap-3 uppercase italic tracking-tighter">
-                            <i data-lucide="shield" class="w-8 h-8 text-yellow-500"></i>
-                            Équipe Administrative
+                            <i data-lucide="shield" class="w-8 h-8 text-yellow-500"></i> Administration
                         </h2>
                         <div class="flex items-center gap-3 mt-1">
                              <span class="text-[10px] text-yellow-500/60 font-black uppercase tracking-widest">Conseil Supérieur</span>
@@ -401,49 +395,42 @@ export const HubView = () => {
                     <div class="bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-2xl flex items-center gap-4 shadow-xl">
                         <div class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">Staff en Ligne</div>
                         <div class="text-xl font-mono font-black text-white">${state.onDutyStaff.length}</div>
-                        <i data-lucide="users-round" class="w-4 h-4 text-emerald-500"></i>
                     </div>
                 </div>
-
-                <div class="flex-1 overflow-y-auto custom-scrollbar p-8 pb-20">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 pb-20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
                         ${staffList.map(s => {
                             const isFounder = state.adminIds.includes(s.id);
                             const status = state.discordStatuses[s.id] || 'offline';
                             const statusColor = { online: 'bg-green-500', idle: 'bg-yellow-500', dnd: 'bg-red-500', offline: 'bg-zinc-600' }[status];
-                            
                             return `
-                            <div class="glass-panel p-8 rounded-[40px] border ${isFounder ? 'border-yellow-500/30 bg-yellow-500/[0.02]' : 'border-white/5'} flex flex-col gap-6 relative overflow-hidden transition-all group shadow-2xl">
-                                <div class="absolute -right-10 -top-10 w-48 h-48 ${isFounder ? 'bg-yellow-500/5' : 'bg-white/5'} rounded-full blur-3xl pointer-events-none group-hover:opacity-100 transition-opacity"></div>
-                                
+                            <div class="glass-panel p-6 md:p-8 rounded-[40px] border ${isFounder ? 'border-yellow-500/30 bg-yellow-500/[0.02]' : 'border-white/5'} flex flex-col gap-6 relative overflow-hidden transition-all group shadow-2xl">
                                 <div class="flex justify-between items-start relative z-10">
                                     <div class="relative">
-                                        <div class="w-20 h-20 rounded-[28px] border-2 ${isFounder ? 'border-yellow-500/30' : 'border-white/10'} p-1 bg-black shadow-2xl">
-                                            <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-[22px] object-cover">
+                                        <div class="w-16 md:w-20 h-16 md:h-20 rounded-[24px] md:rounded-[28px] border-2 ${isFounder ? 'border-yellow-500/30' : 'border-white/10'} p-1 bg-black shadow-2xl">
+                                            <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-[18px] md:rounded-[22px] object-cover">
                                         </div>
-                                        <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${statusColor} border-4 border-[#0a0a0a] shadow-xl"></div>
+                                        <div class="absolute -bottom-1 -right-1 w-5 md:w-6 h-5 md:h-6 rounded-full ${statusColor} border-4 border-[#0a0a0a] shadow-xl"></div>
                                     </div>
-                                    <span class="px-4 py-1.5 rounded-xl ${isFounder ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-white/5 text-gray-500 border-white/10'} text-[10px] font-black uppercase tracking-widest border shadow-lg italic">
+                                    <span class="px-4 py-1.5 rounded-xl ${isFounder ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-white/5 text-gray-500 border-white/10'} text-[9px] md:text-[10px] font-black uppercase tracking-widest border shadow-lg italic">
                                         ${isFounder ? 'Fondation' : 'Staff'}
                                     </span>
                                 </div>
-
-                                <div class="relative z-10">
-                                    <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter truncate group-hover:text-yellow-400 transition-colors">${s.username}</h3>
-                                    <div class="text-[9px] text-gray-600 font-mono mt-1 uppercase tracking-widest">UID: ${s.id.substring(0,12)}</div>
+                                <div class="relative z-10 text-left">
+                                    <h3 class="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter truncate group-hover:text-yellow-400 transition-colors">${s.username}</h3>
+                                    <div class="text-[8px] md:text-[9px] text-gray-600 font-mono mt-1 uppercase tracking-widest">ID: ${s.id.substring(0,10)}...</div>
                                 </div>
-
                                 <div class="mt-auto pt-6 border-t border-white/5 grid grid-cols-2 gap-3 relative z-10">
                                     <div class="flex flex-col items-center gap-1 p-3 rounded-2xl bg-black/40 border border-white/5">
                                         <div class="text-[8px] text-gray-600 font-black uppercase tracking-widest">Console</div>
                                         <div class="flex items-center gap-2">
                                             <div class="w-2 h-2 rounded-full ${s.is_on_duty ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-gray-700'}"></div>
-                                            <span class="text-[10px] font-bold ${s.is_on_duty ? 'text-emerald-400' : 'text-gray-500'} uppercase">${s.is_on_duty ? 'Live' : 'OFF'}</span>
+                                            <span class="text-[9px] md:text-[10px] font-bold ${s.is_on_duty ? 'text-emerald-400' : 'text-gray-500'} uppercase">${s.is_on_duty ? 'Live' : 'OFF'}</span>
                                         </div>
                                     </div>
                                     <div class="flex flex-col items-center gap-1 p-3 rounded-2xl bg-black/40 border border-white/5">
                                         <div class="text-[8px] text-gray-600 font-black uppercase tracking-widest">Discord</div>
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${status}</span>
+                                        <span class="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">${status}</span>
                                     </div>
                                 </div>
                             </div>`;
@@ -463,22 +450,21 @@ export const HubView = () => {
         content = `
             <div class="animate-fade-in h-full flex flex-col bg-[#050505]">
                 ${refreshBanner('red')}
-                <div class="flex-1 flex items-center justify-center p-8">
-                    <div class="glass-panel p-10 rounded-[48px] w-full max-w-2xl border border-red-500/20 shadow-[0_0_80px_rgba(239,68,68,0.1)] relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-3 bg-red-600"></div>
-                        <div class="flex items-center gap-6 mb-10">
-                            <div class="w-20 h-20 bg-red-500/10 rounded-[28px] flex items-center justify-center text-red-500 border border-red-500/20 shadow-2xl">
-                                <i data-lucide="phone-call" class="w-10 h-10 animate-pulse"></i>
+                <div class="flex-1 flex items-center justify-center p-6 md:p-8">
+                    <div class="glass-panel p-8 md:p-10 rounded-[40px] md:rounded-[48px] w-full max-w-2xl border border-red-500/20 shadow-[0_0_80px_rgba(239,68,68,0.1)] relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
+                        <div class="flex items-center gap-5 md:gap-6 mb-10 text-left">
+                            <div class="w-16 md:w-20 h-16 md:h-20 bg-red-500/10 rounded-[24px] md:rounded-[28px] flex items-center justify-center text-red-500 border border-red-500/20 shadow-2xl shrink-0">
+                                <i data-lucide="phone-call" class="w-8 md:w-10 h-8 md:h-10 animate-pulse"></i>
                             </div>
                             <div>
-                                <h2 class="text-4xl font-black text-white uppercase italic tracking-tighter">Appel d'Urgence</h2>
-                                <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Système CAD Centralisé • Los Angeles</p>
+                                <h2 class="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter leading-none">Appel d'Urgence</h2>
+                                <p class="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-2">Système CAD Centralisé • Los Angeles</p>
                             </div>
                         </div>
-                        
                         ${isSessionActive ? `
-                            <form onsubmit="actions.createEmergencyCall(event)" class="space-y-8 relative z-10">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <form onsubmit="actions.createEmergencyCall(event)" class="space-y-6 md:space-y-8 relative z-10 text-left">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                                     <div>
                                         <label class="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em] ml-1 mb-2 block">Unité Requise</label>
                                         <select name="service" class="glass-input p-4 rounded-2xl w-full text-sm bg-black/40 font-bold text-white uppercase tracking-wider">
@@ -495,16 +481,16 @@ export const HubView = () => {
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em] ml-1 mb-2 block">Nature de l'incident</label>
-                                    <textarea name="description" rows="4" placeholder="Décrivez brièvement la situation..." class="glass-input w-full p-5 rounded-3xl text-sm bg-black/40 font-medium leading-relaxed italic" required></textarea>
+                                    <textarea name="description" rows="3" md:rows="4" placeholder="Décrivez brièvement la situation..." class="glass-input w-full p-5 rounded-3xl text-sm bg-black/40 font-medium leading-relaxed italic" required></textarea>
                                 </div>
-                                <button type="submit" class="glass-btn w-full py-5 rounded-3xl font-black text-xl bg-red-600 hover:bg-red-500 shadow-xl shadow-red-900/30 flex items-center justify-center gap-4 transition-all transform active:scale-95 uppercase tracking-widest italic">
+                                <button type="submit" class="glass-btn w-full py-5 rounded-3xl font-black text-lg md:text-xl bg-red-600 hover:bg-red-500 shadow-xl shadow-red-900/30 flex items-center justify-center gap-4 transition-all transform active:scale-95 uppercase tracking-widest italic">
                                     <i data-lucide="radio" class="w-6 h-6"></i> Émettre le Signal
                                 </button>
                             </form>
                         ` : `
                             <div class="text-center py-16 opacity-30">
-                                <i data-lucide="radio-off" class="w-24 h-24 text-gray-600 mx-auto mb-6"></i>
-                                <h3 class="text-xl font-black text-white uppercase tracking-[0.3em]">Services Indisponibles</h3>
+                                <i data-lucide="radio-off" class="w-20 md:w-24 h-20 md:h-24 text-gray-600 mx-auto mb-6"></i>
+                                <h3 class="text-lg md:text-xl font-black text-white uppercase tracking-[0.3em]">Services Indisponibles</h3>
                                 <p class="text-xs text-gray-500 mt-2">Aucun central actif en dehors des sessions officielles.</p>
                             </div>
                         `}
@@ -589,25 +575,71 @@ export const HubView = () => {
     };
 
     const mobileNav = `
-        <div class="md:hidden fixed bottom-0 left-0 w-full bg-[#050505]/95 backdrop-blur-3xl border-t border-white/10 z-50 flex justify-around items-center pb-[env(safe-area-inset-bottom)] h-20">
-            <button onclick="actions.setHubPanel('main')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'main' ? 'text-blue-500' : 'text-gray-600'}"><i data-lucide="layout-grid" class="w-6 h-6"></i></button>
-            <button onclick="actions.setHubPanel('notifications')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'notifications' ? 'text-blue-500' : 'text-gray-600'}"><i data-lucide="bell" class="w-6 h-6"></i></button>
-            <button onclick="actions.toggleSidebar()" class="flex-1 py-3 flex flex-col items-center gap-1 text-white relative group"><div class="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center border border-white/10 -mt-6 shadow-2xl backdrop-blur-xl group-active:scale-95 transition-all"><i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-7 h-7"></i></div></button>
-            <button onclick="actions.setHubPanel('bank')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-500' : 'text-gray-600'}"><i data-lucide="landmark" class="w-6 h-6"></i></button>
-            <button onclick="actions.setHubPanel('jobs')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'jobs' ? 'text-emerald-500' : 'text-gray-600'}"><i data-lucide="briefcase" class="w-6 h-6"></i></button>
+        <div class="md:hidden fixed bottom-0 left-0 w-full bg-[#050505]/95 backdrop-blur-3xl border-t border-white/10 z-50 flex justify-around items-center pb-[env(safe-area-inset-bottom)] h-20 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
+            <button onclick="actions.setHubPanel('main')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'main' ? 'text-blue-500' : 'text-gray-600'} transition-all active:scale-90"><i data-lucide="layout-grid" class="w-6 h-6"></i></button>
+            <button onclick="actions.setHubPanel('notifications')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'notifications' ? 'text-blue-500' : 'text-gray-600'} transition-all active:scale-90 relative"><i data-lucide="bell" class="w-6 h-6"></i>${state.notifications.length > 0 ? '<span class="absolute top-3 right-1/3 w-2 h-2 bg-blue-500 rounded-full animate-pulse border border-black"></span>' : ''}</button>
+            <button onclick="actions.toggleSidebar()" class="flex-1 py-3 flex flex-col items-center gap-1 text-white relative group">
+                <div class="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-full flex items-center justify-center border border-white/20 -mt-8 shadow-2xl backdrop-blur-xl group-active:scale-95 transition-all">
+                    <i data-lucide="${state.ui.sidebarOpen ? 'x' : 'menu'}" class="w-7 h-7"></i>
+                </div>
+            </button>
+            <button onclick="actions.setHubPanel('bank')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'bank' ? 'text-emerald-500' : 'text-gray-600'} transition-all active:scale-90"><i data-lucide="landmark" class="w-6 h-6"></i></button>
+            <button onclick="actions.setHubPanel('jobs')" class="flex-1 py-3 flex flex-col items-center gap-1 ${state.activeHubPanel === 'jobs' ? 'text-emerald-500' : 'text-gray-600'} transition-all active:scale-90"><i data-lucide="briefcase" class="w-6 h-6"></i></button>
         </div>
     `;
 
     const mobileMenuOverlay = `
-        <div class="md:hidden fixed inset-0 z-[40] bg-black/90 backdrop-blur-sm transition-opacity duration-500 ${state.ui.sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}" onclick="actions.toggleSidebar()"></div>
-        <div class="md:hidden fixed bottom-0 left-0 w-full z-[45] glass-panel rounded-t-[40px] border-x-0 border-b-0 border-t border-white/10 transition-transform duration-500 transform ${state.ui.sidebarOpen ? 'translate-y-0' : 'translate-y-full'} pb-24 max-h-[85vh] flex flex-col">
-            <div class="w-full flex justify-center pt-4 pb-2"><div class="w-16 h-1.5 bg-white/10 rounded-full"></div></div>
-            <div class="p-8 overflow-y-auto custom-scrollbar flex-1">
-                <div class="space-y-1">${generateNavItems()}</div>
-                <div class="mt-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-4">
-                    <button onclick="actions.backToSelect()" class="glass-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3"><i data-lucide="users" class="w-4 h-4"></i> Changer</button>
-                    <button onclick="actions.confirmLogout()" class="glass-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 border-red-500/20 flex items-center justify-center gap-3"><i data-lucide="log-out" class="w-4 h-4"></i> Sortir</button>
+        <div class="md:hidden fixed inset-0 z-[110] bg-black/95 backdrop-blur-md transition-opacity duration-500 ${state.ui.sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}" onclick="actions.toggleSidebar()"></div>
+        <div class="md:hidden fixed top-0 left-0 h-full w-[85%] z-[120] bg-[#08080a]/98 border-r border-white/10 transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) transform ${state.ui.sidebarOpen ? 'translate-x-0 shadow-[0_0_100px_rgba(0,0,0,0.9)]' : '-translate-x-full'} flex flex-col overflow-hidden">
+            
+            <div onclick="actions.setHubPanel('profile'); actions.toggleSidebar();" class="p-8 border-b border-white/5 bg-gradient-to-b from-blue-900/10 to-transparent shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="relative w-16 h-16 shrink-0">
+                        <img src="${u.avatar}" class="w-full h-full rounded-2xl border-2 border-white/10 object-cover shadow-2xl">
+                        ${u.avatar_decoration ? `<img src="${u.avatar_decoration}" class="absolute top-1/2 left-1/2 w-[125%] h-[125%] -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none" style="max-width:none">` : ''}
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[#08080a]"></div>
+                    </div>
+                    <div class="overflow-hidden flex-1 text-left">
+                        <h3 class="font-black text-white truncate text-lg uppercase tracking-tight italic leading-tight">${u.username}</h3>
+                        <p class="text-[10px] text-blue-400 font-black uppercase tracking-widest truncate mt-1">
+                            ${state.activeCharacter ? `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}` : 'Citoyen L.A.'}
+                        </p>
+                    </div>
                 </div>
+            </div>
+
+            <!-- SIDEBAR WIDGETS MOBILE -->
+            <div class="px-6 py-4 space-y-2 shrink-0 border-b border-white/5 bg-black/20">
+                <div class="p-3 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                        <span class="text-[9px] text-gray-500 font-black uppercase tracking-widest">Connectés ERLC</span>
+                    </div>
+                    <div class="text-xs font-mono font-black text-white">${currentPlayers || 0}/${maxPlayers || 42}</div>
+                </div>
+                <div class="p-3 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                        <span class="text-[9px] text-gray-500 font-black uppercase tracking-widest">Staff Service</span>
+                    </div>
+                    <div class="text-xs font-mono font-black text-white">${state.onDutyStaff?.length || 0}</div>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-2 py-4">
+                <div class="space-y-1">${generateNavItems()}</div>
+            </div>
+
+            <div class="p-6 border-t border-white/5 bg-[#0c0c0e] shrink-0">
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="actions.backToSelect(); actions.toggleSidebar();" class="w-full glass-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center justify-center gap-3">
+                        <i data-lucide="users" class="w-4 h-4"></i> Changer
+                    </button>
+                    <button onclick="actions.confirmLogout(); actions.toggleSidebar();" class="w-full glass-btn-secondary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-500 border-red-500/20 flex items-center justify-center gap-3">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Sortir
+                    </button>
+                </div>
+                <div class="mt-4 text-[8px] text-gray-700 font-black uppercase tracking-[0.4em] text-center">TFRP OS v4.6.0</div>
             </div>
         </div>
     `;
@@ -624,19 +656,20 @@ export const HubView = () => {
                             <img src="${u.avatar}" class="w-full h-full rounded-2xl border-2 border-white/10 relative z-10 object-cover shadow-2xl">
                             ${u.avatar_decoration ? `<img src="${u.avatar_decoration}" class="absolute top-1/2 left-1/2 w-[125%] h-[125%] -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none" style="max-width:none">` : ''}
                         </div>
-                        <div class="overflow-hidden flex-1">
-                            <h3 class="font-black text-white truncate text-sm group-hover:text-blue-300 transition-colors uppercase tracking-tight italic">${u.username}</h3>
-                            <p class="text-[9px] text-blue-400 font-black uppercase tracking-widest truncate mt-0.5">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</p>
+                        <div class="overflow-hidden flex-1 text-left">
+                            <h3 class="font-black text-white truncate text-sm group-hover:text-blue-300 transition-colors uppercase tracking-tight italic leading-none">${u.username}</h3>
+                            <p class="text-[9px] text-blue-400 font-black uppercase tracking-widest truncate mt-1">
+                                ${state.activeCharacter ? `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}` : 'Citoyen'}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <!-- SIDEBAR WIDGETS -->
                 <div class="px-6 mb-4 space-y-2 shrink-0">
                     <div class="p-3 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                              <div class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                             <span class="text-[8px] text-gray-500 font-black uppercase tracking-widest">Serveur ERLC</span>
+                             <span class="text-[8px] text-gray-500 font-black uppercase tracking-widest">Connectés ERLC</span>
                         </div>
                         <div class="text-[10px] font-mono font-black text-white">${currentPlayers || 0}/${maxPlayers || 42}</div>
                     </div>
@@ -665,11 +698,11 @@ export const HubView = () => {
                 </div>
             </aside>
             <main class="flex-1 flex flex-col relative overflow-hidden h-full">
-                <div class="md:hidden p-5 flex items-center justify-between border-b border-white/5 bg-[#050505] z-30 pt-[env(safe-area-inset-top)] shadow-2xl">
+                <div class="md:hidden p-5 flex items-center justify-between border-b border-white/5 bg-[#050505] z-[105] pt-[env(safe-area-inset-top)] shadow-2xl">
                     <div class="font-black text-white tracking-tighter italic uppercase text-lg">TFRP <span class="text-blue-500">Panel</span></div>
-                    <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <i data-lucide="shield-check" class="w-4 h-4 text-blue-400"></i>
-                    </div>
+                    <button onclick="actions.toggleSidebar()" class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
                 </div>
                 <div class="flex-1 overflow-hidden relative z-0 flex flex-col pb-20 md:pb-0">${content}</div>
             </main>
