@@ -23,6 +23,49 @@ export const ProfileView = () => {
     const perms = u.permissions || {};
     const permKeys = Object.keys(perms).filter(k => perms[k] === true);
 
+    const charactersHtml = state.characters.map(char => {
+        const charDelDate = char.deletion_requested_at ? new Date(char.deletion_requested_at) : null;
+        const isCharDeleting = !!charDelDate;
+        let charTimeRemaining = "";
+        if (isCharDeleting) {
+            const expiry = new Date(charDelDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+            const diff = expiry - new Date();
+            if (diff > 0) {
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                charTimeRemaining = `${d}j ${h}h`;
+            } else {
+                charTimeRemaining = "Imminente";
+            }
+        }
+
+        return `
+            <div class="bg-black/40 border ${isCharDeleting ? 'border-orange-500/30 bg-orange-500/[0.02]' : 'border-white/5'} p-6 rounded-[32px] flex flex-col md:flex-row justify-between items-center gap-6 group hover:border-white/20 transition-all">
+                <div class="flex items-center gap-5">
+                    <div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 font-black border border-white/10 text-xl shadow-xl">
+                        ${char.first_name[0]}
+                    </div>
+                    <div>
+                        <div class="font-black text-white text-lg uppercase italic tracking-tight">${char.first_name} ${char.last_name}</div>
+                        <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest mt-1">Niveau d'accès : Citoyen Validé</div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4 w-full md:w-auto">
+                    ${isCharDeleting ? `
+                        <div class="flex-1 md:text-right">
+                            <div class="text-[8px] text-orange-400 font-black uppercase tracking-widest mb-1">Purge programmée</div>
+                            <div class="text-sm font-mono font-bold text-white">${charTimeRemaining}</div>
+                        </div>
+                        <button onclick="actions.cancelCharacterDeletion('${char.id}')" class="px-6 py-2.5 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Annuler</button>
+                    ` : `
+                        <button onclick="actions.requestCharacterDeletion('${char.id}')" class="w-full md:w-auto px-6 py-2.5 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all">Purger le dossier</button>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+
     return `
     <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
         <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-blue-900/10 to-transparent pointer-events-none"></div>
@@ -47,7 +90,7 @@ export const ProfileView = () => {
         </div>
 
         <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
-            <div class="max-w-4xl mx-auto space-y-8 pb-20">
+            <div class="max-w-4xl mx-auto space-y-12 pb-20">
                 
                 <!-- MAIN IDENTITY BLOCK -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -92,6 +135,16 @@ export const ProfileView = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- CHARACTER MANAGEMENT SECTION -->
+                <div class="space-y-6">
+                    <h3 class="text-xs font-black text-blue-400 uppercase tracking-[0.4em] flex items-center gap-4 px-2">
+                        <span class="w-8 h-px bg-blue-500/30"></span> Registre des Identités
+                    </h3>
+                    <div class="grid grid-cols-1 gap-4">
+                        ${charactersHtml}
                     </div>
                 </div>
 

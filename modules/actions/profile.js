@@ -1,6 +1,8 @@
+
 import { state } from '../state.js';
 import { render } from '../utils.js';
 import { ui } from '../ui.js';
+import { loadCharacters } from '../services.js';
 
 export const requestDataDeletion = async () => {
     ui.showModal({
@@ -50,5 +52,56 @@ export const cancelDataDeletion = async () => {
       render();
     } else {
       ui.showToast("Erreur lors de l'annulation.", "error");
+    }
+};
+
+export const requestCharacterDeletion = async (charId) => {
+    const char = state.characters.find(c => c.id === charId);
+    if (!char) return;
+
+    ui.showModal({
+        title: "Purger l'Identité",
+        content: `
+            <div class="space-y-4">
+                <p class="text-sm text-gray-300">Voulez-vous marquer le dossier de <b>${char.first_name} ${char.last_name}</b> pour suppression ?</p>
+                <div class="bg-red-500/10 p-4 rounded-xl border border-red-500/20 text-[10px] text-red-400 uppercase font-black leading-relaxed">
+                    Cette action effacera définitivement l'inventaire, le compte en banque et les affiliations de ce personnage dans 3 jours.
+                </div>
+            </div>
+        `,
+        confirmText: "Confirmer la purge",
+        type: "danger",
+        onConfirm: async () => {
+            const now = new Date().toISOString();
+            const { error } = await state.supabase
+                .from('characters')
+                .update({ deletion_requested_at: now })
+                .eq('id', charId)
+                .eq('user_id', state.user.id);
+
+            if (!error) {
+                ui.showToast("Demande de suppression envoyée.", "warning");
+                await loadCharacters();
+                render();
+            } else {
+                ui.showToast("Erreur système lors de la requête.", "error");
+            }
+        }
+    });
+};
+
+export const cancelCharacterDeletion = async (charId) => {
+    const { error } = await state.supabase
+        .from('characters')
+        .update({ deletion_requested_at: null })
+        .eq('id', charId)
+        .eq('user_id', state.user.id);
+
+    if (!error) {
+        ui.showToast("Suppression du personnage annulée.", "success");
+        await loadCharacters();
+        render();
+    } else {
+        ui.showToast("Erreur lors de l'annulation.", "error");
     }
 };
