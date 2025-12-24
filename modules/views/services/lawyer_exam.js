@@ -64,7 +64,7 @@ export const LawyerExamView = () => {
                             <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 font-black text-xs border border-blue-500/30">
                                 <i data-lucide="timer" class="w-4 h-4"></i>
                             </div>
-                            <span id="exam-timer-seconds" class="font-mono text-xl font-black text-white tracking-tighter">10s</span>
+                            <span id="exam-timer-seconds" class="font-mono text-xl font-black text-white tracking-tighter">30s</span>
                         </div>
                         <div class="text-xs font-mono text-gray-500 uppercase font-bold tracking-widest">Question ${state.activeExam.currentIndex + 1} / 15</div>
                     </div>
@@ -101,7 +101,7 @@ export const LawyerExamView = () => {
                 </p>
                 
                 <div class="bg-black/30 p-8 rounded-3xl border border-white/5 text-left mb-10 space-y-4">
-                    <div class="flex items-center gap-4 text-xs font-bold text-gray-300"><i data-lucide="zap" class="w-5 h-5 text-yellow-500"></i> <span class="uppercase tracking-widest">Chrono : 10 secondes / question</span></div>
+                    <div class="flex items-center gap-4 text-xs font-bold text-gray-300"><i data-lucide="zap" class="w-5 h-5 text-yellow-500"></i> <span class="uppercase tracking-widest">Chrono : 30 secondes / question</span></div>
                     <div class="flex items-center gap-4 text-xs font-bold text-gray-300"><i data-lucide="target" class="w-5 h-5 text-blue-500"></i> <span class="uppercase tracking-widest">Précision requise : 13 / 15</span></div>
                     <div class="flex items-center gap-4 text-xs font-bold text-gray-300"><i data-lucide="shield-alert" class="w-5 h-5 text-red-500"></i> <span class="uppercase tracking-widest">Sortie de zone = Échec définitif</span></div>
                 </div>

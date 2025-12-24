@@ -261,8 +261,32 @@ export const fetchOnDutyStaff = async () => {
 };
 export const fetchLawyers = async () => {
     if (!state.supabase) return;
-    const { data: lawyers } = await state.supabase.from('profiles').select('id, username, avatar_url, is_on_duty, bar_passed').eq('bar_passed', true);
-    state.lawyers = lawyers || [];
+    // Récupération des personnages ayant réussi le barreau
+    const { data: chars } = await state.supabase
+        .from('characters')
+        .select('id, user_id, first_name, last_name, bar_passed')
+        .eq('bar_passed', true);
+    
+    if (chars && chars.length > 0) {
+        const userIds = chars.map(c => c.user_id);
+        const { data: profiles } = await state.supabase
+            .from('profiles')
+            .select('id, username, avatar_url, is_on_duty')
+            .in('id', userIds);
+            
+        state.lawyers = chars.map(c => {
+            const prof = profiles?.find(p => p.id === c.user_id);
+            return {
+                id: c.user_id,
+                char_id: c.id,
+                username: `${c.first_name} ${c.last_name}`,
+                avatar_url: prof?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+                is_on_duty: prof?.is_on_duty || false
+            };
+        });
+    } else {
+        state.lawyers = [];
+    }
 };
 export const toggleStaffDuty = async () => {
     if (!state.user) return;

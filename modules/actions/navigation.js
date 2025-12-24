@@ -14,6 +14,11 @@ import {
 import { hasPermission } from '../utils.js';
 
 export const backToSelect = async () => {
+    if (state.activeExam) {
+        ui.showToast("Action impossible durant l'examen.", "error");
+        return;
+    }
+    
     state.activeCharacter = null;
     state.bankAccount = null;
     
@@ -86,6 +91,11 @@ export const goBackFromLegal = () => {
 };
 
 export const setHubPanel = async (panel) => {
+    if (state.activeExam) {
+        ui.showToast("Concentrez-vous sur vos questions !", "warning");
+        return;
+    }
+
     state.activeHubPanel = panel;
     sessionStorage.setItem('tfrp_hub_panel', panel);
     

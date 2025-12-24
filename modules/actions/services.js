@@ -11,7 +11,7 @@ export const startBarExam = () => {
         questions: shuffled.slice(0, 15),
         currentIndex: 0,
         score: 0,
-        timeLeft: 10,
+        timeLeft: 30, // Passage à 30 secondes
         timer: null
     };
     
@@ -25,7 +25,7 @@ export const startBarExam = () => {
 const startExamTimer = () => {
     if (state.activeExam.timer) clearInterval(state.activeExam.timer);
     
-    state.activeExam.timeLeft = 10;
+    state.activeExam.timeLeft = 30; // Reset à 30 secondes
     state.activeExam.timer = setInterval(() => {
         state.activeExam.timeLeft--;
         
@@ -35,8 +35,8 @@ const startExamTimer = () => {
         } else {
             const timerEl = document.getElementById('exam-timer-bar');
             if (timerEl) {
-                timerEl.style.width = `${(state.activeExam.timeLeft / 10) * 100}%`;
-                if (state.activeExam.timeLeft <= 3) timerEl.classList.add('bg-red-500');
+                timerEl.style.width = `${(state.activeExam.timeLeft / 30) * 100}%`;
+                if (state.activeExam.timeLeft <= 5) timerEl.classList.add('bg-red-500');
                 else timerEl.classList.remove('bg-red-500');
             }
             const timerSecs = document.getElementById('exam-timer-seconds');
