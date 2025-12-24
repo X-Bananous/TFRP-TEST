@@ -779,7 +779,14 @@ export const fetchBankData = async (charId) => {
     state.bankAccount = bank;
     const { data: txs = [] } = await state.supabase.from('transactions').select('*').or(`sender_id.eq.${charId},receiver_id.eq.${charId}`).order('created_at', { ascending: false }).limit(20);
     state.transactions = txs || [];
-    const { data: recipients = [] } = await state.supabase.from('characters').select('id, first_name, last_name').eq('status', 'accepted').neq('id', charId);
+    
+    // PREVENT SELF TRANSFER: Filter out all characters belonging to the same user
+    const { data: recipients = [] } = await state.supabase
+        .from('characters')
+        .select('id, first_name, last_name')
+        .eq('status', 'accepted')
+        .neq('user_id', state.user.id);
+        
     state.recipientList = recipients || [];
 };
 

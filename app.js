@@ -1,3 +1,4 @@
+
 /**
  * TFRP Core Application
  * Entry Point & Aggregator
@@ -23,7 +24,7 @@ import * as ProfileActions from './modules/actions/profile.js';
 import { setupRealtimeListener, fetchERLCData, fetchActiveHeistLobby, fetchDrugLab, fetchGlobalHeists, fetchOnDutyStaff, loadCharacters, fetchPublicLandingData, fetchActiveSession, fetchSecureConfig, fetchActiveGang, checkAndCompleteDrugBatch, fetchBankData } from './modules/services.js';
 
 // Views
-import { LoginView, AccessDeniedView } from './modules/views/login.js';
+import { LoginView, AccessDeniedView, DeletionPendingView } from './modules/views/login.js';
 import { CharacterSelectView } from './modules/views/select.js';
 import { CharacterCreateView } from './modules/views/create.js';
 import { HubView } from './modules/views/hub.js';
@@ -109,8 +110,15 @@ const appRenderer = () => {
 
     let htmlContent = '';
     
-    switch (state.currentView) {
+    // FORCE DELETION VIEW IF ACCOUNT IS MARKED FOR DELETION
+    let effectiveView = state.currentView;
+    if (state.user?.deletion_requested_at && effectiveView !== 'login') {
+        effectiveView = 'deletion_pending';
+    }
+
+    switch (effectiveView) {
         case 'login': htmlContent = LoginView(); break;
+        case 'deletion_pending': htmlContent = DeletionPendingView(); break;
         case 'access_denied': htmlContent = AccessDeniedView(); break;
         case 'select': htmlContent = CharacterSelectView(); break;
         case 'create': htmlContent = CharacterCreateView(); break;
@@ -416,12 +424,20 @@ const finalizeLoginLogic = async () => {
     updateLoadStatus("Lecture des dossiers citoyens...");
     await loadCharacters();
     await fetchActiveSession();
+    
+    // ACCOUNT DELETION BLOCKER
+    if (state.user.deletion_requested_at) {
+        state.currentView = 'deletion_pending';
+        render();
+        return;
+    }
+
     const savedView = sessionStorage.getItem('tfrp_current_view');
     const savedCharId = sessionStorage.getItem('tfrp_active_char');
     const savedPanel = sessionStorage.getItem('tfrp_hub_panel');
     if (savedView === 'hub' && savedCharId) {
         const char = state.characters.find(c => c.id === savedCharId);
-        if (char) {
+        if (char && !char.deletion_requested_at) {
             state.activeCharacter = char;
             state.alignmentModalShown = true; 
             if (savedPanel) { await window.actions.setHubPanel(savedPanel); } else { router('hub'); }

@@ -1,3 +1,4 @@
+
 import { CONFIG } from '../config.js';
 import { state } from '../state.js';
 import { router } from '../utils.js';
@@ -186,6 +187,53 @@ export const LoginView = () => {
     </div>
     `;
 };
+
+export const DeletionPendingView = () => {
+    const deletionDate = state.user.deletion_requested_at ? new Date(state.user.deletion_requested_at) : null;
+    let timeRemainingStr = "Calcul...";
+    if (deletionDate) {
+        const expiry = new Date(deletionDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+        const diff = expiry - new Date();
+        if (diff > 0) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            timeRemainingStr = `${days}j ${hours}h`;
+        } else {
+            timeRemainingStr = "Imminente";
+        }
+    }
+
+    return `
+    <div class="flex-1 flex items-center justify-center p-8 bg-[#050505] text-center animate-fade-in relative overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(239,68,68,0.15),transparent_70%)] pointer-events-none"></div>
+        <div class="glass-panel max-w-lg w-full p-12 rounded-[48px] border-red-500/30 relative z-10 shadow-2xl">
+            <div class="w-24 h-24 bg-red-500/10 rounded-[32px] flex items-center justify-center mx-auto mb-10 text-red-500 border border-red-500/20 shadow-xl animate-pulse">
+                <i data-lucide="shield-alert" class="w-12 h-12"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white mb-4 tracking-tighter uppercase italic">Compte en cours de purge</h2>
+            <p class="text-gray-400 mb-10 leading-relaxed font-medium">
+                Conformément à votre demande RGPD, vos données sont marquées pour destruction.<br><br>
+                L'accès aux services est <span class="text-red-500 font-black">verrouillé</span> durant cette période de réflexion.
+            </p>
+            
+            <div class="bg-black/40 p-8 rounded-3xl border border-white/5 mb-10">
+                <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-2">Destruction programmée dans</div>
+                <div class="text-4xl font-mono font-black text-white tracking-tighter">${timeRemainingStr}</div>
+            </div>
+
+            <div class="space-y-4">
+                <button onclick="actions.cancelDataDeletion()" class="glass-btn w-full py-5 rounded-2xl font-black flex items-center justify-center gap-4 bg-white text-black hover:bg-gray-200 transition-all shadow-xl uppercase tracking-widest">
+                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                    Annuler la suppression
+                </button>
+                <button onclick="actions.logout()" class="w-full py-4 rounded-2xl text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] hover:text-white transition-colors">
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+}
 
 export const AccessDeniedView = () => `
     <div class="flex-1 flex flex-col items-center justify-center p-8 bg-[#050505] text-center animate-fade-in relative overflow-hidden">

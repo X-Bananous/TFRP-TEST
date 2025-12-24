@@ -45,6 +45,11 @@ export const toggleSidebarSection = (sectionId) => {
 export const selectCharacter = async (charId) => {
     const char = state.characters.find(c => c.id === charId);
     if (char && char.status === 'accepted') {
+        if (char.deletion_requested_at) {
+            ui.showToast("Ce personnage est verrouillé pour suppression.", "error");
+            return;
+        }
+
         state.activeCharacter = char;
         state.activeHubPanel = 'main';
         state.alignmentModalShown = false; 

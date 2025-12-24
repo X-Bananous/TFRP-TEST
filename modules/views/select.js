@@ -8,8 +8,10 @@ export const CharacterSelectView = () => {
     const charsHtml = state.characters.map(char => {
         const isAccepted = char.status === 'accepted';
         const isRejected = char.status === 'rejected';
+        const isDeleting = !!char.deletion_requested_at;
         
-        const statusClass = isAccepted ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 
+        const statusClass = isDeleting ? 'text-orange-400 bg-orange-500/10 border-orange-500/20' : 
+                            isAccepted ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 
                             isRejected ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20';
         
         const alignColor = char.alignment === 'illegal' ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-blue-400 border-blue-500/30 bg-blue-500/10';
@@ -18,7 +20,18 @@ export const CharacterSelectView = () => {
 
         let actionHtml = '';
         
-        if (isRejected) {
+        if (isDeleting) {
+            actionHtml = `
+                <div class="flex flex-col gap-3">
+                    <button disabled class="w-full py-4 rounded-2xl bg-white/5 text-gray-600 border border-white/5 font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3">
+                        <i data-lucide="lock" class="w-4 h-4"></i> Dossier Verrouillé
+                    </button>
+                    <button onclick="actions.cancelCharacterDeletion('${char.id}')" class="w-full py-4 rounded-2xl bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white border border-orange-500/30 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i> Annuler la purge
+                    </button>
+                </div>
+            `;
+        } else if (isRejected) {
             actionHtml = `
                 <button onclick="actions.deleteCharacter('${char.id}')" class="w-full py-4 rounded-2xl bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
                     <i data-lucide="trash-2" class="w-4 h-4"></i> Dossier Rejeté • Purger
@@ -51,8 +64,8 @@ export const CharacterSelectView = () => {
                     <div class="w-20 h-20 rounded-[28px] bg-gradient-to-br from-gray-800 to-black border-2 border-white/10 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
                         <span class="text-3xl font-black text-gray-600 select-none">${char.first_name[0]}</span>
                     </div>
-                    <div class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${statusClass} shadow-lg italic">
-                        ${char.status}
+                    <div class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${statusClass} shadow-lg italic ${isDeleting ? 'animate-pulse' : ''}">
+                        ${isDeleting ? 'Purge en cours' : char.status}
                     </div>
                 </div>
 
