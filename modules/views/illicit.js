@@ -1,3 +1,4 @@
+
 import { state } from '../state.js';
 import { CONFIG } from '../config.js';
 import { IllicitDashboardView } from './illicit/dashboard.js';
@@ -153,10 +154,10 @@ export const IllicitView = () => {
                              <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Signal Niveau 5</span>
                         </div>
                     </div>
-                    <div class="flex gap-2 bg-white/5 p-1.5 rounded-2xl overflow-x-auto max-w-full no-scrollbar border border-white/5">
+                    <div class="flex flex-nowrap gap-2 bg-white/5 p-1.5 rounded-2xl overflow-x-auto max-w-full no-scrollbar border border-white/5">
                         ${tabs.map(t => `
                             <button onclick="actions.setIllicitTab('${t.id}')" 
-                                class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all whitespace-nowrap ${(currentTabId === t.id || (t.id === 'market' && currentTabId.startsWith('market'))) ? 'bg-red-600 text-white shadow-xl shadow-red-900/20' : 'text-gray-500 hover:text-white hover:bg-white/5'}">
+                                class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all whitespace-nowrap shrink-0 ${(currentTabId === t.id || (t.id === 'market' && currentTabId.startsWith('market'))) ? 'bg-red-600 text-white shadow-xl shadow-red-900/20' : 'text-gray-500 hover:text-white hover:bg-white/5'}">
                                 <i data-lucide="${t.icon}" class="w-4 h-4"></i> ${t.label}
                             </button>
                         `).join('')}
