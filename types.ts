@@ -3,16 +3,17 @@ export interface User {
   id: string;
   username: string;
   avatar: string;
-  // Replaced simple boolean with permissions object
   permissions: StaffPermissions;
-  isFounder: boolean; // Hardcoded admins
+  isFounder: boolean;
+  wheel_turn?: number;
+  isnotified_wheel?: boolean;
 }
 
 export interface StaffPermissions {
   can_approve_characters?: boolean;
   can_delete_characters?: boolean;
   can_manage_economy?: boolean;
-  can_manage_staff?: boolean; // Only founders can give this, or people with this perm
+  can_manage_staff?: boolean;
   can_bypass_login?: boolean;
   can_manage_characters?: boolean;
   can_manage_inventory?: boolean;
@@ -20,6 +21,7 @@ export interface StaffPermissions {
   can_manage_illegal?: boolean;
   can_go_onduty?: boolean;
   can_manage_jobs?: boolean;
+  can_give_wheel_turn?: boolean;
 }
 
 export enum CharacterStatus {

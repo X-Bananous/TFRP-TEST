@@ -6,6 +6,16 @@ import { ui } from '../ui.js';
 
 export const CharacterSelectView = () => {
     const isFounder = state.user?.isFounder || state.adminIds.includes(state.user?.id);
+    const wheelTurns = state.user?.whell_turn || 0;
+    const notifyWheel = state.user?.isnotified_wheel === false;
+
+    if (notifyWheel && wheelTurns > 0) {
+        setTimeout(() => {
+            ui.showToast(`Vous avez ${wheelTurns} tour(s) de roue disponible(s) !`, 'success');
+            state.user.isnotified_wheel = true;
+            state.supabase.from('profiles').update({ isnotified_wheel: true }).eq('id', state.user.id);
+        }, 1000);
+    }
     
     const charsHtml = state.characters.map(char => {
         const isAccepted = char.status === 'accepted';
@@ -143,7 +153,7 @@ export const CharacterSelectView = () => {
 
     return `
         <div class="flex-1 flex flex-col p-8 animate-fade-in overflow-hidden relative h-full bg-[#050505]">
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_rgba(10,132,255,0.05),transparent_70%)] pointer-events-none"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_rgba(10,132,246,0.05),transparent_70%)] pointer-events-none"></div>
             
             <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-16 z-10 px-6">
                 <div>
@@ -151,6 +161,12 @@ export const CharacterSelectView = () => {
                     <p class="text-gray-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Los Angeles Administration • Accès Sécurisé</p>
                 </div>
                 <div class="flex items-center gap-4">
+                    ${wheelTurns > 0 ? `
+                        <button onclick="actions.openWheel()" class="group relative px-6 py-3 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-black text-xs uppercase tracking-widest flex items-center gap-3 animate-pulse shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                            <i data-lucide="sun" class="w-5 h-5"></i>
+                            Roue de la Fortune (${wheelTurns})
+                        </button>
+                    ` : ''}
                     <button onclick="actions.setHubPanel('profile'); router('hub');" class="p-4 rounded-2xl bg-white/5 hover:bg-blue-600/10 text-gray-500 hover:text-blue-400 border border-white/10 transition-all group" title="Accéder au Profil">
                         <i data-lucide="user-circle" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
                     </button>

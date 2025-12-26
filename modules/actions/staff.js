@@ -59,6 +59,42 @@ export const setStaffTab = async (tab) => {
     }
 };
 
+export const giveWheelTurn = async (userId) => {
+    if (!hasPermission('can_give_wheel_turn')) return;
+    
+    ui.showModal({
+        title: "Offrir des Tours de Roue",
+        content: `
+            <div class="space-y-4">
+                <p class="text-sm text-gray-400">Combien de tours voulez-vous créditer à cet utilisateur ?</p>
+                <input type="number" id="wheel-turns-amount" class="glass-input w-full p-4 rounded-2xl text-center font-mono font-black text-2xl" value="1" min="1">
+                <p class="text-[9px] text-gray-600 uppercase font-black tracking-widest text-center italic">Le statut de notification sera réinitialisé.</p>
+            </div>
+        `,
+        confirmText: "Créditer",
+        onConfirm: async () => {
+            const amount = parseInt(document.getElementById('wheel-turns-amount').value);
+            if (isNaN(amount) || amount < 1) return;
+
+            const { data: profile } = await state.supabase.from('profiles').select('whell_turn').eq('id', userId).single();
+            const newTotal = (profile.whell_turn || 0) + amount;
+            
+            const { error } = await state.supabase.from('profiles').update({ 
+                whell_turn: newTotal,
+                isnotified_wheel: false 
+            }).eq('id', userId);
+
+            if (!error) {
+                ui.showToast(`+${amount} tours crédités.`, 'success');
+                await services.fetchStaffProfiles();
+                render();
+            } else {
+                ui.showToast("Erreur lors de l'attribution.", "error");
+            }
+        }
+    });
+};
+
 export const setEconomySubTab = async (subTab) => {
     state.activeEconomySubTab = subTab;
     state.isPanelLoading = true;
@@ -611,7 +647,8 @@ export const renderPermEditor = (profile) => {
         can_manage_jobs: "Gestion des Carrières. Permet d'assigner arbitrairement n'importe quel métier civil ou gouvernemental à un citoyen sans passer par le Pôle Emploi.",
         can_bypass_login: "Accès Racine (Bypass). Permet de naviguer sur l'intégralité du panel administratif sans avoir besoin de charger un personnage citoyen actif.",
         can_launch_session: "Contrôle des Cycles. Autorise l'ouverture et la fermeture des sessions de jeu officielles, déclenchant la synchronisation globale du CAD.",
-        can_execute_commands: "Accès au Terminal ERLC. Permet d'envoyer des instructions directes au serveur de jeu via l'API (messages globaux, annonces de braquage, etc.)."
+        can_execute_commands: "Accès au Terminal ERLC. Permet d'envoyer des instructions directes au serveur de jeu via l'API (messages globaux, annonces de braquage, etc.).",
+        can_give_wheel_turn: "Gestionnaire de Récompenses. Autorise l'attribution de tours de Roue de la Fortune aux citoyens via le registre administratif."
     };
 
     const checkboxes = [
@@ -627,7 +664,8 @@ export const renderPermEditor = (profile) => {
         { k: 'can_manage_jobs', l: 'Affectation Métier' },
         { k: 'can_bypass_login', l: 'Accès Fondation' },
         { k: 'can_launch_session', l: 'Cycle de Session' },
-        { k: 'can_execute_commands', l: 'Console ERLC' }
+        { k: 'can_execute_commands', l: 'Console ERLC' },
+        { k: 'can_give_wheel_turn', l: 'Maître des Roues' }
     ].map(p => `
         <div class="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/[0.08] ${isDisabled ? 'opacity-50 grayscale' : ''}">
             <label class="flex items-center gap-4 cursor-pointer">
@@ -653,7 +691,10 @@ export const renderPermEditor = (profile) => {
                         <div class="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Niveau d'accréditation</div>
                     </div>
                 </div>
-                <button onclick="document.getElementById('perm-editor-container').innerHTML = ''; state.activePermissionUserId = null;" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+                <div class="flex gap-2">
+                    <button onclick="actions.giveWheelTurn('${profile.id}')" class="p-2 bg-yellow-600/20 text-yellow-500 hover:bg-yellow-600 hover:text-white rounded-xl transition-all border border-yellow-600/30" title="Donner des tours de roue"><i data-lucide="sun" class="w-5 h-5"></i></button>
+                    <button onclick="document.getElementById('perm-editor-container').innerHTML = ''; state.activePermissionUserId = null;" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
+                </div>
             </div>
             <div class="grid grid-cols-1 gap-3 overflow-y-auto max-h-[400px] custom-scrollbar pr-2">
                 ${checkboxes}

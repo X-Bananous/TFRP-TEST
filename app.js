@@ -20,6 +20,7 @@ import * as ServicesActions from './modules/actions/services.js';
 import * as EnterpriseActions from './modules/actions/enterprise.js'; 
 import * as StaffActions from './modules/actions/staff.js';
 import * as ProfileActions from './modules/actions/profile.js';
+import * as WheelActions from './modules/actions/wheel.js';
 
 import { setupRealtimeListener, fetchERLCData, fetchActiveHeistLobby, fetchDrugLab, fetchGlobalHeists, fetchOnDutyStaff, loadCharacters, fetchPublicLandingData, fetchActiveSession, fetchSecureConfig, fetchActiveGang, checkAndCompleteDrugBatch, fetchBankData } from './modules/services.js';
 
@@ -29,6 +30,7 @@ import { CharacterSelectView } from './modules/views/select.js';
 import { CharacterCreateView } from './modules/views/create.js';
 import { HubView } from './modules/views/hub.js';
 import { TermsView, PrivacyView } from './modules/views/legal.js';
+import { WheelView } from './modules/views/wheel.js';
 
 // --- Combine Actions into Window ---
 window.actions = {
@@ -40,7 +42,8 @@ window.actions = {
     ...ServicesActions,
     ...StaffActions,
     ...EnterpriseActions,
-    ...ProfileActions
+    ...ProfileActions,
+    ...WheelActions
 };
 
 window.router = router;
@@ -125,6 +128,7 @@ const appRenderer = () => {
         case 'hub': htmlContent = HubView(); break;
         case 'terms': htmlContent = TermsView(); break;
         case 'privacy': htmlContent = PrivacyView(); break;
+        case 'wheel': htmlContent = WheelView(); break;
         default: htmlContent = LoginView();
     }
 
@@ -351,8 +355,20 @@ const handleLegacySession = async (token) => {
         
         let isFounder = state.adminIds.includes(discordUser.id);
         await state.supabase.from('profiles').upsert({ id: discordUser.id, username: discordUser.username, avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, updated_at: new Date() });
-        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar, deletion_requested_at').eq('id', discordUser.id).maybeSingle();
-        state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, advent_calendar: profile?.advent_calendar || [], deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
+        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar, deletion_requested_at, whell_turn, isnotified_wheel').eq('id', discordUser.id).maybeSingle();
+        state.user = { 
+            id: discordUser.id, 
+            username: discordUser.global_name || discordUser.username, 
+            avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, 
+            avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, 
+            permissions: profile?.permissions || {}, 
+            advent_calendar: profile?.advent_calendar || [], 
+            deletion_requested_at: profile?.deletion_requested_at || null, 
+            whell_turn: profile?.whell_turn || 0,
+            isnotified_wheel: profile?.isnotified_wheel ?? true,
+            isFounder: isFounder, 
+            guilds: guilds.map(g => g.id) 
+        };
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // SEQUENCE : Intro -> Loading -> Character Select
@@ -391,8 +407,20 @@ const handleAuthenticatedSession = async (session) => {
         }
         let isFounder = state.adminIds.includes(discordUser.id);
         await state.supabase.from('profiles').upsert({ id: discordUser.id, username: discordUser.username, avatar_url: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, updated_at: new Date() });
-        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar, deletion_requested_at').eq('id', discordUser.id).maybeSingle();
-        state.user = { id: discordUser.id, username: discordUser.global_name || discordUser.username, avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, permissions: profile?.permissions || {}, advent_calendar: profile?.advent_calendar || [], deletion_requested_at: profile?.deletion_requested_at || null, isFounder: isFounder, guilds: guilds.map(g => g.id) };
+        const { data: profile } = await state.supabase.from('profiles').select('permissions, advent_calendar, deletion_requested_at, whell_turn, isnotified_wheel').eq('id', discordUser.id).maybeSingle();
+        state.user = { 
+            id: discordUser.id, 
+            username: discordUser.global_name || discordUser.username, 
+            avatar: `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`, 
+            avatar_decoration: discordUser.avatar_decoration_data ? `https://cdn.discordapp.com/avatar-decoration-presets/${discordUser.avatar_decoration_data.asset}.png?size=160` : null, 
+            permissions: profile?.permissions || {}, 
+            advent_calendar: profile?.advent_calendar || [], 
+            deletion_requested_at: profile?.deletion_requested_at || null, 
+            whell_turn: profile?.whell_turn || 0,
+            isnotified_wheel: profile?.isnotified_wheel ?? true,
+            isFounder: isFounder, 
+            guilds: guilds.map(g => g.id) 
+        };
         
         // SEQUENCE : Intro -> Loading -> Character Select
         appEl.classList.add('opacity-0', 'pointer-events-none');
