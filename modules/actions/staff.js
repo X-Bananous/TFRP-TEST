@@ -200,7 +200,7 @@ export const decideApplication = async (id, status) => {
     }
 };
 
-export const openAdminEditChar = (charId) => {
+export const openAdminEditCharacter = (charId) => {
     const char = state.allCharactersAdmin.find(c => c.id === charId);
     if(char) {
         state.editingCharacter = char;
@@ -655,7 +655,7 @@ export const renderPermEditor = (profile) => {
                 </div>
                 <button onclick="document.getElementById('perm-editor-container').innerHTML = ''; state.activePermissionUserId = null;" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
             </div>
-            <div class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-1 gap-3 overflow-y-auto max-h-[400px] custom-scrollbar pr-2">
                 ${checkboxes}
             </div>
             ${isSelf ? '<div class="mt-6 text-[10px] text-red-400 font-black uppercase text-center border border-red-500/20 bg-red-500/5 p-2 rounded-xl italic">Sécurité : Impossible de s\'auto-éditer</div>' : ''}

@@ -26,7 +26,7 @@ export const StaffEconomyView = () => {
                allChars = allChars.filter(c => c.first_name.toLowerCase().includes(q) || c.last_name.toLowerCase().includes(q) || c.discord_username.toLowerCase().includes(q));
             }
             subContent = `
-               <div class="mb-6 flex justify-between items-center bg-emerald-500/5 p-5 rounded-[28px] border border-emerald-500/10 shrink-0">
+               <div class="mb-6 flex flex-col md:flex-row justify-between items-center bg-emerald-500/5 p-5 rounded-[28px] border border-emerald-500/10 shrink-0 gap-4">
                    <div><h3 class="font-black text-white uppercase italic tracking-tight">Régulation Globale</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Action corrective sur l'ensemble de la masse monétaire</p></div>
                    <button onclick="actions.openEconomyModal('ALL')" class="glass-btn-secondary px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all"><i data-lucide="globe" class="w-4 h-4"></i> AJUSTEMENT GÉNÉRAL</button>
                </div>
@@ -92,7 +92,7 @@ export const StaffEconomyView = () => {
         `;
     } else if (subTab === 'stats') {
         subContent = `
-               <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden">
+               <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 overflow-hidden h-full">
                    <div class="glass-panel p-8 rounded-[40px] lg:col-span-2 border border-white/5 bg-[#0a0a0a] shadow-2xl flex flex-col min-h-0">
                        <h3 class="font-black text-white text-sm uppercase tracking-widest mb-6 shrink-0">Registre des Mouvements (50)</h3>
                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
@@ -108,9 +108,9 @@ export const StaffEconomyView = () => {
                            </table>
                        </div>
                    </div>
-                   <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
-                       <h3 class="font-black text-white text-sm uppercase tracking-widest mb-6">Activité Journalière</h3>
-                       <div class="space-y-3">
+                   <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl flex flex-col min-h-0">
+                       <h3 class="font-black text-white text-sm uppercase tracking-widest mb-6 shrink-0">Activité Journalière</h3>
+                       <div class="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-2">
                            ${state.dailyEconomyStats.slice(0, 10).map(d => `
                                <div class="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-emerald-500/30 transition-all">
                                    <span class="text-gray-500 font-mono font-bold text-xs">${d.date}</span>
@@ -151,7 +151,7 @@ export const StaffEconomyView = () => {
                 ${canManageEco ? `<button onclick="actions.setEconomySubTab('stats')" class="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'stats' ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/40' : 'text-gray-500 hover:text-white'}">Statistiques</button>` : ''}
             </div>
 
-            <div class="flex-1 flex flex-col min-h-0">
+            <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
                 ${subContent}
             </div>
         </div>

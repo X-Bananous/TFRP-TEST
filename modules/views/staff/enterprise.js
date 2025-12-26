@@ -26,7 +26,7 @@ export const StaffEnterpriseView = () => {
         <div class="h-full grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden animate-fade-in">
             
             <!-- LEFT COLUMN: CREATION & LIST -->
-            <div class="lg:col-span-8 flex flex-col min-h-0 gap-6">
+            <div class="lg:col-span-8 flex flex-col min-h-0 gap-6 overflow-hidden">
                 
                 <!-- CREATION FORM (Shrink-0) -->
                 <div class="glass-panel p-6 rounded-[32px] border ${isEditing ? 'border-blue-500/50 shadow-blue-900/20' : 'border-white/5'} bg-[#0a0a0a] relative overflow-hidden shrink-0">
@@ -87,7 +87,7 @@ export const StaffEnterpriseView = () => {
             </div>
 
             <!-- RIGHT COLUMN: ITEM MODERATION (Flexible height) -->
-            <div class="lg:col-span-4 flex flex-col h-full min-h-0">
+            <div class="lg:col-span-4 flex flex-col h-full min-h-0 overflow-hidden">
                 <div class="glass-panel rounded-[32px] flex flex-col h-full border border-orange-500/20 bg-orange-950/[0.02] overflow-hidden shadow-2xl relative">
                     <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
                     <div class="p-6 border-b border-white/5 bg-white/[0.01] flex justify-between items-center shrink-0">

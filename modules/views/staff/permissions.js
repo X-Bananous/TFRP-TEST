@@ -3,20 +3,23 @@ import { state } from '../../state.js';
 
 export const StaffPermissionsView = () => {
     return `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-full min-h-0 animate-fade-in">
-            <div class="flex flex-col">
-                <div class="glass-panel p-8 rounded-[40px] relative border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-full min-h-0 animate-fade-in overflow-hidden">
+            <!-- LEFT PANEL: EDITOR -->
+            <div class="flex flex-col h-full overflow-hidden">
+                <div class="glass-panel p-8 rounded-[40px] relative border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl overflow-hidden">
                     <div class="absolute -right-20 -top-20 w-80 h-80 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none"></div>
-                    <h3 class="font-black text-white text-xl uppercase italic tracking-tighter mb-4">Gouvernance & Accréditations</h3>
-                    <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-8">Recherchez un citoyen Discord pour altérer ses niveaux d'accès.</p>
-                    
-                    <div class="relative mb-10 z-20">
-                        <i data-lucide="search" class="w-5 h-5 absolute left-4 top-4 text-gray-600"></i>
-                        <input type="text" placeholder="Pseudo Discord ou UID..." oninput="actions.searchProfilesForPerms(this.value)" class="glass-input p-4 pl-12 rounded-2xl w-full text-sm placeholder-gray-700 bg-black/40 border-white/10 font-bold" autocomplete="off">
-                        <div id="perm-search-dropdown" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden animate-fade-in"></div>
+                    <div class="shrink-0">
+                        <h3 class="font-black text-white text-xl uppercase italic tracking-tighter mb-4">Gouvernance & Accréditations</h3>
+                        <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-8">Recherchez un citoyen Discord pour altérer ses niveaux d'accès.</p>
+                        
+                        <div class="relative mb-10 z-20">
+                            <i data-lucide="search" class="w-5 h-5 absolute left-4 top-4 text-gray-600"></i>
+                            <input type="text" placeholder="Pseudo Discord ou UID..." oninput="actions.searchProfilesForPerms(this.value)" class="glass-input p-4 pl-12 rounded-2xl w-full text-sm placeholder-gray-700 bg-black/40 border-white/10 font-bold" autocomplete="off">
+                            <div id="perm-search-dropdown" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden animate-fade-in"></div>
+                        </div>
                     </div>
 
-                    <div id="perm-editor-container" class="flex-1 flex flex-col justify-center border-t border-white/5 mt-auto">
+                    <div id="perm-editor-container" class="flex-1 overflow-y-auto custom-scrollbar border-t border-white/5 mt-auto">
                         <div class="text-center py-20">
                             <div class="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-gray-700 mx-auto mb-4 border border-white/5 shadow-inner">
                                 <i data-lucide="lock" class="w-8 h-8"></i>
@@ -27,10 +30,13 @@ export const StaffPermissionsView = () => {
                 </div>
             </div>
 
-            <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col overflow-hidden shadow-2xl">
-                <h3 class="font-black text-white text-sm uppercase tracking-widest mb-8 flex items-center gap-3">
-                    <i data-lucide="shield" class="w-5 h-5 text-purple-400"></i> Corps Administratif Actuel
-                </h3>
+            <!-- RIGHT PANEL: STAFF LIST -->
+            <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl overflow-hidden">
+                <div class="shrink-0">
+                    <h3 class="font-black text-white text-sm uppercase tracking-widest mb-8 flex items-center gap-3">
+                        <i data-lucide="shield" class="w-5 h-5 text-purple-400"></i> Corps Administratif Actuel
+                    </h3>
+                </div>
                 <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
                     ${state.staffMembers.map(m => {
                         const perms = m.permissions || {};
