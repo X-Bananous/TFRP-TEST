@@ -7,21 +7,13 @@ export const WheelView = () => {
     const items = state.currentWheelItems || [];
 
     const renderItems = () => {
-        if (items.length === 0) {
-            // Placeholder initial
-            return Array(10).fill(0).map(() => `
-                <div class="w-[150px] h-[150px] shrink-0 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-center">
-                    <div class="w-8 h-8 rounded-full bg-white/10 animate-pulse"></div>
-                </div>
-            `).join('');
-        }
         return items.map(item => `
             <div class="w-[150px] h-[180px] shrink-0 bg-gradient-to-b from-[#1a1a1c] to-black rounded-2xl border-b-4 flex flex-col items-center justify-center p-4 shadow-2xl transition-all" style="border-color: ${item.color}">
                 <div class="w-16 h-16 rounded-2xl mb-4 flex items-center justify-center shadow-inner" style="background-color: ${item.color}20">
                     <i data-lucide="${item.type === 'money' ? 'banknote' : item.type === 'role' ? 'crown' : 'star'}" class="w-8 h-8" style="color: ${item.color}"></i>
                 </div>
                 <div class="text-[10px] font-black text-white uppercase text-center leading-tight tracking-tighter">${item.label}</div>
-                <div class="text-[7px] text-gray-500 font-bold uppercase mt-2 tracking-widest">${item.rarity || 'Common'}</div>
+                <div class="text-[7px] text-gray-500 font-bold uppercase mt-2 tracking-widest">${item.rarity || 'Commun'}</div>
             </div>
         `).join('');
     };
@@ -45,12 +37,15 @@ export const WheelView = () => {
                         <div class="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">Clés Disponibles</div>
                         <div class="text-3xl font-mono font-black text-yellow-400">${turns}</div>
                     </div>
+                    <button onclick="actions.showProbabilities()" class="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-gray-400 hover:text-white transition-all shadow-xl" title="Probabilités">
+                        <i data-lucide="help-circle" class="w-6 h-6"></i>
+                    </button>
                 </div>
             </div>
 
             <!-- SLIDER CONTAINER -->
-            <div class="relative w-full h-[250px] flex items-center justify-center mb-16">
-                <!-- Pointeur Central -->
+            <div class="relative w-full h-[250px] flex items-center justify-center mb-16 overflow-hidden">
+                <!-- Pointeur Central (Corrigé pour être fixe) -->
                 <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 bg-blue-500 z-[100] shadow-[0_0_20px_rgba(59,130,246,0.8)]">
                     <div class="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rotate-45 shadow-lg"></div>
                     <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rotate-45 shadow-lg"></div>
@@ -60,9 +55,9 @@ export const WheelView = () => {
                 <div class="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-[#050505] to-transparent z-20 pointer-events-none"></div>
                 <div class="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-[#050505] to-transparent z-20 pointer-events-none"></div>
 
-                <!-- The Strip -->
-                <div class="w-full h-full overflow-hidden border-y border-white/5 bg-black/40 flex items-center">
-                    <div id="case-strip" class="flex gap-[10px] px-[50%] transition-transform duration-0">
+                <!-- The Strip (Corrigé : le ruban commence au milieu) -->
+                <div class="w-full h-full border-y border-white/5 bg-black/40 flex items-center">
+                    <div id="case-strip" class="flex gap-[10px] transition-transform duration-0" style="margin-left: calc(50% - 75px); transform: translateX(0);">
                         ${renderItems()}
                     </div>
                 </div>
@@ -73,7 +68,7 @@ export const WheelView = () => {
                 <button onclick="actions.spinWheel()" 
                     ${state.isSpinning || turns <= 0 ? 'disabled' : ''}
                     class="h-24 px-24 rounded-[32px] font-black text-2xl uppercase italic tracking-widest transition-all transform active:scale-95 shadow-2xl
-                    ${state.isSpinning || turns <= 0 ? 'bg-white/5 text-gray-700 cursor-not-allowed border border-white/5' : 'bg-white text-black hover:bg-blue-600 hover:text-white shadow-blue-900/30'}">
+                    ${state.isSpinning || turns <= 0 ? 'bg-white/5 text-gray-600 cursor-not-allowed border border-white/5' : 'bg-white text-black hover:bg-blue-600 hover:text-white shadow-blue-900/30'}">
                     ${state.isSpinning ? 'DÉVERROUILLAGE...' : 'OUVRIR LA CAISSE'}
                 </button>
                 
@@ -92,7 +87,7 @@ export const WheelView = () => {
             <i data-lucide="shield-check" class="w-5 h-5 text-blue-500"></i>
             <div class="text-[9px] text-gray-500 font-mono uppercase tracking-widest leading-relaxed">
                 Algorithme de probabilités certifié v4.6<br>
-                Système de tirage anti-doublon activé
+                Système de tirage sécurisé TFRP
             </div>
         </div>
     </div>
