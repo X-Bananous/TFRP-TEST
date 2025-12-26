@@ -20,7 +20,6 @@ export const setStaffTab = async (tab) => {
              await services.fetchServerStats();
         }
         if (tab === 'citizens') {
-            // Fusion WL + DB : on récupère tout
             await Promise.all([
                 services.fetchPendingApplications(),
                 services.fetchAllCharacters(),
@@ -46,8 +45,8 @@ export const setStaffTab = async (tab) => {
             await services.fetchPendingEnterpriseItems();
             await services.fetchAllCharacters(); 
         }
-        if (tab === 'database') {
-             await services.fetchEnterprises(); // Need this to check PDG status
+        if (tab === 'permissions') {
+            await services.fetchStaffProfiles();
         }
         if (tab === 'sessions' || tab === 'logs') {
             await services.fetchERLCData();
@@ -170,7 +169,6 @@ export const assignJob = async (charId, jobName) => {
         return;
     }
 
-    // --- ENFORCE LIMITS ---
     if (jobName === 'maire') {
         const count = state.allCharactersAdmin.filter(c => c.job === 'maire' && c.id !== charId && c.status === 'accepted').length;
         if (count >= 1) return ui.showToast("Quota atteint : Un seul Maire autorisé.", 'error');
@@ -189,7 +187,7 @@ export const decideApplication = async (id, status) => {
     
     const { error } = await state.supabase.from('characters').update({ 
         status: status,
-        verifiedby: state.user.id // On enregistre l'ID du profil staff qui a validé/refusé
+        verifiedby: state.user.id
     }).eq('id', id);
 
     if (!error) {
@@ -199,7 +197,6 @@ export const decideApplication = async (id, status) => {
         render(); 
     } else {
         ui.showToast("Erreur lors de la décision.", "error");
-        console.error("Decide App Error:", error);
     }
 };
 
@@ -299,8 +296,6 @@ export const validateHeist = async (lobbyId, success) => {
     ui.showToast(success ? "Braquage validé" : "Braquage échoué", success ? 'success' : 'info');
     render();
 };
-
-// --- ENTERPRISE ADMINISTRATION ---
 
 export const searchEnterpriseLeader = (role, query) => {
     const q = query.toLowerCase();
@@ -406,13 +401,8 @@ export const adminModerateItem = async (itemId, action) => {
         await services.moderateEnterpriseItem(itemId, 'approved');
         ui.showToast("Article approuvé.", 'success');
     } else {
-        // Supprimer définitivement si refusé
         const { error } = await state.supabase.from('enterprise_items').delete().eq('id', itemId);
-        if (!error) {
-            ui.showToast("Article refusé et supprimé du catalogue.", 'warning');
-        } else {
-            ui.showToast("Erreur lors de la suppression.", 'error');
-        }
+        if (!error) ui.showToast("Article refusé.", 'warning');
     }
     await services.fetchPendingEnterpriseItems();
     render();
@@ -422,8 +412,8 @@ export const adminDeleteEnterprise = async (entId) => {
     if (!hasPermission('can_manage_enterprises')) return;
     
     const ent = state.enterprises.find(e => e.id === entId);
-    if (ent && (ent.name === "L.A. Auto School" || ent.name === "Auto-école")) {
-        ui.showToast("L.A. Auto School ne peut pas être supprimée.", 'error');
+    if (ent && (ent.name === "L.A. Auto School")) {
+        ui.showToast("Impossible de supprimer cette entité.", 'error');
         return;
     }
 
@@ -441,7 +431,6 @@ export const adminDeleteEnterprise = async (entId) => {
     });
 };
 
-// --- ERLC COMMANDS ---
 export const executeCommand = async (e) => {
     e.preventDefault();
     if (!hasPermission('can_execute_commands')) return;
@@ -456,7 +445,6 @@ export const executeCommand = async (e) => {
     e.target.reset();
 };
 
-// --- GANG ADMINISTRATION ---
 export const openEditGang = (gangId) => {
     const gang = state.gangs.find(g => g.id === gangId);
     if(gang) {
@@ -494,12 +482,6 @@ export const submitEditGang = async (e) => {
         return;
     }
 
-    if (state.gangCreation.coLeaderResult && state.gangCreation.leaderResult.id === state.gangCreation.coLeaderResult.id) {
-         ui.showToast("Le Chef et le Sous-Chef ne peuvent pas être la même personne.", 'error');
-         toggleBtnLoading(btn, false);
-         return;
-    }
-
     await services.updateGang(state.editingGang.id, name, state.gangCreation.leaderResult.id, state.gangCreation.coLeaderResult?.id);
     
     state.editingGang = null;
@@ -510,10 +492,9 @@ export const submitEditGang = async (e) => {
     toggleBtnLoading(btn, false);
 };
 
-// Inventory Admin
 export const openInventoryModal = async (charId, charName) => {
     if (!hasPermission('can_manage_inventory')) return;
-    ui.showToast("Chargement inventaire...", 'info');
+    ui.showToast("Ouverture inventaire...", 'info');
     await services.fetchInventory(charId); 
     state.inventoryModal = { isOpen: true, targetId: charId, targetName: charName, items: state.inventory };
     render();
@@ -541,7 +522,7 @@ export const manageInventoryItem = async (action, itemId, itemName, event = null
     } else if (action === 'add') {
         const formData = new FormData(event.target);
         await state.supabase.from('inventory').insert({
-            character_id: targetId, name: formData.get('item_name'), quantity: parseInt(formData.get('quantity')), estimated_value: parseInt(formData.get('value'))
+            character_id: targetId, name: formData.get('item_name'), quantity: parseInt(formData.get('quantity')), estimated_value: 0
         });
         refreshInv();
     }
@@ -553,47 +534,31 @@ export const manageInventoryItem = async (action, itemId, itemName, event = null
     }
 };
 
-// Permissions
 export const searchProfilesForPerms = async (query) => {
     const container = document.getElementById('perm-search-dropdown');
     if (!container) return;
     
     if (!query) {
         container.classList.add('hidden');
-        container.innerHTML = '';
         return;
     }
 
-    let results = [];
-
-    if (state.activeStaffTab === 'enterprise') {
-        return;
-    } else {
-        results = await services.searchProfiles(query);
-    }
-
+    const results = await services.searchProfiles(query);
     state.staffPermissionSearchResults = results;
     
     if (results.length > 0) {
-         container.innerHTML = results.map(p => {
-            const name = p.username || `${p.first_name} ${p.last_name}`;
-            const avatar = p.avatar_url || p.discord_avatar;
-            const subtext = state.activeStaffTab === 'enterprise' ? `Citoyen • ${p.discord_username}` : `Discord ID: ${p.id}`;
-
-            return `
+         container.innerHTML = results.map(p => `
             <div onclick="actions.selectUserForPerms('${p.id}')" class="p-3 hover:bg-white/10 cursor-pointer flex items-center gap-3 border-b border-white/5 last:border-0">
-                <img src="${avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-8 h-8 rounded-full bg-gray-700 object-cover">
+                <img src="${p.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-8 h-8 rounded-full bg-gray-700 object-cover">
                 <div>
-                    <div class="font-bold text-sm text-white">${name}</div>
-                    <div class="text-[10px] text-gray-500">${subtext}</div>
+                    <div class="font-bold text-sm text-white">${p.username}</div>
+                    <div class="text-[10px] text-gray-500">ID: ${p.id}</div>
                 </div>
             </div>
-            `;
-        }).join('');
+            `).join('');
         container.classList.remove('hidden');
     } else {
-         container.innerHTML = '<div class="p-3 text-xs text-gray-500 italic">Aucun résultat</div>';
-         container.classList.remove('hidden');
+         container.classList.add('hidden');
     }
 };
 
@@ -603,16 +568,13 @@ export const selectUserForPerms = async (userId) => {
     if (state.isAdminEditing) {
         const el = document.getElementById('selected-target-preview');
         if(el) {
-            el.textContent = "Cible sélectionnée : " + userId;
+            el.textContent = "Cible : " + userId;
             el.classList.remove('hidden');
         }
         return;
     }
 
-    let profile = state.staffPermissionSearchResults.find(p => p.id === userId);
-    
-    if(!profile) profile = state.staffMembers.find(p => p.id === userId);
-    if(!profile) profile = state.allCharactersAdmin.find(c => c.id === userId); 
+    let profile = state.staffPermissionSearchResults.find(p => p.id === userId) || state.staffMembers.find(p => p.id === userId);
     
     if(!profile) {
         const { data } = await state.supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -624,9 +586,7 @@ export const selectUserForPerms = async (userId) => {
     const dropdown = document.getElementById('perm-search-dropdown');
     if(dropdown) dropdown.classList.add('hidden');
 
-    if (state.activeStaffTab === 'permissions') {
-        renderPermEditor(profile);
-    }
+    renderPermEditor(profile);
 };
 
 export const renderPermEditor = (profile) => {
@@ -638,58 +598,75 @@ export const renderPermEditor = (profile) => {
     const isTargetFounder = state.adminIds.includes(profile.id);
     const isDisabled = isSelf || isTargetFounder;
     
-    let warningMsg = '';
-    if (isSelf) warningMsg = '<div class="text-xs text-red-400 mt-2 bg-red-500/10 p-2 rounded">Modification de soi-même interdite.</div>';
-    if (isTargetFounder) warningMsg = '<div class="text-xs text-red-400 mt-2 bg-red-500/10 p-2 rounded">Admin Fondateur (Intouchable).</div>';
+    const PERM_DESCRIPTIONS = {
+        can_approve_characters: "Autorise la validation ou le rejet des fiches de personnages en file d'attente (Whitelist).",
+        can_manage_characters: "Permet de modifier les points de permis, accorder le barreau, changer le métier ou purger un dossier civil.",
+        can_manage_economy: "Droit de modification des soldes bancaires/liquides (individuels ou globaux) et accès aux coffres collectifs.",
+        can_manage_illegal: "Permet la supervision des syndicats criminels (gangs) et la validation manuelle des braquages complexes.",
+        can_manage_enterprises: "Droit de fondation ou dissolution de corporations et modération du catalogue des articles en vente.",
+        can_manage_staff: "Capacité à attribuer, modifier ou révoquer les permissions administratives des autres membres du personnel.",
+        can_manage_inventory: "Accès à la fouille administrative : permet d'ajouter ou retirer des objets de l'inventaire d'un citoyen à distance.",
+        can_change_team: "Autorise la mutation d'alignement RP : bascule entre le secteur Légal (Civil) et Illégal (Clandestin).",
+        can_go_onduty: "Permet de prendre son service administratif pour apparaître comme modérateur actif sur le Panel public.",
+        can_manage_jobs: "Droit de définir manuellement le métier d'un citoyen sans passer par le processus du Pôle Emploi.",
+        can_bypass_login: "Droit d'accès Racine au profil 'Fondation', permettant de naviguer sur le panel sans personnage actif.",
+        can_launch_session: "Autorise le démarrage, la configuration ou la clôture des sessions de jeu officielles synchronisées au CAD.",
+        can_execute_commands: "Accès au terminal de commande direct API permettant d'interagir avec le serveur ERLC en temps réel."
+    };
 
     const checkboxes = [
-        { k: 'can_approve_characters', l: 'Valider Fiches' },
-        { k: 'can_manage_characters', l: 'Gérer Personnages' },
-        { k: 'can_manage_economy', l: 'Gérer Économie' },
-        { k: 'can_manage_illegal', l: 'Gérer Illégal' },
-        { k: 'can_manage_enterprises', l: 'Gérer Entreprises' },
-        { k: 'can_manage_staff', l: 'Gérer Staff' },
-        { k: 'can_manage_inventory', l: 'Gérer Inventaires' },
-        { k: 'can_change_team', l: 'Changer Équipe' },
-        { k: 'can_go_onduty', l: 'Prendre Service' },
-        { k: 'can_manage_jobs', l: 'Gérer Métiers' },
-        { k: 'can_bypass_login', l: 'Bypass Login' },
-        { k: 'can_launch_session', l: 'Gérer Sessions' },
-        { k: 'can_execute_commands', l: 'Commandes ERLC' }
+        { k: 'can_approve_characters', l: 'File Whitelist' },
+        { k: 'can_manage_characters', l: 'Registre Civil' },
+        { k: 'can_manage_economy', l: 'Pilotage Économique' },
+        { k: 'can_manage_illegal', l: 'Audit Illégal' },
+        { k: 'can_manage_enterprises', l: 'Réseau Commercial' },
+        { k: 'can_manage_staff', l: 'Directoire Staff' },
+        { k: 'can_manage_inventory', l: 'Saisie d\'Objets' },
+        { k: 'can_change_team', l: 'Mutation Secteur' },
+        { k: 'can_go_onduty', l: 'Badge Service' },
+        { k: 'can_manage_jobs', l: 'Affectation Métier' },
+        { k: 'can_bypass_login', l: 'Accès Fondation' },
+        { k: 'can_launch_session', l: 'Cycle de Session' },
+        { k: 'can_execute_commands', l: 'Console ERLC' }
     ].map(p => `
-        <label class="flex items-center gap-3 p-3 bg-white/5 rounded-lg ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'} transition-colors">
-            <input type="checkbox" onchange="actions.updatePermission('${profile.id}', '${p.k}', this.checked)" 
-            ${currentPerms[p.k] ? 'checked' : ''} 
-            ${isDisabled ? 'disabled' : ''}
-            class="w-5 h-5 rounded border-gray-600 text-blue-500 focus:ring-blue-500 bg-gray-700">
-            <span class="text-white text-sm font-medium">${p.l}</span>
-        </label>
+        <div class="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/[0.08] ${isDisabled ? 'opacity-50 grayscale' : ''}">
+            <label class="flex items-center gap-4 cursor-pointer">
+                <input type="checkbox" onchange="actions.updatePermission('${profile.id}', '${p.k}', this.checked)" 
+                ${currentPerms[p.k] ? 'checked' : ''} 
+                ${isDisabled ? 'disabled' : ''}
+                class="w-5 h-5 rounded border-gray-600 text-purple-500 focus:ring-purple-500 bg-gray-700">
+                <div class="flex-1 min-w-0">
+                    <span class="text-white text-xs font-black uppercase tracking-widest block">${p.l}</span>
+                    <span class="text-[9px] text-gray-500 font-medium leading-tight mt-0.5 block">${PERM_DESCRIPTIONS[p.k] || 'Action administrative'}</span>
+                </div>
+            </label>
+        </div>
     `).join('');
 
     container.innerHTML = `
-        <div class="animate-fade-in bg-white/5 border border-white/5 p-4 rounded-xl mt-4">
-            <div class="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
-                <div class="flex items-center gap-3">
-                    <img src="${profile.avatar_url || ''}" class="w-12 h-12 rounded-full border border-white/10">
+        <div class="animate-fade-in bg-[#1a1a1c] border border-white/5 p-6 rounded-[32px] mt-4 shadow-2xl">
+            <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-6">
+                <div class="flex items-center gap-4">
+                    <img src="${profile.avatar_url || ''}" class="w-14 h-14 rounded-2xl border border-white/10 shadow-xl">
                     <div>
-                        <div class="font-bold text-white text-lg">${profile.username}</div>
-                        <div class="text-xs text-gray-500">Modification des droits</div>
+                        <div class="font-black text-white text-xl uppercase italic tracking-tighter">${profile.username}</div>
+                        <div class="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Niveau d'accréditation</div>
                     </div>
                 </div>
-                <button onclick="document.getElementById('perm-editor-container').innerHTML = ''; state.activePermissionUserId = null;" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button onclick="document.getElementById('perm-editor-container').innerHTML = ''; state.activePermissionUserId = null;" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
             </div>
-            ${warningMsg}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+            <div class="grid grid-cols-1 gap-3">
                 ${checkboxes}
             </div>
+            ${isSelf ? '<div class="mt-6 text-[10px] text-red-400 font-black uppercase text-center border border-red-500/20 bg-red-500/5 p-2 rounded-xl italic">Sécurité : Impossible de s\'auto-éditer</div>' : ''}
         </div>
     `;
+    if(window.lucide) lucide.createIcons();
 };
 
 export const updatePermission = async (userId, permKey, value) => {
     if (!hasPermission('can_manage_staff')) return;
     
-    state.activePermissionUserId = userId; 
     const { data: profile } = await state.supabase.from('profiles').select('permissions').eq('id', userId).single();
     const newPerms = { ...(profile.permissions || {}) };
     if (value) newPerms[permKey] = true; else delete newPerms[permKey];
@@ -700,7 +677,6 @@ export const updatePermission = async (userId, permKey, value) => {
     render(); 
 };
 
-// Economy
 export const openEconomyModal = async (targetId, targetName = null) => {
     state.economyModal = { isOpen: true, targetId, targetName, transactions: [] };
     render();
@@ -729,16 +705,14 @@ export const executeEconomyAction = async (e) => {
     const isGlobal = targetId === 'ALL';
     
     if (action === 'add' && mode === 'percent') {
-        ui.showToast("L'ajout par pourcentage (inflation) est interdit.", 'error');
+        ui.showToast("L'inflation forcée positive est interdite.", 'error');
         return;
     }
 
-    const typeLabel = balanceType === 'bank' ? 'Banque' : 'Liquide';
-
     ui.showModal({
-        title: "Action Économique Critique",
-        content: `Confirmer ${action === 'add' ? 'Ajout' : 'Retrait'} de ${amountVal}${mode === 'percent' ? '%' : '$'} sur <b>${typeLabel}</b> ?`,
-        confirmText: "Exécuter",
+        title: "Ratification Budgétaire",
+        content: `Confirmer l'intervention de ${amountVal}${mode === 'percent' ? '%' : '$'} sur les comptes ?`,
+        confirmText: "Ratifier",
         type: "danger",
         onConfirm: async () => {
             let bankAccountsToUpdate = [];
@@ -771,16 +745,15 @@ export const executeEconomyAction = async (e) => {
                     receiver_id: account.character_id, 
                     amount: logAmount,
                     type: 'admin_adjustment', 
-                    description: `${description} (${action === 'add' ? '+' : '-'} ${amountVal}${mode === 'percent' ? '%' : '$'} on ${balanceType})`
+                    description: description
                 });
                 
                 const updatePayload = {};
                 updatePayload[col] = newBalance;
-
                 await state.supabase.from('bank_accounts').update(updatePayload).eq('id', account.id);
             }
 
-            ui.showToast("Opération terminée.", 'success');
+            ui.showToast("Registre économique mis à jour.", 'success');
             closeEconomyModal();
             await services.fetchAllCharacters();
             render();
@@ -790,28 +763,19 @@ export const executeEconomyAction = async (e) => {
 
 export const adminManageGangBalance = (gangId, action) => {
     ui.showModal({
-        title: action === 'add' ? "Ajouter au Coffre Gang" : "Retirer du Coffre Gang",
+        title: "Opération Coffre-Fort",
         content: `
-            <input type="number" id="gang-admin-amount" class="glass-input w-full p-2 mt-2" placeholder="Montant">
-            <textarea id="gang-admin-reason" class="glass-input w-full p-2 mt-2 h-20" placeholder="Raison (Admin Log)"></textarea>
+            <input type="number" id="gang-admin-amount" class="glass-input w-full p-4 rounded-2xl mb-4 text-center font-mono font-black text-xl" placeholder="Somme ($)">
+            <textarea id="gang-admin-reason" class="glass-input w-full p-3 rounded-xl h-24 text-xs italic" placeholder="Motif de l'opération..."></textarea>
         `,
         confirmText: "Valider",
         onConfirm: async () => {
              const amt = parseInt(document.getElementById('gang-admin-amount').value);
-             const reason = document.getElementById('gang-admin-reason').value || "Admin Adjustment";
-             
              if(!amt || amt <= 0) return;
-             
              const gang = state.gangs.find(g => g.id === gangId);
-             if(!gang) return;
-             
-             let newBalance = gang.balance || 0;
-             if(action === 'add') newBalance += amt;
-             else newBalance -= amt;
-             
+             let newBalance = (gang.balance || 0) + (action === 'add' ? amt : -amt);
              await services.updateGangBalance(gangId, newBalance);
-             
-             ui.showToast(`Coffre mis à jour : $${newBalance}`, 'success');
+             ui.showToast("Trésorerie du gang ajustée.", 'success');
              await services.fetchGangs();
              render();
         }
@@ -820,28 +784,19 @@ export const adminManageGangBalance = (gangId, action) => {
 
 export const adminManageEnterpriseBalance = (entId, action) => {
     ui.showModal({
-        title: action === 'add' ? "Ajouter au Coffre Entreprise" : "Retirer du Coffre Entreprise",
+        title: "Régulation Trésorerie Corp.",
         content: `
-            <input type="number" id="ent-admin-amount" class="glass-input w-full p-2 mt-2" placeholder="Montant">
-            <textarea id="ent-admin-reason" class="glass-input w-full p-2 mt-2 h-20" placeholder="Raison (Admin Log)"></textarea>
+            <input type="number" id="ent-admin-amount" class="glass-input w-full p-4 rounded-2xl mb-4 text-center font-mono font-black text-xl" placeholder="Somme ($)">
+            <textarea id="ent-admin-reason" class="glass-input w-full p-3 rounded-xl h-24 text-xs italic" placeholder="Motif de régulation..."></textarea>
         `,
-        confirmText: "Valider",
+        confirmText: "Exécuter",
         onConfirm: async () => {
              const amt = parseInt(document.getElementById('ent-admin-amount').value);
-             const reason = document.getElementById('ent-admin-reason').value || "Admin Adjustment";
-             
              if(!amt || amt <= 0) return;
-             
              const ent = state.enterprises.find(e => e.id === entId);
-             if(!ent) return;
-             
-             let newBalance = ent.balance || 0;
-             if(action === 'add') newBalance += amt;
-             else newBalance -= amt;
-             
+             let newBalance = (ent.balance || 0) + (action === 'add' ? amt : -amt);
              await services.updateEnterpriseBalance(entId, newBalance);
-             
-             ui.showToast(`Coffre mis à jour : $${newBalance}`, 'success');
+             ui.showToast("Compte corporation mis à jour.", 'success');
              await services.fetchEnterprises();
              render();
         }
