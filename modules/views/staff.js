@@ -62,7 +62,7 @@ export const StaffView = () => {
         economyModalHtml = `
             <div class="fixed inset-0 z-[160] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="actions.closeEconomyModal()"></div>
-                <div class="glass-panel w-full max-w-4xl p-8 rounded-[40px] relative z-10 animate-slide-up shadow-2xl border border-emerald-500/30 flex flex-col md:flex-row gap-8 max-h-[90vh] overflow-hidden">
+                <div class="glass-panel w-full max-w-4xl p-8 rounded-[40px] relative z-10 animate-slide-up shadow-2xl border border-emerald-500/30 flex flex-col md:flex-row gap-8 max-h screen overflow-hidden">
                     <div class="flex-1 md:max-w-md">
                         <div class="flex items-center gap-4 mb-8">
                             <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-lg"><i data-lucide="landmark" class="w-6 h-6"></i></div>
@@ -142,7 +142,7 @@ export const StaffView = () => {
                             <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter">Registre d'Inventaire</h3>
                             <div class="flex items-center gap-3 mt-1">
                                 <span class="text-[10px] text-orange-400 font-black uppercase tracking-widest">Inspection Administrative</span>
-                                <span class="w-1 h-1 bg-gray-800 rounded-full"></span>
+                                <span class="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
                                 <span class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Cible: ${state.inventoryModal.targetName}</span>
                             </div>
                         </div>
@@ -241,8 +241,9 @@ export const StaffView = () => {
                 </div>
             </div>
 
-            <div class="flex-1 p-8 overflow-hidden relative min-h-0">
-                <div class="h-full overflow-hidden">
+            <!-- MAIN CONTENT AREA : AJOUT DU SCROLL -->
+            <div class="flex-1 p-8 overflow-y-auto custom-scrollbar relative min-h-0">
+                <div class="h-full">
                     ${content}
                 </div>
             </div>

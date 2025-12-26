@@ -99,6 +99,8 @@ const LawyersListView = () => {
 
 export const HubView = () => {
     const u = state.user;
+    const standaloneMode = !state.activeCharacter; // Détecte si on est en consultation profil hors-jeu
+
     if (state.activeCharacter && !state.activeCharacter.alignment && !state.alignmentModalShown) {
         state.alignmentModalShown = true;
         setTimeout(() => {
@@ -620,6 +622,29 @@ export const HubView = () => {
             ${sidebarContent}
         </aside>
     `;
+
+    // MODE STANDALONE : Pas de sidebar, barre de navigation avec bouton retour
+    if (standaloneMode) {
+        return `
+            <div class="flex h-full w-full bg-[#050505] relative overflow-hidden flex-col">
+                <nav class="p-6 border-b border-white/5 flex justify-between items-center bg-[#08080a] z-50 shrink-0">
+                    <div class="flex items-center gap-4">
+                        <button onclick="actions.backToSelect()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all border border-white/10 group flex items-center gap-3">
+                            <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Retour au sélecteur</span>
+                        </button>
+                    </div>
+                    <div class="font-black text-white tracking-tighter italic uppercase text-lg">TFRP <span class="text-blue-500">Panel</span></div>
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                        <i data-lucide="user-circle" class="w-6 h-6 text-blue-400"></i>
+                    </div>
+                </nav>
+                <main class="flex-1 relative overflow-hidden h-full">
+                    <div class="h-full overflow-hidden relative z-0 flex flex-col">${content}</div>
+                </main>
+            </div>
+        `;
+    }
 
     return `
         <div class="flex h-full w-full bg-[#050505] relative overflow-hidden">
