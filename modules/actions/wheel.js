@@ -37,7 +37,6 @@ export const WHEEL_REWARDS = [
 ];
 
 export const spinWheel = async () => {
-    // On utilise whell_turn pour correspondre à la DB
     const currentTurns = state.user.whell_turn || 0;
     
     if (state.isSpinning || currentTurns <= 0) return;
@@ -47,9 +46,7 @@ export const spinWheel = async () => {
         return;
     }
 
-    state.isSpinning = true;
-
-    // 1. Calcul du gagnant via poids
+    // Préparation immédiate de la liste pour éviter le jump visuel
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     let randomVal = Math.random() * totalWeight;
     let winner = WHEEL_REWARDS[0];
@@ -61,19 +58,28 @@ export const spinWheel = async () => {
         }
     }
 
-    // 2. Préparation du ruban (100 items pour une longue rotation)
     const stripItems = [];
     for (let i = 0; i < 100; i++) {
         if (i === 80) stripItems.push(winner);
         else stripItems.push(WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
     }
+
     state.currentWheelItems = stripItems;
+    state.isSpinning = true;
     render();
 
-    // 3. Lancer l'animation précise
+    // Laisser le temps au DOM de se mettre à jour
     setTimeout(() => {
         const strip = document.getElementById('case-strip');
         if (strip) {
+            // Reset position sans transition
+            strip.style.transition = 'none';
+            strip.style.transform = 'translateX(0)';
+            
+            // Force reflow
+            strip.offsetHeight;
+
+            // Lancer la rotation réelle
             strip.classList.remove('animate-lootbox-idle');
             const randomInCaseOffset = Math.floor(Math.random() * 60) - 30; 
             const targetX = (80 * SLOT_WIDTH) + randomInCaseOffset;
@@ -82,7 +88,7 @@ export const spinWheel = async () => {
         }
     }, 50);
 
-    // 4. Traitement du résultat après l'animation
+    // Traitement du résultat
     setTimeout(async () => {
         const newTurns = currentTurns - 1;
         await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
@@ -94,7 +100,8 @@ export const spinWheel = async () => {
             showSecureScreenshotModal(winner);
         }
 
-        state.isSpinning = false;
+        // On ne repasse PAS isSpinning à false tout de suite pour garder le ruban stable visuellement
+        // sous le modal de récompense.
         render();
     }, 8500);
 };
@@ -123,7 +130,8 @@ const showCharacterChoiceModal = (reward) => {
                 ${charsHtml}
             </div>
         `,
-        confirmText: null 
+        confirmText: null,
+        onCancel: () => { state.isSpinning = false; render(); }
     });
 };
 
@@ -150,6 +158,7 @@ export const claimMoneyReward = async (value, charId) => {
         console.error("Reward claim error:", e);
         ui.showToast("Erreur lors du virement bancaire.", "error");
     }
+    state.isSpinning = false;
     ui.closeModal();
     render();
 };
@@ -175,7 +184,8 @@ const showSecureScreenshotModal = (reward) => {
             </div>
         `,
         confirmText: `Attente de validation (${timeLeft}s)`,
-        onConfirm: null,
+        onConfirm: () => { state.isSpinning = false; render(); },
+        onCancel: () => { state.isSpinning = false; render(); },
         type: 'warning'
     });
 
@@ -200,6 +210,8 @@ const showSecureScreenshotModal = (reward) => {
 
 export const openWheel = () => {
     state.currentView = 'wheel';
+    state.isSpinning = false;
+    // Remplissage initial stable
     state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
     render();
 };

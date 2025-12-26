@@ -1,4 +1,3 @@
-
 import { state } from './state.js';
 import { showToast, showModal } from './ui.js';
 import { HEIST_DATA } from './views/illicit.js';
@@ -225,7 +224,7 @@ export const fetchCharactersWithProfiles = async (statusFilter = null) => {
     const charIds = chars.map(c => c.id);
     
     const [profilesRes, accountsRes] = await Promise.all([
-        state.supabase.from('profiles').select('id, username, avatar_url').in('id', allProfileIds),
+        state.supabase.from('profiles').select('id, username, avatar_url, whell_turn, isnotified_wheel').in('id', allProfileIds),
         state.supabase.from('bank_accounts').select('*').in('character_id', charIds)
     ]);
 
@@ -245,7 +244,9 @@ export const fetchCharactersWithProfiles = async (statusFilter = null) => {
             bank_balance: bank.bank_balance,
             cash_balance: bank.cash_balance,
             savings_balance: bank.savings_balance || 0,
-            bank_id: bank.id 
+            bank_id: bank.id,
+            whell_turn: profile ? profile.whell_turn : 0,
+            isnotified_wheel: profile ? profile.isnotified_wheel : true
         };
     });
 };
