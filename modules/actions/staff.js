@@ -61,11 +61,23 @@ export const setStaffTab = async (tab) => {
 export const giveWheelTurn = async (userId) => {
     if (!hasPermission('can_give_wheel_turn')) return;
     
+    // On récupère le profil ciblé pour afficher son solde actuel
+    const { data: profile } = await state.supabase.from('profiles').select('username, whell_turn').eq('id', userId).single();
+    const current = profile?.whell_turn || 0;
+
     ui.showModal({
         title: "Gestion des Tours de Roue",
         content: `
             <div class="space-y-6">
-                <p class="text-sm text-gray-400">Sélectionnez l'opération à effectuer sur le solde de ce citoyen :</p>
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/10 flex justify-between items-center">
+                    <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest">Citoyen : <span class="text-white">${profile?.username || userId}</span></div>
+                    <div class="text-right">
+                        <div class="text-[8px] text-yellow-500 uppercase font-black mb-1">Solde Actuel</div>
+                        <div class="text-xl font-mono font-black text-white">${current} Clé(s)</div>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-400">Sélectionnez l'opération à effectuer :</p>
                 
                 <div class="flex bg-black/40 p-1 rounded-xl border border-white/5">
                     <label class="flex-1 text-center cursor-pointer">
@@ -93,12 +105,10 @@ export const giveWheelTurn = async (userId) => {
             
             if (isNaN(amount) || amount < 1) return;
 
-            const { data: profile } = await state.supabase.from('profiles').select('wheel_turn').eq('id', userId).single();
-            const current = profile.wheel_turn || 0;
             const newTotal = mode === 'add' ? current + amount : Math.max(0, current - amount);
             
             const { error } = await state.supabase.from('profiles').update({ 
-                wheel_turn: newTotal,
+                whell_turn: newTotal,
                 isnotified_wheel: mode === 'add' ? false : true 
             }).eq('id', userId);
 
@@ -658,7 +668,7 @@ export const renderPermEditor = (profile) => {
         can_manage_economy: "Accès de niveau Trésorier. Permet d'ajuster les soldes bancaires et liquides de n'importe quel citoyen, d'effectuer des saisies ou des crédits globaux sur toute la population.",
         can_manage_illegal: "Supervision des activités criminelles. Permet de créer, dissoudre ou modifier les gangs (syndicats) et de valider/refuser les gains des braquages complexes.",
         can_manage_enterprises: "Contrôle du Registre du Commerce. Autorise la fondation ou la dissolution de n'importe quelle entreprise, ainsi que la modération (approbation/rejet) des articles mis en vente.",
-        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits d'accès administratifs.",
+        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits'accès administratifs.",
         can_manage_inventory: "Droit de perquisition administrative. Permet de visualiser, confisquer ou injecter des objets directement dans le sac d'un citoyen à distance.",
         can_change_team: "Mutation d'Alignement. Permet de basculer un citoyen du secteur Légal vers l'Illégal et vice-versa, réinitialisant ses accès de faction.",
         can_go_onduty: "Autorisation de Service Live. Permet d'apparaître comme modérateur actif sur le Panel pour les citoyens et d'accéder aux fonctionnalités de terrain.",

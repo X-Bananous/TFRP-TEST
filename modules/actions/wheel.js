@@ -37,7 +37,10 @@ export const WHEEL_REWARDS = [
 ];
 
 export const spinWheel = async () => {
-    if (state.isSpinning || (state.user.wheel_turn || 0) <= 0) return;
+    // On utilise whell_turn pour correspondre à la DB
+    const currentTurns = state.user.whell_turn || 0;
+    
+    if (state.isSpinning || currentTurns <= 0) return;
     
     if (state.characters.length === 0) {
         ui.showToast("Vous devez posséder au moins un personnage pour recevoir vos gains.", "error");
@@ -71,9 +74,7 @@ export const spinWheel = async () => {
     setTimeout(() => {
         const strip = document.getElementById('case-strip');
         if (strip) {
-            // Désactiver l'animation idle
             strip.classList.remove('animate-lootbox-idle');
-            // Offset aléatoire pour ne pas tomber pile au milieu de la case à chaque fois
             const randomInCaseOffset = Math.floor(Math.random() * 60) - 30; 
             const targetX = (80 * SLOT_WIDTH) + randomInCaseOffset;
             strip.style.transition = 'transform 8s cubic-bezier(0.15, 0, 0.05, 1)';
@@ -83,12 +84,10 @@ export const spinWheel = async () => {
 
     // 4. Traitement du résultat après l'animation
     setTimeout(async () => {
-        // Décompte du tour
-        const newTurns = (state.user.wheel_turn || 0) - 1;
-        await state.supabase.from('profiles').update({ wheel_turn: newTurns }).eq('id', state.user.id);
-        state.user.wheel_turn = newTurns;
+        const newTurns = currentTurns - 1;
+        await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
+        state.user.whell_turn = newTurns;
 
-        // Dispatch selon le type de récompense
         if (winner.type === 'money') {
             showCharacterChoiceModal(winner);
         } else {
@@ -100,9 +99,6 @@ export const spinWheel = async () => {
     }, 8500);
 };
 
-/**
- * Affiche le modal pour choisir sur quel personnage créditer l'argent
- */
 const showCharacterChoiceModal = (reward) => {
     const charsHtml = state.characters.map(c => `
         <button onclick="actions.claimMoneyReward(${reward.value}, '${c.id}')" 
@@ -127,13 +123,10 @@ const showCharacterChoiceModal = (reward) => {
                 ${charsHtml}
             </div>
         `,
-        confirmText: null // On force le clic sur un personnage
+        confirmText: null 
     });
 };
 
-/**
- * Action finale de crédit de l'argent en base de données
- */
 export const claimMoneyReward = async (value, charId) => {
     const char = state.characters.find(c => c.id === charId);
     if (!char) return;
@@ -141,11 +134,9 @@ export const claimMoneyReward = async (value, charId) => {
     try {
         const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
         if (bank) {
-            // Mise à jour solde
             const newBalance = (bank.bank_balance || 0) + value;
             await state.supabase.from('bank_accounts').update({ bank_balance: newBalance }).eq('character_id', charId);
             
-            // Enregistrement transaction
             await state.supabase.from('transactions').insert({
                 receiver_id: charId, 
                 amount: value, 
@@ -163,9 +154,6 @@ export const claimMoneyReward = async (value, charId) => {
     render();
 };
 
-/**
- * Affiche le modal pour les lots spéciaux avec verrouillage de 15 secondes
- */
 const showSecureScreenshotModal = (reward) => {
     let timeLeft = 15;
     
@@ -191,7 +179,6 @@ const showSecureScreenshotModal = (reward) => {
         type: 'warning'
     });
 
-    // On récupère le bouton de confirmation manuellement pour le gérer
     const btn = document.getElementById('modal-confirm');
     if (btn) {
         btn.disabled = true;
@@ -213,7 +200,6 @@ const showSecureScreenshotModal = (reward) => {
 
 export const openWheel = () => {
     state.currentView = 'wheel';
-    // Remplissage initial pour l'effet de défilement "idle"
     state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
     render();
 };

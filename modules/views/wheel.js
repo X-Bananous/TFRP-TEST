@@ -2,13 +2,12 @@ import { state } from '../state.js';
 import { WHEEL_REWARDS } from '../actions/wheel.js';
 
 export const WheelView = () => {
-    const turns = state.user.wheel_turn || 0;
+    // whell_turn est le nom correct utilisé dans app.js et la DB
+    const turns = state.user.whell_turn || 0;
     const items = state.currentWheelItems || [];
     const isSpinning = state.isSpinning;
 
     const renderItems = () => {
-        // Pour le mode idle (non-spinning), on duplique les items pour un effet boucle infinie fluide via le marquee CSS
-        // On prend les 10 premiers pour le cycle idle
         const idleItems = items.slice(0, 10);
         const displayItems = isSpinning ? items : [...idleItems, ...idleItems, ...idleItems, ...idleItems];
         
@@ -52,17 +51,14 @@ export const WheelView = () => {
 
             <!-- SLIDER CONTAINER (Style CS:GO) -->
             <div class="relative w-full h-[250px] flex items-center justify-center mb-16 overflow-hidden">
-                <!-- Pointeur Central Fixe -->
                 <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 bg-blue-500 z-[100] shadow-[0_0_20px_rgba(59,130,246,0.8)]">
                     <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-blue-500 rotate-45 shadow-lg border-2 border-white/20"></div>
                     <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-blue-500 rotate-45 shadow-lg border-2 border-white/20"></div>
                 </div>
 
-                <!-- Effets de dégradé sur les bords pour la profondeur -->
                 <div class="absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-[#050505] to-transparent z-20 pointer-events-none"></div>
                 <div class="absolute inset-y-0 right-0 w-64 bg-gradient-to-l from-[#050505] to-transparent z-20 pointer-events-none"></div>
 
-                <!-- Ruban des items (Le Ruban défile soit via animation CSS "idle", soit via transition JS "spin") -->
                 <div class="w-full h-full border-y border-white/5 bg-black/40 flex items-center">
                     <div id="case-strip" 
                          class="flex gap-[10px] ${!isSpinning ? 'animate-lootbox-idle' : ''}" 

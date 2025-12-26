@@ -122,7 +122,7 @@ export const StaffCitizensView = () => {
                                         <th class="p-5 border-b border-white/5">Identité</th>
                                         <th class="p-5 border-b border-white/5">Profession & Droits</th>
                                         <th class="p-5 border-b border-white/5">Permis (Points)</th>
-                                        <th class="p-5 border-b border-white/5">Vérificateur</th>
+                                        <th class="p-5 border-b border-white/5">Clés</th>
                                         <th class="p-5 border-b border-white/5">Statut</th>
                                         <th class="p-5 border-b border-white/5 text-right">Actions</th>
                                     </tr>
@@ -173,12 +173,10 @@ export const StaffCitizensView = () => {
                                                 </div>
                                             </td>
                                             <td class="p-5">
-                                                ${c.verified_by_name ? `
-                                                    <div class="flex items-center gap-2 text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                                                        <div class="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                                                        ${c.verified_by_name}
-                                                    </div>
-                                                ` : '<span class="text-gray-700 text-[9px] italic uppercase tracking-tighter">Automatique</span>'}
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-mono font-black text-yellow-500">${c.whell_turn || 0}</span>
+                                                    <i data-lucide="key" class="w-3 h-3 text-yellow-500/50"></i>
+                                                </div>
                                             </td>
                                             <td class="p-5">
                                                 <span class="px-2.5 py-1 rounded-lg text-[9px] uppercase font-black tracking-widest shadow-lg ${c.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : c.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
