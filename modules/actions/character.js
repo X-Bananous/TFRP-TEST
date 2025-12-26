@@ -1,3 +1,4 @@
+
 import { state } from '../state.js';
 import { render, router } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -67,6 +68,11 @@ export const submitCharacter = async (e) => {
         job: job,
         is_notified: isNotified
     };
+
+    // Si un admin effectue l'action, on marque qui a vérifié/créé
+    if (state.isAdminEditing) {
+        charData.verifiedby = state.user.id;
+    }
 
     let error = null;
 

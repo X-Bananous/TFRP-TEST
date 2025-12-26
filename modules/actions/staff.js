@@ -178,12 +178,20 @@ export const assignJob = async (charId, jobName) => {
 
 export const decideApplication = async (id, status) => {
     if (!hasPermission('can_approve_characters')) return;
-    const { error } = await state.supabase.from('characters').update({ status: status }).eq('id', id);
+    
+    const { error } = await state.supabase.from('characters').update({ 
+        status: status,
+        verifiedby: state.user.id // On enregistre l'ID du profil staff qui a validé/refusé
+    }).eq('id', id);
+
     if (!error) {
         ui.showToast(`Candidature ${status === 'accepted' ? 'Validée' : 'Refusée'}.`, status === 'accepted' ? 'success' : 'warning');
         await services.fetchPendingApplications();
         await services.fetchAllCharacters();
         render(); 
+    } else {
+        ui.showToast("Erreur lors de la décision.", "error");
+        console.error("Decide App Error:", error);
     }
 };
 
