@@ -1,4 +1,3 @@
-
 /**
  * TFRP Core Application
  * Entry Point & Aggregator
@@ -49,11 +48,9 @@ window.actions = {
 window.router = router;
 
 /**
- * Cinematic Intro Sequence
+ * Cinematic Intro Sequence Improved
  */
 const startIntro = async () => {
-    // Si l'intro a déjà été jouée dans cette session, on l'ignore.
-    // Pour forcer le re-test, videz le sessionStorage ou fermez l'onglet.
     if (sessionStorage.getItem('tfrp_intro_played')) return;
 
     const intro = document.getElementById('intro-screen');
@@ -66,10 +63,8 @@ const startIntro = async () => {
 
     if (!intro) return;
 
-    // Helper function for delays
     const wait = (ms) => new Promise(res => setTimeout(res, ms));
 
-    // Préparation : Masquer l'application et forcer l'affichage du container d'intro
     const appEl = document.getElementById('app');
     appEl.classList.add('opacity-0', 'pointer-events-none');
     
@@ -77,22 +72,27 @@ const startIntro = async () => {
     intro.style.opacity = '1';
     intro.style.pointerEvents = 'auto';
 
-    await wait(500); // Petit temps mort pour stabiliser le rendu
+    await wait(800);
 
     // Sequence
     for (let i = 0; i < phases.length; i++) {
         if (!phases[i]) continue;
         
         phases[i].classList.add('active');
-        await wait(3500); // Temps d'affichage
+        await wait(3000); 
         phases[i].classList.remove('active');
-        await wait(600); // Temps de transition entre phases
+        phases[i].style.opacity = '0';
+        phases[i].style.filter = 'blur(20px)';
+        phases[i].style.transform = 'scale(1.1)';
+        await wait(800); 
     }
 
     // Sortie de l'intro
+    intro.style.transition = 'opacity 1.5s ease-out, filter 2s ease-out';
     intro.style.opacity = '0';
+    intro.style.filter = 'blur(50px)';
     sessionStorage.setItem('tfrp_intro_played', 'true');
-    await wait(1000);
+    await wait(1500);
     intro.remove();
 };
 

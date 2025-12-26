@@ -18,17 +18,26 @@ body {
 /* Intro Cinematic System */
 .intro-text {
     opacity: 0 !important;
-    transform: translateY(15px);
-    transition: opacity 1s ease-in-out, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(0.9) translateY(20px);
+    filter: blur(20px);
+    transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), 
+                transform 2s cubic-bezier(0.16, 1, 0.3, 1), 
+                filter 1.5s ease-out;
     pointer-events: none;
 }
 
 .intro-text.active {
     opacity: 1 !important;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
 }
 
-/* Scrollbar invisible mais fonctionnelle */
+#intro-screen {
+    background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
+    overflow: hidden;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 0px;
     background: transparent;
@@ -52,20 +61,33 @@ body {
     to { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes lootbox-idle {
-    from { transform: translateX(0); }
-    to { transform: translateX(-1600px); } /* 10 items * 160px width */
+@keyframes loading-bar {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.animate-loading-bar {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+    animation: loading-bar 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
 .animate-lootbox-idle {
     animation: lootbox-idle 40s linear infinite;
 }
 
+@keyframes lootbox-idle {
+    from { transform: translateX(0); }
+    to { transform: translateX(-1600px); }
+}
+
 .animate-fade-in {
     animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* Glassmorphism Classes */
+/* Glassmorphism */
 .glass-panel {
     background: var(--glass-bg);
     backdrop-filter: saturate(180%) blur(40px);
@@ -122,5 +144,12 @@ body {
     animation: slideUp 0.3s ease-out forwards;
 }
 
-/* Cursor and state helpers */
 .cursor-wait { cursor: wait !important; }
+
+.text-glow {
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}

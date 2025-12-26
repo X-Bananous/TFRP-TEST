@@ -4,6 +4,46 @@ import { ui } from '../ui.js';
 
 export const SLOT_WIDTH = 160; // 150px item + 10px gap
 
+// Audio Synthesis Engine for Wheel
+const SoundEngine = {
+    ctx: null,
+    init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    },
+    tick() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+    },
+    success() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const playNote = (freq, start, duration) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(freq, now + start);
+            gain.gain.setValueAtTime(0.1, now + start);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + start);
+            osc.stop(now + start + duration);
+        };
+        playNote(440, 0, 0.2); // A4
+        playNote(554, 0.1, 0.2); // C#5
+        playNote(659, 0.2, 0.4); // E5
+    }
+};
+
 export const WHEEL_REWARDS = [
     // 💰 Argent (Total 83.5%)
     { label: '1 000 $', weight: 12, type: 'money', value: 1000, color: '#10b981', rarity: 'Commun' },
@@ -37,6 +77,7 @@ export const WHEEL_REWARDS = [
 ];
 
 export const spinWheel = async () => {
+    SoundEngine.init();
     const currentTurns = state.user.whell_turn || 0;
     
     if (state.isSpinning || currentTurns <= 0) return;
@@ -46,7 +87,7 @@ export const spinWheel = async () => {
         return;
     }
 
-    // Préparation immédiate de la liste pour éviter le jump visuel
+    // 1. Déterminer le gagnant immédiatement
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     let randomVal = Math.random() * totalWeight;
     let winner = WHEEL_REWARDS[0];
@@ -58,9 +99,13 @@ export const spinWheel = async () => {
         }
     }
 
+    // Capture locale du gagnant pour éviter les bugs de closure
+    const currentWinner = { ...winner };
+
+    // 2. Construire la liste de tirage (Index 80 est le gagnant)
     const stripItems = [];
     for (let i = 0; i < 100; i++) {
-        if (i === 80) stripItems.push(winner);
+        if (i === 80) stripItems.push(currentWinner);
         else stripItems.push(WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
     }
 
@@ -68,42 +113,60 @@ export const spinWheel = async () => {
     state.isSpinning = true;
     render();
 
-    // Laisser le temps au DOM de se mettre à jour
+    // 3. Animation
     setTimeout(() => {
         const strip = document.getElementById('case-strip');
         if (strip) {
-            // Reset position sans transition
             strip.style.transition = 'none';
             strip.style.transform = 'translateX(0)';
-            
-            // Force reflow
-            strip.offsetHeight;
+            strip.offsetHeight; // Reflow
 
-            // Lancer la rotation réelle
             strip.classList.remove('animate-lootbox-idle');
-            const randomInCaseOffset = Math.floor(Math.random() * 60) - 30; 
-            const targetX = (80 * SLOT_WIDTH) + randomInCaseOffset;
-            strip.style.transition = 'transform 8s cubic-bezier(0.15, 0, 0.05, 1)';
+            const randomOffset = Math.floor(Math.random() * 60) - 30;
+            const targetX = (80 * SLOT_WIDTH) + randomOffset;
+            
+            strip.style.transition = 'transform 8.5s cubic-bezier(0.12, 0, 0.05, 1)';
             strip.style.transform = `translateX(-${targetX}px)`;
+
+            // Tick sound intervals (simulated)
+            let lastTickIdx = 0;
+            const startTime = Date.now();
+            const tickInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                if (elapsed > 8500) {
+                    clearInterval(tickInterval);
+                    return;
+                }
+                
+                // Calcul de l'index approximatif actuel
+                const progress = elapsed / 8500;
+                // Formule simple pour ralentir les ticks avec le temps
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentX = targetX * easeOut;
+                const currentIdx = Math.floor(currentX / SLOT_WIDTH);
+                
+                if (currentIdx > lastTickIdx) {
+                    SoundEngine.tick();
+                    lastTickIdx = currentIdx;
+                }
+            }, 16);
         }
     }, 50);
 
-    // Traitement du résultat
+    // 4. Attribution
     setTimeout(async () => {
+        SoundEngine.success();
         const newTurns = currentTurns - 1;
         await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
         state.user.whell_turn = newTurns;
 
-        if (winner.type === 'money') {
-            showCharacterChoiceModal(winner);
+        if (currentWinner.type === 'money') {
+            showCharacterChoiceModal(currentWinner);
         } else {
-            showSecureScreenshotModal(winner);
+            showSecureScreenshotModal(currentWinner);
         }
-
-        // On ne repasse PAS isSpinning à false tout de suite pour garder le ruban stable visuellement
-        // sous le modal de récompense.
         render();
-    }, 8500);
+    }, 9000);
 };
 
 const showCharacterChoiceModal = (reward) => {
@@ -211,7 +274,6 @@ const showSecureScreenshotModal = (reward) => {
 export const openWheel = () => {
     state.currentView = 'wheel';
     state.isSpinning = false;
-    // Remplissage initial stable
     state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
     render();
 };
