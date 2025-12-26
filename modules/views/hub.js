@@ -157,8 +157,8 @@ export const HubView = () => {
         
         const char = state.activeCharacter;
         const isEnterpriseOwner = state.myEnterprises?.length > 0;
-        const job = (char.job === 'unemployed' && isEnterpriseOwner) ? 'pdg' : (char.job || 'unemployed');
-        const isIllegal = char.alignment === 'illegal';
+        const job = (char?.job === 'unemployed' && isEnterpriseOwner) ? 'pdg' : (char?.job || 'unemployed');
+        const isIllegal = char?.alignment === 'illegal';
         const isJustice = ['juge', 'procureur'].includes(job.toLowerCase());
         const hasServiceAccess = ['leo', 'lafd', 'ladot', 'lawyer', 'maire', 'adjoint', 'juge', 'procureur'].includes(job.toLowerCase());
 
@@ -203,7 +203,7 @@ export const HubView = () => {
                             <div class="absolute -right-20 -top-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
                             <div class="relative z-10 p-10 flex flex-col md:flex-row justify-between items-center md:items-end gap-10">
                                 <div class="text-center md:text-left">
-                                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] border border-blue-500/20 mb-6 rounded-lg">
+                                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 text-[9px] font-black uppercase tracking-[0.3em] border border-blue-500/20 mb-6 rounded-lg">
                                         <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Unified Portal v4.5
                                     </div>
                                     <h1 class="text-5xl md:text-6xl font-black text-white mb-2 tracking-tighter uppercase italic drop-shadow-2xl">Team French <br><span class="text-blue-500">Roleplay</span></h1>
@@ -569,7 +569,7 @@ export const HubView = () => {
                 </div>
                 <div class="overflow-hidden flex-1">
                     <h3 class="font-black text-white truncate text-sm group-hover:text-blue-300 transition-colors uppercase tracking-tight italic">${u.username}</h3>
-                    <p class="text-[9px] text-blue-400 font-black uppercase tracking-widest truncate mt-0.5">${state.activeCharacter.first_name} ${state.activeCharacter.last_name}</p>
+                    <p class="text-[9px] text-blue-400 font-black uppercase tracking-widest truncate mt-0.5">${state.activeCharacter ? `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}` : 'Identité non chargée'}</p>
                 </div>
             </div>
         </div>

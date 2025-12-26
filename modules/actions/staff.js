@@ -200,7 +200,7 @@ export const decideApplication = async (id, status) => {
     }
 };
 
-export const openAdminEditCharacter = (charId) => {
+export const openAdminEditChar = (charId) => {
     const char = state.allCharactersAdmin.find(c => c.id === charId);
     if(char) {
         state.editingCharacter = char;
@@ -599,19 +599,19 @@ export const renderPermEditor = (profile) => {
     const isDisabled = isSelf || isTargetFounder;
     
     const PERM_DESCRIPTIONS = {
-        can_approve_characters: "Autorise la validation ou le rejet des fiches de personnages en file d'attente (Whitelist).",
-        can_manage_characters: "Permet de modifier les points de permis, accorder le barreau, changer le métier ou purger un dossier civil.",
-        can_manage_economy: "Droit de modification des soldes bancaires/liquides (individuels ou globaux) et accès aux coffres collectifs.",
-        can_manage_illegal: "Permet la supervision des syndicats criminels (gangs) et la validation manuelle des braquages complexes.",
-        can_manage_enterprises: "Droit de fondation ou dissolution de corporations et modération du catalogue des articles en vente.",
-        can_manage_staff: "Capacité à attribuer, modifier ou révoquer les permissions administratives des autres membres du personnel.",
-        can_manage_inventory: "Accès à la fouille administrative : permet d'ajouter ou retirer des objets de l'inventaire d'un citoyen à distance.",
-        can_change_team: "Autorise la mutation d'alignement RP : bascule entre le secteur Légal (Civil) et Illégal (Clandestin).",
-        can_go_onduty: "Permet de prendre son service administratif pour apparaître comme modérateur actif sur le Panel public.",
-        can_manage_jobs: "Droit de définir manuellement le métier d'un citoyen sans passer par le processus du Pôle Emploi.",
-        can_bypass_login: "Droit d'accès Racine au profil 'Fondation', permettant de naviguer sur le panel sans personnage actif.",
-        can_launch_session: "Autorise le démarrage, la configuration ou la clôture des sessions de jeu officielles synchronisées au CAD.",
-        can_execute_commands: "Accès au terminal de commande direct API permettant d'interagir avec le serveur ERLC en temps réel."
+        can_approve_characters: "Autorise l'examen des dossiers d'immigration (Whitelist). Permet d'accepter ou de rejeter définitivement les nouveaux citoyens en attente de validation.",
+        can_manage_characters: "Donne un accès total au Registre National. Permet de modifier les points de permis, révoquer ou accorder le barreau, changer manuellement le métier et purger des dossiers complets.",
+        can_manage_economy: "Accès de niveau Trésorier. Permet d'ajuster les soldes bancaires et liquides de n'importe quel citoyen, d'effectuer des saisies ou des crédits globaux sur toute la population.",
+        can_manage_illegal: "Supervision des activités criminelles. Permet de créer, dissoudre ou modifier les gangs (syndicats) et de valider/refuser les gains des braquages complexes.",
+        can_manage_enterprises: "Contrôle du Registre du Commerce. Autorise la fondation ou la dissolution de n'importe quelle entreprise, ainsi que la modération (approbation/rejet) des articles mis en vente.",
+        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits d'accès administratifs.",
+        can_manage_inventory: "Droit de perquisition administrative. Permet de visualiser, confisquer ou injecter des objets directement dans le sac d'un citoyen à distance.",
+        can_change_team: "Mutation d'Alignement. Permet de basculer un citoyen du secteur Légal vers l'Illégal et vice-versa, réinitialisant ses accès de faction.",
+        can_go_onduty: "Autorisation de Service Live. Permet d'apparaître comme modérateur actif sur le Panel pour les citoyens et d'accéder aux fonctionnalités de terrain.",
+        can_manage_jobs: "Gestion des Carrières. Permet d'assigner arbitrairement n'importe quel métier civil ou gouvernemental à un citoyen sans passer par le Pôle Emploi.",
+        can_bypass_login: "Accès Racine (Bypass). Permet de naviguer sur l'intégralité du panel administratif sans avoir besoin de charger un personnage citoyen actif.",
+        can_launch_session: "Contrôle des Cycles. Autorise l'ouverture et la fermeture des sessions de jeu officielles, déclenchant la synchronisation globale du CAD.",
+        can_execute_commands: "Accès au Terminal ERLC. Permet d'envoyer des instructions directes au serveur de jeu via l'API (messages globaux, annonces de braquage, etc.)."
     };
 
     const checkboxes = [

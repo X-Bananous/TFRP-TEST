@@ -151,6 +151,9 @@ export const CharacterSelectView = () => {
                     <p class="text-gray-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Los Angeles Administration • Accès Sécurisé</p>
                 </div>
                 <div class="flex items-center gap-4">
+                    <button onclick="actions.setHubPanel('profile'); router('hub');" class="p-4 rounded-2xl bg-white/5 hover:bg-blue-600/10 text-gray-500 hover:text-blue-400 border border-white/10 transition-all group" title="Accéder au Profil">
+                        <i data-lucide="user-circle" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                    </button>
                     ${Object.keys(state.user.permissions || {}).length > 0 && !isFounder ? `
                         <div class="px-6 py-2.5 bg-purple-500/10 border border-purple-500/30 rounded-2xl text-[10px] font-black text-purple-400 uppercase tracking-widest italic shadow-xl">
                             <i data-lucide="shield" class="w-4 h-4 inline-block mr-2 -mt-0.5"></i> Accès Staff

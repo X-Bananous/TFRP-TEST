@@ -321,11 +321,16 @@ export const sealCase = async (reportId) => {
 
             if(!error) {
                 ui.showToast("Dossier scellé et archivé.", 'success');
+                // Mise à jour immédiate de l'état local
+                if (state.globalReports) {
+                    const r = state.globalReports.find(x => x.id === reportId);
+                    if(r) r.is_closed = true;
+                }
                 await services.fetchAllReports();
                 render();
             } else {
                 console.error("Seal Error:", error);
-                ui.showToast("Échec du scellage. Colonne 'is_closed' manquante ?", 'error');
+                ui.showToast("Échec du scellage. Erreur serveur.", 'error');
             }
         }
     });
