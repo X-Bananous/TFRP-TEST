@@ -260,6 +260,31 @@ export const adminSwitchTeam = async (id, currentAlignment) => {
     render();
 };
 
+export const adminUpdateLicensePoints = async (charId, points) => {
+    if (!hasPermission('can_manage_characters')) return;
+    const pts = parseInt(points);
+    if(isNaN(pts) || pts < 0 || pts > 12) return ui.showToast("Points invalides (0-12).", "error");
+    
+    const { error } = await state.supabase.from('characters').update({ driver_license_points: pts }).eq('id', charId);
+    if (!error) {
+        ui.showToast(`Points mis à jour : ${pts}/12`, 'success');
+        await services.fetchAllCharacters();
+        render();
+    }
+};
+
+export const adminToggleBar = async (charId, currentStatus) => {
+    if (!hasPermission('can_manage_characters')) return;
+    const newStatus = !currentStatus;
+    
+    const { error } = await state.supabase.from('characters').update({ bar_passed: newStatus }).eq('id', charId);
+    if (!error) {
+        ui.showToast(newStatus ? "Barreau accordé." : "Barreau révoqué.", 'info');
+        await services.fetchAllCharacters();
+        render();
+    }
+};
+
 export const validateHeist = async (lobbyId, success) => {
     if (!hasPermission('can_manage_illegal')) return;
     await services.adminResolveHeist(lobbyId, success);

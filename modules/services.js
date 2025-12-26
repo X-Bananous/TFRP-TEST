@@ -66,7 +66,7 @@ export const fetchSecureConfig = async (retries = 3) => {
                 if (k === 'erlc_api_key') state.erlcKey = v;
                 if (k === 'dev_key') state.devKey = v;
                 if (k === 'gouv_bank') state.gouvBank = parseFloat(v) || 0;
-                if (k === 'last_salary_payment') state.lastSalaryPayment = v;
+                if (k === 'last_salary_payment') state.last_salary_payment = v;
                 if (k === 'taux_bank') state.savingsRate = parseFloat(v) || 1.5;
                 if (k === 'last_interest_payment') state.lastInterestPayment = v;
 
@@ -217,18 +217,31 @@ export const fetchCharactersWithProfiles = async (statusFilter = null) => {
     if (statusFilter) query = query.eq('status', statusFilter);
     const { data: chars } = await query;
     if (!chars || chars.length === 0) return [];
+
     const userIds = [...new Set(chars.map(c => c.user_id))];
+    const verifierIds = [...new Set(chars.map(c => c.verifiedby).filter(id => !!id))];
+    const allProfileIds = [...new Set([...userIds, ...verifierIds])];
+    
     const charIds = chars.map(c => c.id);
-    const { data: profiles } = await state.supabase.from('profiles').select('id, username, avatar_url').in('id', userIds);
-    const { data: accounts } = await state.supabase.from('bank_accounts').select('*').in('character_id', charIds);
+    
+    const [profilesRes, accountsRes] = await Promise.all([
+        state.supabase.from('profiles').select('id, username, avatar_url').in('id', allProfileIds),
+        state.supabase.from('bank_accounts').select('*').in('character_id', charIds)
+    ]);
+
+    const profiles = profilesRes.data || [];
+    const accounts = accountsRes.data || [];
+
     return chars.map(char => {
-        const profile = profiles?.find(p => p.id === char.user_id);
-        const bank = accounts?.find(a => a.character_id === char.id) || { bank_balance: 0, cash_balance: 0, savings_balance: 0 };
+        const profile = profiles.find(p => p.id === char.user_id);
+        const verifier = profiles.find(p => p.id === char.verifiedby);
+        const bank = accounts.find(a => a.character_id === char.id) || { bank_balance: 0, cash_balance: 0, savings_balance: 0 };
         return {
             ...char,
             discord_username: profile ? profile.username : 'N/A',
             discord_id: profile ? profile.id : null,
             discord_avatar: profile ? profile.avatar_url : null,
+            verified_by_name: verifier ? verifier.username : null,
             bank_balance: bank.bank_balance,
             cash_balance: bank.cash_balance,
             savings_balance: bank.savings_balance || 0,
@@ -261,7 +274,6 @@ export const fetchOnDutyStaff = async () => {
 };
 export const fetchLawyers = async () => {
     if (!state.supabase) return;
-    // Récupération des personnages ayant réussi le barreau
     const { data: chars } = await state.supabase
         .from('characters')
         .select('id, user_id, first_name, last_name, bar_passed')

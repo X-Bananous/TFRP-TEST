@@ -273,10 +273,12 @@ export const StaffView = () => {
             </div>
             <div class="glass-panel overflow-hidden rounded-xl border border-white/5">
                 <table class="w-full text-left border-collapse">
-                    <thead class="bg-white/5 text-xs uppercase text-gray-400 font-semibold tracking-wider">
+                    <thead class="bg-white/5 text-[10px] uppercase text-gray-400 font-semibold tracking-wider">
                         <tr>
                             <th class="p-4 border-b border-white/10">Citoyen</th>
-                            <th class="p-4 border-b border-white/10">Métier & Team</th>
+                            <th class="p-4 border-b border-white/10">Métier / Barreau</th>
+                            <th class="p-4 border-b border-white/10">Permis</th>
+                            <th class="p-4 border-b border-white/10">Vérifié par</th>
                             <th class="p-4 border-b border-white/10">Statut</th>
                             <th class="p-4 border-b border-white/10 text-right">Actions</th>
                         </tr>
@@ -286,18 +288,18 @@ export const StaffView = () => {
                             const isEnterpriseOwner = state.enterprises?.some(e => e.leader_id === c.id);
                             const displayJob = (c.job === 'unemployed' && isEnterpriseOwner) ? 'PDG' : (c.job || 'unemployed');
                             const jobLabel = displayJob.toUpperCase();
+                            const pts = (c.driver_license_points !== null && c.driver_license_points !== undefined) ? c.driver_license_points : 12;
 
                             return `
                             <tr class="hover:bg-white/5 transition-colors">
                                 <td class="p-4 font-medium text-white">
                                     ${c.first_name} ${c.last_name}
-                                    <div class="text-xs text-blue-300 font-normal">@${c.discord_username}</div>
+                                    <div class="text-[10px] text-blue-300 font-normal">@${c.discord_username}</div>
                                 </td>
                                 <td class="p-4">
-                                    <div class="flex flex-col gap-1">
-                                        <span class="text-xs uppercase px-1.5 py-0.5 rounded w-fit font-bold ${c.alignment === 'illegal' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}">${c.alignment || 'N/A'}</span>
+                                    <div class="flex flex-col gap-2">
                                         ${canManageJobs && c.status === 'accepted' ? `
-                                            <select onchange="actions.assignJob('${c.id}', this.value)" class="text-xs bg-black/30 border border-white/10 rounded px-1 py-0.5 text-gray-300 focus:text-white mt-1">
+                                            <select onchange="actions.assignJob('${c.id}', this.value)" class="text-[10px] bg-black/30 border border-white/10 rounded px-1 py-1 text-gray-300 focus:text-white uppercase font-bold">
                                                 <option value="unemployed" ${c.job === 'unemployed' ? 'selected' : ''}>Chômeur / Civil</option>
                                                 <optgroup label="Gouvernement">
                                                     <option value="maire" ${c.job === 'maire' ? 'selected' : ''}>Maire (Max 1)</option>
@@ -315,23 +317,43 @@ export const StaffView = () => {
                                                     <option value="pdg" ${c.job === 'pdg' ? 'selected' : ''}>PDG</option>
                                                 </optgroup>
                                             </select>
-                                        ` : `<span class="text-xs text-gray-500 font-mono font-bold uppercase">${jobLabel}</span>`}
+                                        ` : `<span class="text-[10px] text-gray-500 font-mono font-bold uppercase">${jobLabel}</span>`}
+                                        
+                                        <button onclick="actions.adminToggleBar('${c.id}', ${!!c.bar_passed})" class="w-fit text-[9px] px-2 py-0.5 rounded border transition-colors ${c.bar_passed ? 'bg-purple-600/20 text-purple-400 border-purple-500/30' : 'bg-gray-800 text-gray-500 border-white/5'} font-black uppercase tracking-widest">
+                                            <i data-lucide="scale" class="w-3 h-3 inline mr-1"></i> Barreau: ${c.bar_passed ? 'OUI' : 'NON'}
+                                        </button>
                                     </div>
+                                </td>
+                                <td class="p-4">
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" value="${pts}" min="0" max="12" 
+                                            onchange="actions.adminUpdateLicensePoints('${c.id}', this.value)"
+                                            class="w-12 bg-black/40 border border-white/10 rounded px-1.5 py-1 text-center font-mono font-bold text-xs text-white">
+                                        <span class="text-gray-500 font-mono text-[10px]">/ 12</span>
+                                    </div>
+                                </td>
+                                <td class="p-4">
+                                    ${c.verified_by_name ? `
+                                        <div class="flex items-center gap-2 text-[10px] text-gray-400">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                            <span class="font-bold">${c.verified_by_name}</span>
+                                        </div>
+                                    ` : '<span class="text-gray-600 text-[10px] italic">Système</span>'}
                                 </td>
                                 <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold ${c.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : c.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}">${c.status}</span></td>
                                 <td class="p-4 text-right flex justify-end gap-2">
                                     ${canDelete ? `
-                                        <button onclick="actions.openAdminEditChar('${c.id}')" class="text-blue-400 hover:text-blue-300 p-1 bg-blue-500/10 rounded mr-1" title="Modifier"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                        <button onclick="actions.openAdminEditChar('${c.id}')" class="text-blue-400 hover:text-blue-300 p-1.5 bg-blue-500/10 rounded-lg transition-colors" title="Modifier"><i data-lucide="edit" class="w-4 h-4"></i></button>
                                     ` : ''}
                                     ${canChangeTeam ? `
-                                        <button onclick="actions.adminSwitchTeam('${c.id}', '${c.alignment}')" class="text-purple-400 hover:text-purple-300 p-1 bg-purple-500/10 rounded mr-1" title="Changer Équipe"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                                        <button onclick="actions.adminSwitchTeam('${c.id}', '${c.alignment}')" class="text-purple-400 hover:text-purple-300 p-1.5 bg-purple-500/10 rounded-lg transition-colors" title="Changer Équipe"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
                                     `: ''}
                                     ${canInventory && c.status === 'accepted' ? `
-                                        <button onclick="actions.openInventoryModal('${c.id}', '${c.first_name} ${c.last_name}')" class="text-orange-400 hover:text-orange-300 p-1 bg-orange-500/10 rounded mr-1" title="Gérer Inventaire"><i data-lucide="backpack" class="w-4 h-4"></i></button>
+                                        <button onclick="actions.openInventoryModal('${c.id}', '${c.first_name} ${c.last_name}')" class="text-orange-400 hover:text-orange-300 p-1.5 bg-orange-500/10 rounded-lg transition-colors" title="Gérer Inventaire"><i data-lucide="backpack" class="w-4 h-4"></i></button>
                                     ` : ''}
                                     ${canDelete ? `
-                                        <button onclick="actions.adminDeleteCharacter('${c.id}', '${c.first_name} ${c.last_name}')" class="text-gray-500 hover:text-red-400 p-1" title="Supprimer définitivement"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                    ` : `<span class="text-gray-700 text-xs">Lecture Seule</span>`}
+                                        <button onclick="actions.adminDeleteCharacter('${c.id}', '${c.first_name} ${c.last_name}')" class="text-gray-600 hover:text-red-400 p-1.5 transition-colors" title="Supprimer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    ` : ''}
                                 </td>
                             </tr>
                         `}).join('')}
