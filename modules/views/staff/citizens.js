@@ -1,4 +1,3 @@
-
 import { state } from '../../state.js';
 import { hasPermission } from '../../utils.js';
 
@@ -9,6 +8,7 @@ export const StaffCitizensView = () => {
     const canInventory = hasPermission('can_manage_inventory');
     const canChangeTeam = hasPermission('can_change_team');
     const canManageJobs = hasPermission('can_manage_jobs');
+    const canGiveWheelTurns = hasPermission('can_give_wheel_turn');
     
     const q = state.staffSearchQuery ? state.staffSearchQuery.toLowerCase() : '';
     
@@ -187,6 +187,11 @@ export const StaffCitizensView = () => {
                                             </td>
                                             <td class="p-5 text-right">
                                                 <div class="flex justify-end gap-1.5">
+                                                    ${canGiveWheelTurns ? `
+                                                        <button onclick="actions.giveWheelTurn('${c.user_id}')" class="text-yellow-500 hover:text-white p-2 hover:bg-yellow-600 rounded-xl transition-all" title="Donner tours de roue">
+                                                            <i data-lucide="sun" class="w-4 h-4"></i>
+                                                        </button>
+                                                    ` : ''}
                                                     <button onclick="actions.openAdminEditChar('${c.id}')" class="text-blue-400 hover:text-white p-2 hover:bg-blue-600 rounded-xl transition-all" title="Réviser"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
                                                     ${canChangeTeam ? `<button onclick="actions.adminSwitchTeam('${c.id}', '${c.alignment}')" class="text-purple-400 hover:text-white p-2 hover:bg-purple-600 rounded-xl transition-all" title="Team Switch"><i data-lucide="shuffle" class="w-4 h-4"></i></button>` : ''}
                                                     ${canInventory && c.status === 'accepted' ? `<button onclick="actions.openInventoryModal('${c.id}', '${c.first_name} ${c.last_name}')" class="text-orange-400 hover:text-white p-2 hover:bg-orange-600 rounded-xl transition-all" title="Inventaire"><i data-lucide="backpack" class="w-4 h-4"></i></button>` : ''}

@@ -2,13 +2,15 @@ import { state } from '../state.js';
 import { WHEEL_REWARDS } from '../actions/wheel.js';
 
 export const WheelView = () => {
-    const turns = state.user.whell_turn || 0;
+    const turns = state.user.wheel_turn || 0;
     const items = state.currentWheelItems || [];
     const isSpinning = state.isSpinning;
 
     const renderItems = () => {
-        // Pour le marquee idle, on duplique les items pour un effet boucle infinie
-        const displayItems = isSpinning ? items : [...items, ...items, ...items, ...items];
+        // Pour le mode idle (non-spinning), on duplique les items pour un effet boucle infinie fluide via le marquee CSS
+        // On prend les 10 premiers pour le cycle idle
+        const idleItems = items.slice(0, 10);
+        const displayItems = isSpinning ? items : [...idleItems, ...idleItems, ...idleItems, ...idleItems];
         
         return displayItems.map(item => `
             <div class="w-[150px] h-[180px] shrink-0 bg-gradient-to-b from-[#1a1a1c] to-black rounded-2xl border-b-4 flex flex-col items-center justify-center p-4 shadow-2xl transition-all" style="border-color: ${item.color}">
@@ -23,7 +25,7 @@ export const WheelView = () => {
 
     return `
     <div class="fixed inset-0 z-[500] bg-[#050505] flex flex-col items-center justify-center p-8 animate-fade-in overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.1),transparent_70%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.08),transparent_70%)]"></div>
         <div class="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
 
         <div class="relative w-full max-w-6xl flex flex-col items-center">
@@ -56,11 +58,11 @@ export const WheelView = () => {
                     <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-blue-500 rotate-45 shadow-lg border-2 border-white/20"></div>
                 </div>
 
-                <!-- Effets de dégradé sur les bords -->
+                <!-- Effets de dégradé sur les bords pour la profondeur -->
                 <div class="absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-[#050505] to-transparent z-20 pointer-events-none"></div>
                 <div class="absolute inset-y-0 right-0 w-64 bg-gradient-to-l from-[#050505] to-transparent z-20 pointer-events-none"></div>
 
-                <!-- Ruban des items -->
+                <!-- Ruban des items (Le Ruban défile soit via animation CSS "idle", soit via transition JS "spin") -->
                 <div class="w-full h-full border-y border-white/5 bg-black/40 flex items-center">
                     <div id="case-strip" 
                          class="flex gap-[10px] ${!isSpinning ? 'animate-lootbox-idle' : ''}" 
@@ -76,7 +78,7 @@ export const WheelView = () => {
                     ${isSpinning || turns <= 0 ? 'disabled' : ''}
                     class="h-24 px-24 rounded-[32px] font-black text-2xl uppercase italic tracking-widest transition-all transform active:scale-95 shadow-2xl
                     ${isSpinning || turns <= 0 ? 'bg-white/5 text-gray-700 cursor-not-allowed border border-white/5' : 'bg-white text-black hover:bg-blue-600 hover:text-white shadow-blue-900/40'}">
-                    ${isSpinning ? 'DÉCRYPTAGE...' : 'OUVRIR LA CAISSE'}
+                    ${isSpinning ? 'DÉCRYPTAGE EN COURS...' : 'OUVRIR LA CAISSE'}
                 </button>
                 
                 ${!isSpinning ? `
@@ -94,7 +96,7 @@ export const WheelView = () => {
             <i data-lucide="shield-check" class="w-6 h-6 text-blue-500"></i>
             <div class="text-[9px] text-gray-500 font-mono uppercase tracking-[0.3em] leading-relaxed">
                 Algorithme Certifié v4.6.2 Platinum Edition<br>
-                Verrouillage Screenshot Actif
+                Protection anti-screenshot active
             </div>
         </div>
     </div>

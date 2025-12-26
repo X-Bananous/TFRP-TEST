@@ -1,4 +1,3 @@
-
 import { state } from '../state.js';
 import { render, router } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -63,33 +62,52 @@ export const giveWheelTurn = async (userId) => {
     if (!hasPermission('can_give_wheel_turn')) return;
     
     ui.showModal({
-        title: "Offrir des Tours de Roue",
+        title: "Gestion des Tours de Roue",
         content: `
-            <div class="space-y-4">
-                <p class="text-sm text-gray-400">Combien de tours voulez-vous créditer à cet utilisateur ?</p>
-                <input type="number" id="wheel-turns-amount" class="glass-input w-full p-4 rounded-2xl text-center font-mono font-black text-2xl" value="1" min="1">
-                <p class="text-[9px] text-gray-600 uppercase font-black tracking-widest text-center italic">Le statut de notification sera réinitialisé.</p>
+            <div class="space-y-6">
+                <p class="text-sm text-gray-400">Sélectionnez l'opération à effectuer sur le solde de ce citoyen :</p>
+                
+                <div class="flex bg-black/40 p-1 rounded-xl border border-white/5">
+                    <label class="flex-1 text-center cursor-pointer">
+                        <input type="radio" name="turn_mode" value="add" checked class="peer sr-only">
+                        <span class="block py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-gray-500 peer-checked:bg-emerald-600/20 peer-checked:text-emerald-400 transition-all">Ajouter</span>
+                    </label>
+                    <label class="flex-1 text-center cursor-pointer">
+                        <input type="radio" name="turn_mode" value="remove" class="peer sr-only">
+                        <span class="block py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-gray-500 peer-checked:bg-red-600/20 peer-checked:text-red-400 transition-all">Retirer</span>
+                    </label>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Quantité de clés</label>
+                    <input type="number" id="wheel-turns-amount" class="glass-input w-full p-4 rounded-2xl text-center font-mono font-black text-2xl" value="1" min="1">
+                </div>
+                
+                <p class="text-[9px] text-gray-600 uppercase font-black tracking-widest text-center italic">Le citoyen sera notifié lors de sa prochaine reconnexion en cas d'ajout.</p>
             </div>
         `,
-        confirmText: "Créditer",
+        confirmText: "Valider la modification",
         onConfirm: async () => {
             const amount = parseInt(document.getElementById('wheel-turns-amount').value);
+            const mode = document.querySelector('input[name="turn_mode"]:checked').value;
+            
             if (isNaN(amount) || amount < 1) return;
 
-            const { data: profile } = await state.supabase.from('profiles').select('whell_turn').eq('id', userId).single();
-            const newTotal = (profile.whell_turn || 0) + amount;
+            const { data: profile } = await state.supabase.from('profiles').select('wheel_turn').eq('id', userId).single();
+            const current = profile.wheel_turn || 0;
+            const newTotal = mode === 'add' ? current + amount : Math.max(0, current - amount);
             
             const { error } = await state.supabase.from('profiles').update({ 
-                whell_turn: newTotal,
-                isnotified_wheel: false 
+                wheel_turn: newTotal,
+                isnotified_wheel: mode === 'add' ? false : true 
             }).eq('id', userId);
 
             if (!error) {
-                ui.showToast(`+${amount} tours crédités.`, 'success');
+                ui.showToast(`Solde mis à jour (${newTotal} tours).`, 'success');
                 await services.fetchStaffProfiles();
                 render();
             } else {
-                ui.showToast("Erreur lors de l'attribution.", "error");
+                ui.showToast("Erreur lors de la modification des données.", "error");
             }
         }
     });
@@ -692,7 +710,7 @@ export const renderPermEditor = (profile) => {
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="actions.giveWheelTurn('${profile.id}')" class="p-2 bg-yellow-600/20 text-yellow-500 hover:bg-yellow-600 hover:text-white rounded-xl transition-all border border-yellow-600/30" title="Donner des tours de roue"><i data-lucide="sun" class="w-5 h-5"></i></button>
+                    <button onclick="actions.giveWheelTurn('${profile.id}')" class="p-2 bg-yellow-600/20 text-yellow-500 hover:bg-yellow-600 hover:text-white rounded-xl transition-all border border-yellow-600/30" title="Gérer les tours de roue"><i data-lucide="sun" class="w-5 h-5"></i></button>
                     <button onclick="document.getElementById('perm-editor-container').innerHTML = ''; state.activePermissionUserId = null;" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x-circle" class="w-8 h-8"></i></button>
                 </div>
             </div>

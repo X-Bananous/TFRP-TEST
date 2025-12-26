@@ -54,11 +54,11 @@ body {
 
 @keyframes lootbox-idle {
     from { transform: translateX(0); }
-    to { transform: translateX(-1600px); }
+    to { transform: translateX(-1600px); } /* 10 items * 160px width */
 }
 
 .animate-lootbox-idle {
-    animation: lootbox-idle 30s linear infinite;
+    animation: lootbox-idle 40s linear infinite;
 }
 
 .animate-fade-in {
@@ -121,3 +121,6 @@ body {
 .animate-toast {
     animation: slideUp 0.3s ease-out forwards;
 }
+
+/* Cursor and state helpers */
+.cursor-wait { cursor: wait !important; }

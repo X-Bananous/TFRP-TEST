@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { render, router } from '../utils.js';
 import { ui } from '../ui.js';
 
-export const SLOT_WIDTH = 160; // 150px + 10px gap
+export const SLOT_WIDTH = 160; // 150px item + 10px gap
 
 export const WHEEL_REWARDS = [
     // 💰 Argent (Total 83.5%)
@@ -37,25 +37,28 @@ export const WHEEL_REWARDS = [
 ];
 
 export const spinWheel = async () => {
-    if (state.isSpinning || (state.user.whell_turn || 0) <= 0) return;
+    if (state.isSpinning || (state.user.wheel_turn || 0) <= 0) return;
     
     if (state.characters.length === 0) {
-        ui.showToast("Vous devez posséder un personnage.", "error");
+        ui.showToast("Vous devez posséder au moins un personnage pour recevoir vos gains.", "error");
         return;
     }
 
     state.isSpinning = true;
 
-    // 1. Calcul du gagnant
+    // 1. Calcul du gagnant via poids
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     let randomVal = Math.random() * totalWeight;
     let winner = WHEEL_REWARDS[0];
     for (const reward of WHEEL_REWARDS) {
         randomVal -= reward.weight;
-        if (randomVal <= 0) { winner = reward; break; }
+        if (randomVal <= 0) { 
+            winner = reward; 
+            break; 
+        }
     }
 
-    // 2. Préparation du ruban (100 items)
+    // 2. Préparation du ruban (100 items pour une longue rotation)
     const stripItems = [];
     for (let i = 0; i < 100; i++) {
         if (i === 80) stripItems.push(winner);
@@ -64,25 +67,28 @@ export const spinWheel = async () => {
     state.currentWheelItems = stripItems;
     render();
 
-    // 3. Lancer l'animation
+    // 3. Lancer l'animation précise
     setTimeout(() => {
         const strip = document.getElementById('case-strip');
         if (strip) {
+            // Désactiver l'animation idle
             strip.classList.remove('animate-lootbox-idle');
-            // Offset pour centrer l'item 80 au pointeur
-            const randomInCaseOffset = Math.floor(Math.random() * 80) - 40; 
+            // Offset aléatoire pour ne pas tomber pile au milieu de la case à chaque fois
+            const randomInCaseOffset = Math.floor(Math.random() * 60) - 30; 
             const targetX = (80 * SLOT_WIDTH) + randomInCaseOffset;
-            strip.style.transition = 'transform 7s cubic-bezier(0.1, 0, 0.05, 1)';
+            strip.style.transition = 'transform 8s cubic-bezier(0.15, 0, 0.05, 1)';
             strip.style.transform = `translateX(-${targetX}px)`;
         }
-    }, 100);
+    }, 50);
 
-    // 4. Traitement du résultat
+    // 4. Traitement du résultat après l'animation
     setTimeout(async () => {
-        const newTurns = (state.user.whell_turn || 0) - 1;
-        await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
-        state.user.whell_turn = newTurns;
+        // Décompte du tour
+        const newTurns = (state.user.wheel_turn || 0) - 1;
+        await state.supabase.from('profiles').update({ wheel_turn: newTurns }).eq('id', state.user.id);
+        state.user.wheel_turn = newTurns;
 
+        // Dispatch selon le type de récompense
         if (winner.type === 'money') {
             showCharacterChoiceModal(winner);
         } else {
@@ -91,37 +97,43 @@ export const spinWheel = async () => {
 
         state.isSpinning = false;
         render();
-    }, 7600);
+    }, 8500);
 };
 
+/**
+ * Affiche le modal pour choisir sur quel personnage créditer l'argent
+ */
 const showCharacterChoiceModal = (reward) => {
     const charsHtml = state.characters.map(c => `
         <button onclick="actions.claimMoneyReward(${reward.value}, '${c.id}')" 
             class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-emerald-600/20 hover:border-emerald-500/50 transition-all text-left flex items-center justify-between group">
             <div>
                 <div class="font-black text-white uppercase italic group-hover:text-emerald-400">${c.first_name} ${c.last_name}</div>
-                <div class="text-[9px] text-gray-500 uppercase font-bold tracking-widest mt-1">Solde actuel : $${(c.bank_balance || 0).toLocaleString()}</div>
+                <div class="text-[9px] text-gray-500 uppercase font-bold tracking-widest mt-1">ID Citoyen : #${c.id.substring(0,8).toUpperCase()}</div>
             </div>
             <i data-lucide="chevron-right" class="w-5 h-5 text-gray-700 group-hover:text-emerald-500"></i>
         </button>
     `).join('');
 
     ui.showModal({
-        title: "CRÉDITER LE GAIN",
+        title: "ATTRIBUER LE GAIN",
         content: `
-            <div class="text-center mb-6">
-                <div class="text-5xl mb-4">💰</div>
-                <div class="text-2xl font-black text-emerald-400">+$ ${reward.value.toLocaleString()}</div>
-                <p class="text-gray-400 text-xs mt-2 italic font-medium">Choisissez le bénéficiaire du virement immédiat :</p>
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">💰</div>
+                <div class="text-3xl font-black text-emerald-400">+$ ${reward.value.toLocaleString()}</div>
+                <p class="text-gray-400 text-xs mt-2 italic font-medium">Sélectionnez le bénéficiaire de ce virement immédiat :</p>
             </div>
             <div class="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
                 ${charsHtml}
             </div>
         `,
-        confirmText: null
+        confirmText: null // On force le clic sur un personnage
     });
 };
 
+/**
+ * Action finale de crédit de l'argent en base de données
+ */
 export const claimMoneyReward = async (value, charId) => {
     const char = state.characters.find(c => c.id === charId);
     if (!char) return;
@@ -129,44 +141,57 @@ export const claimMoneyReward = async (value, charId) => {
     try {
         const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
         if (bank) {
-            await state.supabase.from('bank_accounts').update({ bank_balance: bank.bank_balance + value }).eq('character_id', charId);
+            // Mise à jour solde
+            const newBalance = (bank.bank_balance || 0) + value;
+            await state.supabase.from('bank_accounts').update({ bank_balance: newBalance }).eq('character_id', charId);
+            
+            // Enregistrement transaction
             await state.supabase.from('transactions').insert({
-                receiver_id: charId, amount: value, type: 'admin_adjustment', description: 'Gain Lootbox National'
+                receiver_id: charId, 
+                amount: value, 
+                type: 'admin_adjustment', 
+                description: 'Gain Loterie Nationale TFRP'
             });
-            ui.showToast(`$${value.toLocaleString()} crédités à ${char.first_name}.`, "success");
+
+            ui.showToast(`$${value.toLocaleString()} ont été versés à ${char.first_name}.`, "success");
         }
     } catch(e) {
+        console.error("Reward claim error:", e);
         ui.showToast("Erreur lors du virement bancaire.", "error");
     }
     ui.closeModal();
     render();
 };
 
+/**
+ * Affiche le modal pour les lots spéciaux avec verrouillage de 15 secondes
+ */
 const showSecureScreenshotModal = (reward) => {
     let timeLeft = 15;
     
     ui.showModal({
-        title: "LOT EXCEPTIONNEL DÉBLOQUÉ",
+        title: "RÉCOMPENSE D'EXCEPTION",
         content: `
             <div class="text-center">
-                <div class="text-6xl mb-6 animate-bounce">🏆</div>
+                <div class="text-7xl mb-6 animate-bounce">🏆</div>
                 <div class="text-3xl font-black uppercase italic tracking-tighter" style="color: ${reward.color}">${reward.label}</div>
                 <div class="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl mt-8">
                     <p class="text-[11px] text-red-400 font-bold uppercase leading-relaxed">
-                        ACTION REQUISE : Prenez une capture d'écran complète incluant ce modal et votre identité Discord.<br>
-                        Ouvrez un ticket "Lootbox" pour réclamer votre récompense.
+                        ACTION REQUISE : Prenez une capture d'écran complète incluant ce message et votre identité Discord.<br>
+                        Ouvrez un ticket sur le serveur Discord pour réclamer votre lot.
                     </p>
                 </div>
                 <div class="mt-6 text-[10px] text-gray-600 font-mono uppercase tracking-widest flex items-center justify-center gap-2">
-                    <i data-lucide="shield-alert" class="w-3 h-3"></i> Sécurité anti-fraude activée
+                    <i data-lucide="shield-alert" class="w-3 h-3"></i> Protection Anti-Fraude Active
                 </div>
             </div>
         `,
-        confirmText: `Attente (${timeLeft}s)`,
+        confirmText: `Attente de validation (${timeLeft}s)`,
         onConfirm: null,
         type: 'warning'
     });
 
+    // On récupère le bouton de confirmation manuellement pour le gérer
     const btn = document.getElementById('modal-confirm');
     if (btn) {
         btn.disabled = true;
@@ -174,7 +199,7 @@ const showSecureScreenshotModal = (reward) => {
         
         const timer = setInterval(() => {
             timeLeft--;
-            btn.textContent = `Attente (${timeLeft}s)`;
+            btn.textContent = `Attente de validation (${timeLeft}s)`;
             
             if (timeLeft <= 0) {
                 clearInterval(timer);
@@ -188,7 +213,7 @@ const showSecureScreenshotModal = (reward) => {
 
 export const openWheel = () => {
     state.currentView = 'wheel';
-    // Pré-remplissage pour l'esthétique du défilement idle
+    // Remplissage initial pour l'effet de défilement "idle"
     state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
     render();
 };
@@ -204,12 +229,12 @@ export const showProbabilities = () => {
     const sorted = [...WHEEL_REWARDS].sort((a,b) => b.weight - a.weight);
     
     ui.showModal({
-        title: "Tableau des Probabilités",
+        title: "Algorithme de Probabilités",
         content: `
             <div class="bg-black/40 rounded-2xl border border-white/10 overflow-hidden max-h-96 overflow-y-auto custom-scrollbar">
                 <div class="p-3 bg-white/5 border-b border-white/10 flex justify-between text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                    <span>Récompense</span>
-                    <span>Fréquence</span>
+                    <span>Récompense potentielle</span>
+                    <span>Taux de drop</span>
                 </div>
                 ${sorted.map(r => `
                     <div class="flex justify-between items-center p-3 border-b border-white/5 hover:bg-white/5 transition-colors">
@@ -224,7 +249,7 @@ export const showProbabilities = () => {
                     </div>
                 `).join('')}
             </div>
-            <p class="mt-4 text-[9px] text-gray-500 italic text-center uppercase tracking-widest font-bold">Algorithme de tirage pondéré certifié TFRP</p>
+            <p class="mt-4 text-[9px] text-gray-500 italic text-center uppercase tracking-widest font-bold">Certification Système v4.6 • Tirage Aléatoire Pondéré</p>
         `
     });
 };
