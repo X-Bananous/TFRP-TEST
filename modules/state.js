@@ -214,7 +214,7 @@ export const state = {
     // App Navigation
     currentView: 'login', 
     activeHubPanel: 'main', 
-    activeStaffTab: 'applications',
+    activeStaffTab: 'citizens', 
     activeEconomySubTab: 'players', 
     alignmentModalShown: false, 
     

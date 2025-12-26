@@ -179,12 +179,19 @@ export const setHubPanel = async (panel) => {
         } else if (panel === 'lawyers_list') {
             await Promise.all([fetchActiveSession(), fetchLawyers()]);
         } else if (panel === 'staff') {
-            if (hasPermission('can_approve_characters')) state.activeStaffTab = 'applications';
-            else if (hasPermission('can_manage_economy') || hasPermission('can_manage_illegal')) state.activeStaffTab = 'economy';
-            else if (hasPermission('can_manage_staff')) state.activeStaffTab = 'permissions';
-            else state.activeStaffTab = 'database'; 
+            // Tab par défaut fusionnée : Citizens
+            state.activeStaffTab = 'citizens';
             
-            const promises = [fetchActiveSession(), fetchPendingApplications(), fetchAllCharacters(), fetchStaffProfiles(), fetchOnDutyStaff(), fetchSecureConfig()];
+            const promises = [
+                fetchActiveSession(), 
+                fetchPendingApplications(), 
+                fetchAllCharacters(), 
+                fetchStaffProfiles(), 
+                fetchOnDutyStaff(), 
+                fetchSecureConfig(),
+                fetchEnterprises()
+            ];
+            
             if(hasPermission('can_manage_economy') || hasPermission('can_manage_illegal')) promises.push(fetchServerStats());
             if(hasPermission('can_manage_illegal')) { promises.push(fetchPendingHeistReviews(), fetchGangs()); }
             await Promise.all(promises);
@@ -219,7 +226,7 @@ export const clearNotifications = async () => {
 
 export const deleteNotification = async (id) => {
     if (!state.user || !state.supabase) return;
-    const { error } = await state.supabase.from('notifications').delete().eq('id', id).eq('user_id', state.user.id);
+    const { error = null } = await state.supabase.from('notifications').delete().eq('id', id).eq('user_id', state.user.id);
     if (!error) { await fetchNotifications(); render(); } else ui.showToast("Impossible de supprimer cette entrée.", "error");
 };
 
@@ -261,8 +268,7 @@ export const refreshCurrentView = async () => {
              if (state.activeEnterpriseTab === 'manage' && state.activeEnterpriseManagement) await fetchEnterpriseDetails(state.activeEnterpriseManagement.id);
         }
         else if (state.activeHubPanel === 'staff') {
-            if (state.activeStaffTab === 'applications') await fetchPendingApplications();
-            if (state.activeStaffTab === 'database') await fetchAllCharacters();
+            if (state.activeStaffTab === 'citizens') { await fetchPendingApplications(); await fetchAllCharacters(); await fetchEnterprises(); }
             if (state.activeStaffTab === 'economy') { await fetchAllCharacters(); await fetchServerStats(); }
             if (state.activeStaffTab === 'illegal') { await fetchGangs(); await fetchPendingHeistReviews(); await fetchServerStats(); }
             if (state.activeStaffTab === 'sessions' || state.activeStaffTab === 'logs') { await fetchActiveSession(); await fetchERLCData(); await fetchSessionHistory(); }

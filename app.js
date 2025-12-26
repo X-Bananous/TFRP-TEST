@@ -130,18 +130,6 @@ const appRenderer = () => {
 
     app.innerHTML = htmlContent;
     
-    if (state.currentView === 'select' && state.user && state.adminIds.includes(state.user.id)) {
-        const header = app.querySelector('.flex.items-center.gap-4');
-        if (header) {
-             const btn = document.createElement('button');
-             btn.onclick = window.actions.openFoundationModal;
-             btn.className = 'w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 hover:bg-purple-500/20 hover:scale-110 transition-all';
-             btn.innerHTML = '<i data-lucide="key" class="w-4 h-4"></i>';
-             btn.title = "Accès Fondation";
-             header.prepend(btn);
-        }
-    }
-
     if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
 };
 

@@ -19,6 +19,14 @@ export const setStaffTab = async (tab) => {
         if (tab === 'economy' || tab === 'illegal') {
              await services.fetchServerStats();
         }
+        if (tab === 'citizens') {
+            // Fusion WL + DB : on récupère tout
+            await Promise.all([
+                services.fetchPendingApplications(),
+                services.fetchAllCharacters(),
+                services.fetchEnterprises()
+            ]);
+        }
         if (tab === 'economy') {
             await services.fetchGangs();
             if(state.activeEconomySubTab === 'enterprises') {

@@ -5,6 +5,8 @@ import { hasPermission, router } from '../utils.js';
 import { ui } from '../ui.js';
 
 export const CharacterSelectView = () => {
+    const isFounder = state.user?.isFounder || state.adminIds.includes(state.user?.id);
+    
     const charsHtml = state.characters.map(char => {
         const isAccepted = char.status === 'accepted';
         const isRejected = char.status === 'rejected';
@@ -99,6 +101,46 @@ export const CharacterSelectView = () => {
         `;
     }).join('');
 
+    const founderHtml = isFounder ? `
+        <div class="glass-panel group p-8 rounded-[48px] w-full md:w-[380px] relative overflow-hidden flex flex-col h-[460px] border border-purple-500/30 hover:border-purple-500/60 transition-all duration-500 shadow-2xl bg-gradient-to-br from-purple-900/20 via-black to-black">
+            <div class="absolute -right-10 -top-10 w-48 h-48 bg-purple-500/10 rounded-full blur-[80px] group-hover:bg-purple-500/20 transition-all duration-700"></div>
+            
+            <div class="flex justify-between items-start mb-10 relative z-10">
+                <div class="w-20 h-20 rounded-[28px] bg-purple-500/20 border-2 border-purple-500/40 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                    <i data-lucide="shield-alert" class="w-10 h-10 text-purple-400"></i>
+                </div>
+                <div class="px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-purple-500/40 text-purple-400 shadow-lg italic">
+                    Accès Fondation
+                </div>
+            </div>
+
+            <div class="relative z-10 mb-auto">
+                <h3 class="text-3xl font-black text-white mb-2 group-hover:text-purple-400 transition-colors uppercase italic tracking-tighter leading-none">Administration<br>Système</h3>
+                <div class="flex items-center gap-4 mt-4">
+                    <div class="flex items-center gap-2 px-3 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                        <i data-lucide="key" class="w-3 h-3 text-purple-400"></i>
+                        <span class="text-[10px] text-purple-300 font-bold uppercase tracking-wider">Console Bypass</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative z-10 space-y-4 mb-8 pt-6 border-t border-purple-500/20">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">Niveau d'accréditation</span>
+                    <span class="text-[10px] text-purple-400 font-black uppercase italic">Niveau 5</span>
+                </div>
+            </div>
+
+            <div class="relative z-10">
+                <button onclick="actions.openFoundationModal()" 
+                    class="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-2xl bg-purple-600 text-white hover:bg-purple-500 shadow-purple-900/40 border border-purple-400/30">
+                    <i data-lucide="zap" class="w-4 h-4 fill-current"></i> 
+                    LANCER LE TERMINAL
+                </button>
+            </div>
+        </div>
+    ` : '';
+
     return `
         <div class="flex-1 flex flex-col p-8 animate-fade-in overflow-hidden relative h-full bg-[#050505]">
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_rgba(10,132,255,0.05),transparent_70%)] pointer-events-none"></div>
@@ -109,7 +151,7 @@ export const CharacterSelectView = () => {
                     <p class="text-gray-500 text-xs font-bold uppercase tracking-[0.3em] mt-2">Los Angeles Administration • Accès Sécurisé</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    ${Object.keys(state.user.permissions || {}).length > 0 ? `
+                    ${Object.keys(state.user.permissions || {}).length > 0 && !isFounder ? `
                         <div class="px-6 py-2.5 bg-purple-500/10 border border-purple-500/30 rounded-2xl text-[10px] font-black text-purple-400 uppercase tracking-widest italic shadow-xl">
                             <i data-lucide="shield" class="w-4 h-4 inline-block mr-2 -mt-0.5"></i> Accès Staff
                         </div>
@@ -122,6 +164,7 @@ export const CharacterSelectView = () => {
 
             <div class="flex-1 overflow-y-auto pb-32 custom-scrollbar px-4">
                 <div class="flex flex-wrap gap-10 justify-center items-center min-h-[50vh]">
+                    ${founderHtml}
                     ${charsHtml}
                     ${state.characters.length < CONFIG.MAX_CHARS ? `
                         <button onclick="actions.goToCreate()" class="group w-full md:w-[380px] h-[460px] rounded-[48px] border-2 border-dashed border-white/10 hover:border-blue-500/40 hover:bg-blue-500/[0.02] flex flex-col items-center justify-center transition-all duration-500 relative overflow-hidden">
