@@ -1,90 +1,57 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * Initialisation du client Supabase pour le bot
- */
 export const supabase = createClient(
   process.env.SUPABASE_URL, 
   process.env.SUPABASE_ANON_KEY
 );
 
-/**
- * Compte le nombre de fiches en attente de validation
- */
 export async function getPendingCharactersCount() {
   const { count, error } = await supabase
     .from("characters")
     .select("*", { count: 'exact', head: true })
     .eq("status", "pending");
-  
-  if (error) return 0;
-  return count || 0;
+  return error ? 0 : (count || 0);
 }
 
-/**
- * Marque des personnages comme ayant été notifiés sur Discord
- */
 export async function markAsNotified(characterIds) {
   if (!characterIds || characterIds.length === 0) return;
-  const { error } = await supabase
-    .from("characters")
-    .update({ is_notified: true })
-    .in("id", characterIds);
-  
-  if (error) console.error(`[DB ERROR] markAsNotified: ${error.message}`);
+  await supabase.from("characters").update({ is_notified: true }).in("id", characterIds);
 }
 
-/**
- * Récupère les nouvelles validations acceptées non notifiées
- */
 export async function getNewValidations() {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("characters")
     .select("*")
     .eq("status", "accepted")
     .or('is_notified.is.null,is_notified.eq.false');
-
-  if (error) {
-    console.error(`[DB ERROR] getNewValidations: ${error.message}`);
-    return [];
-  }
   return data || [];
 }
 
-/**
- * Récupère les personnages acceptés pour un utilisateur spécifique
- */
 export async function getUserAcceptedCharacters(userId) {
-  const { data, error } = await supabase
-    .from("characters")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("status", "accepted");
-
-  if (error) return [];
+  const { data } = await supabase.from("characters").select("*").eq("user_id", userId).eq("status", "accepted");
   return data || [];
 }
 
-/**
- * Récupère tous les personnages d'un utilisateur
- */
 export async function getAllUserCharacters(userId) {
-  const { data, error } = await supabase
-    .from("characters")
-    .select("*")
-    .eq("user_id", userId);
+  const { data } = await supabase.from("characters").select("*").eq("user_id", userId);
   return data || [];
 }
 
-/**
- * Récupère un profil via son ID
- */
+export async function getCharacterById(charId) {
+  const { data } = await supabase.from("characters").select("*").eq("id", charId).maybeSingle();
+  return data;
+}
+
+export async function createCharacter(charData) {
+  return await supabase.from("characters").insert([charData]);
+}
+
+export async function updateCharacter(charId, charData) {
+  return await supabase.from("characters").update(charData).eq("id", charId);
+}
+
 export async function getProfile(profileId) {
-  const { data } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", profileId)
-    .maybeSingle();
+  const { data } = await supabase.from("profiles").select("username").eq("id", profileId).maybeSingle();
   return data;
 }

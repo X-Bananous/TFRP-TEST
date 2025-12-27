@@ -7,6 +7,8 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   PermissionFlagsBits
@@ -17,6 +19,9 @@ import {
   getUserAcceptedCharacters, 
   getAllUserCharacters, 
   getProfile,
+  getCharacterById,
+  createCharacter,
+  updateCharacter,
   supabase 
 } from "./bot-db.js";
 import { 
@@ -24,7 +29,10 @@ import {
   kickUnverified, 
   handleUnverified, 
   handleVerification,
-  updateCustomsStatus
+  updateCustomsStatus,
+  getSSDDetailsEmbed,
+  buildCharacterModal,
+  calculateAge
 } from "./bot-services.js";
 
 const client = new Client({
@@ -38,10 +46,7 @@ const client = new Client({
 /* ================= SCANS PÉRIODIQUES ================= */
 
 async function runScans() {
-  // 1. Mise à jour de l'activité du bot (Status) uniquement
   await updateCustomsStatus(client, false);
-
-  // 2. Scan des nouvelles fiches acceptées sur le site
   const newChars = await getNewValidations();
   if (newChars.length > 0) {
     const charsByUser = {};
@@ -49,27 +54,7 @@ async function runScans() {
       if (!charsByUser[c.user_id]) charsByUser[c.user_id] = [];
       charsByUser[c.user_id].push(c);
     });
-    for (const userId in charsByUser) {
-      await handleVerification(client, userId, charsByUser[userId]);
-    }
-  }
-
-  // 3. Scan de sécurité (Kick si perso supprimé ou invalide sur guildes protégées)
-  for (const guildId of BOT_CONFIG.PROTECTED_GUILDS) {
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) continue;
-    try {
-      const members = await guild.members.fetch();
-      for (const [id, member] of members) {
-        if (member.user.bot) continue;
-        const acceptedChars = await getUserAcceptedCharacters(id);
-        if (acceptedChars.length === 0) {
-           await kickUnverified(member);
-        } else {
-           await handleVerification(client, id, acceptedChars);
-        }
-      }
-    } catch (err) { console.error(`Erreur scan security ${guildId}: ${err.message}`); }
+    for (const userId in charsByUser) await handleVerification(client, userId, charsByUser[userId]);
   }
 }
 
@@ -80,7 +65,8 @@ client.once("ready", async () => {
 
   const commands = [
     new SlashCommandBuilder().setName('verification').setDescription('Force la vérification de vos fiches personnages'),
-    new SlashCommandBuilder().setName('personnages').setDescription('Affiche vos personnages et leurs détails'),
+    new SlashCommandBuilder().setName('personnages').setDescription('Gérez vos personnages (création/modification)'),
+    new SlashCommandBuilder().setName('status').setDescription('Affiche le statut actuel des douanes'),
     new SlashCommandBuilder().setName('ssd').setDescription('Force l\'envoi du statut des douanes (Staff)')
   ].map(c => c.toJSON());
 
@@ -89,106 +75,164 @@ client.once("ready", async () => {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
   } catch (e) { console.error(e); }
 
-  // Premier scan immédiat
   runScans();
-  
-  // Boucle de scan toutes les 5 minutes (plus besoin de la précision à la minute)
   setInterval(runScans, 300000); 
 });
 
 /* ================= ÉVÉNEMENTS ================= */
 
-client.on("guildMemberAdd", async (member) => {
-  if (member.user.bot) return;
-  await sendWelcomeTutorial(member);
-  
-  const acceptedChars = await getUserAcceptedCharacters(member.id);
-  if (acceptedChars.length > 0) {
-    await handleVerification(client, member.id, acceptedChars);
-  } else {
-    if (BOT_CONFIG.PROTECTED_GUILDS.includes(member.guild.id)) {
-      await kickUnverified(member);
-    } else if (member.guild.id === BOT_CONFIG.MAIN_SERVER_ID) {
-      await handleUnverified(client, member.id);
+client.on("interactionCreate", async interaction => {
+  // 1. GESTION DES COMMANDES SLASH
+  if (interaction.isChatInputCommand()) {
+    const { commandName, user } = interaction;
+
+    if (commandName === "status") {
+      const embed = await getSSDDetailsEmbed();
+      return interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === "personnages") {
+      await interaction.deferReply({ ephemeral: true });
+      const allChars = await getAllUserCharacters(user.id);
+
+      if (allChars.length === 0) {
+        const embed = new EmbedBuilder()
+          .setTitle("Aucun personnage détecté")
+          .setDescription("Vous n'avez pas encore de dossier citoyen. Voulez-vous en créer un maintenant ?")
+          .setColor(BOT_CONFIG.COLORS.WARNING);
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('btn_create_char').setLabel('Créer mon personnage').setStyle(ButtonStyle.Success)
+        );
+        return interaction.editReply({ embeds: [embed], components: [row] });
+      }
+
+      const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('Choisir un personnage à gérer');
+      allChars.slice(0, 25).forEach(char => {
+          selectMenu.addOptions(new StringSelectMenuOptionBuilder()
+              .setLabel(`${char.first_name} ${char.last_name}`)
+              .setDescription(`Status: ${char.status} | Métier: ${char.job || 'Aucun'}`)
+              .setValue(char.id)
+          );
+      });
+
+      const embed = new EmbedBuilder().setTitle("Gestion des Personnages").setDescription("Sélectionnez une fiche pour voir les détails ou la modifier.").setColor(BOT_CONFIG.COLORS.DARK_BLUE);
+      return interaction.editReply({ embeds: [embed], components: [new ActionRowBuilder().addComponents(selectMenu)] });
+    }
+
+    if (commandName === "ssd") {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) return interaction.reply({ content: "Permission refusée.", ephemeral: true });
+      await interaction.deferReply({ ephemeral: true });
+      await updateCustomsStatus(client, true);
+      return interaction.editReply({ content: "Statut envoyé." });
+    }
+  }
+
+  // 2. GESTION DES BOUTONS ET MENUS
+  if (interaction.isButton() && interaction.customId === 'btn_create_char') {
+    const modal = buildCharacterModal(false);
+    return interaction.showModal(modal);
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === 'select_char_manage') {
+    await interaction.deferUpdate();
+    const charId = interaction.values[0];
+    const char = await getCharacterById(charId);
+
+    if (!char) return interaction.followUp({ content: "Dossier introuvable.", ephemeral: true });
+
+    const statusMap = { 'pending': '🟡 En attente', 'accepted': '🟢 Validé', 'rejected': '🔴 Refusé' };
+    const detailEmbed = new EmbedBuilder()
+      .setTitle(`Dossier : ${char.first_name} ${char.last_name}`)
+      .setColor(BOT_CONFIG.COLORS.DARK_BLUE)
+      .addFields(
+        { name: "Identité", value: `**Prénom:** ${char.first_name}\n**Nom:** ${char.last_name}\n**Âge:** ${char.age} ans`, inline: true },
+        { name: "État Civil", value: `**Statut:** ${statusMap[char.status] || char.status}\n**Métier:** ${char.job || 'Chômeur'}`, inline: true }
+      );
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(`btn_edit_char_${char.id}`).setLabel('Modifier les informations').setStyle(ButtonStyle.Primary)
+    );
+
+    return interaction.editReply({ embeds: [detailEmbed], components: [row] });
+  }
+
+  if (interaction.isButton() && interaction.customId.startsWith('btn_edit_char_')) {
+    const charId = interaction.customId.replace('btn_edit_char_', '');
+    const char = await getCharacterById(charId);
+    if (!char) return interaction.reply({ content: "Erreur.", ephemeral: true });
+    const modal = buildCharacterModal(true, char);
+    return interaction.showModal(modal);
+  }
+
+  // 3. GESTION DES MODALS (SUBMISSION)
+  if (interaction.isModalSubmit()) {
+    const isEdit = interaction.customId.startsWith('edit_char_modal_');
+    const charId = isEdit ? interaction.customId.replace('edit_char_modal_', '') : null;
+    
+    const firstName = interaction.fields.getTextInputValue('first_name');
+    const lastName = interaction.fields.getTextInputValue('last_name');
+    const birthDateStr = interaction.fields.getTextInputValue('birth_date');
+    const birthPlace = interaction.fields.getTextInputValue('birth_place');
+    const alignment = interaction.fields.getTextInputValue('alignment').toLowerCase();
+
+    const age = calculateAge(birthDateStr);
+    if (age < 13) return interaction.reply({ content: "Erreur : Votre personnage doit avoir au moins 13 ans.", ephemeral: true });
+    if (!['legal', 'illegal'].includes(alignment)) return interaction.reply({ content: "Erreur : L'orientation doit être 'legal' ou 'illegal'.", ephemeral: true });
+
+    let status = 'pending';
+    let job = 'unemployed';
+    let isNotified = false;
+    let verifiedby = null;
+
+    if (isEdit) {
+      const oldChar = await getCharacterById(charId);
+      status = oldChar.status;
+      job = oldChar.job;
+      isNotified = oldChar.is_notified;
+      verifiedby = oldChar.verifiedby;
+
+      // Si le nom change -> Reset validation
+      if (firstName !== oldChar.first_name || lastName !== oldChar.last_name) {
+        status = 'pending';
+        verifiedby = null;
+        isNotified = false;
+      }
+      // Si alignement change -> Reset job
+      if (alignment !== oldChar.alignment) job = 'unemployed';
+    }
+
+    const payload = {
+      user_id: interaction.user.id,
+      first_name: firstName,
+      last_name: lastName,
+      birth_date: birthDateStr,
+      birth_place: birthPlace,
+      age: age,
+      alignment: alignment,
+      status: status,
+      job: job,
+      is_notified: isNotified,
+      verifiedby: verifiedby
+    };
+
+    const { error } = isEdit ? await updateCharacter(charId, payload) : await createCharacter(payload);
+
+    if (error) {
+      return interaction.reply({ content: "Erreur lors de l'enregistrement en base de données.", ephemeral: true });
+    } else {
+      return interaction.reply({ content: isEdit ? "Dossier citoyen mis à jour avec succès !" : "Dossier citoyen transmis pour validation !", ephemeral: true });
     }
   }
 });
 
-client.on("interactionCreate", async interaction => {
-  // Gestion du menu déroulant des détails personnages
-  if (interaction.isStringSelectMenu() && interaction.customId === 'select_char_details') {
-    await interaction.deferUpdate();
-    const charId = interaction.values[0];
-    const { data: char } = await supabase.from("characters").select("*").eq("id", charId).single();
-
-    if (!char) return interaction.followUp({ content: "Erreur récupération fiche.", ephemeral: true });
-
-    const staffProfile = char.verifiedby ? await getProfile(char.verifiedby) : null;
-    const birthDate = char.birth_date ? new Date(char.birth_date).toLocaleDateString('fr-FR') : "Inconnue";
-    const statusMap = { 'pending': 'En attente', 'accepted': 'Validé', 'rejected': 'Refusé' };
-
-    const detailEmbed = new EmbedBuilder()
-      .setTitle(`Fiche : ${char.first_name} ${char.last_name}`)
-      .setColor(BOT_CONFIG.COLORS.DARK_BLUE)
-      .addFields(
-        { name: "Identité", value: `**Nom:** ${char.last_name}\n**Prénom:** ${char.first_name}\n**Âge:** ${char.age || '?'} ans`, inline: false },
-        { name: "Naissance", value: `**Date:** ${birthDate}\n**Lieu:** ${char.birth_place || 'Inconnu'}`, inline: false },
-        { name: "Statut", value: `**État:** ${statusMap[char.status] || char.status}\n**Métier:** ${char.job || 'Chômeur'}\n**Alignement:** ${char.alignment || 'Neutre'}`, inline: false },
-        { name: "Permis & Légal", value: `**Points Permis:** ${char.driver_license_points}/12\n**Barreau:** ${char.bar_passed ? "Oui" : "Non"}`, inline: false },
-        { name: "Douane", value: `**Validé par:** ${staffProfile?.username || "Non renseigné"}`, inline: false }
-      )
-      .setFooter({ text: `Réf: ${char.id} • TFRP Manager` });
-
-    return interaction.editReply({ embeds: [detailEmbed] }); 
-  }
-
-  if (!interaction.isChatInputCommand()) return;
-  const { commandName, user, member } = interaction;
-
-  try {
-      if (commandName === "ssd") {
-        if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-          return interaction.reply({ content: "Vous n'avez pas la permission.", ephemeral: true });
-        }
-        await interaction.deferReply({ ephemeral: true });
-        await updateCustomsStatus(client, true);
-        return interaction.editReply({ content: "Le statut SSD a été envoyé avec succès." });
-      }
-
-      if (commandName === "verification") {
-        await interaction.deferReply({ ephemeral: true });
-        const acceptedChars = await getUserAcceptedCharacters(user.id);
-
-        if (acceptedChars.length > 0) {
-          const hasNew = acceptedChars.some(c => c.is_notified !== true);
-          await handleVerification(client, user.id, acceptedChars);
-          return interaction.editReply({ embeds: [new EmbedBuilder().setColor(BOT_CONFIG.COLORS.DARK_BLUE).setDescription(hasNew ? "Vos accès ont été mis à jour." : "Votre compte est déjà à jour.")] });
-        } else {
-          await handleUnverified(client, user.id);
-          return interaction.editReply({ embeds: [new EmbedBuilder().setColor(BOT_CONFIG.COLORS.ERROR).setDescription("Aucun personnage accepté trouvé.")] });
-        }
-      }
-
-      if (commandName === "personnages") {
-        await interaction.deferReply({ ephemeral: true });
-        const allChars = await getAllUserCharacters(user.id);
-
-        if (allChars.length === 0) return interaction.editReply({ content: "Aucun personnage enregistré." });
-
-        const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_details').setPlaceholder('Choisir un personnage');
-        allChars.slice(0, 25).forEach(char => {
-            selectMenu.addOptions(new StringSelectMenuOptionBuilder()
-                .setLabel(`${char.first_name} ${char.last_name}`)
-                .setDescription(`Métier: ${char.job || 'Aucun'} | Statut: ${char.status}`)
-                .setValue(char.id)
-            );
-        });
-
-        const embed = new EmbedBuilder().setTitle("Vos Personnages").setDescription("Sélectionnez une fiche pour voir les détails.").setColor(BOT_CONFIG.COLORS.DARK_BLUE);
-        return interaction.editReply({ embeds: [embed], components: [new ActionRowBuilder().addComponents(selectMenu)] });
-      }
-  } catch (e) {
-      if (interaction.deferred || interaction.replied) await interaction.editReply({ content: "Erreur technique." }).catch(() => {});
+client.on("guildMemberAdd", async (member) => {
+  if (member.user.bot) return;
+  await sendWelcomeTutorial(member);
+  const acceptedChars = await getUserAcceptedCharacters(member.id);
+  if (acceptedChars.length > 0) await handleVerification(client, member.id, acceptedChars);
+  else {
+    if (BOT_CONFIG.PROTECTED_GUILDS.includes(member.guild.id)) await kickUnverified(member);
+    else if (member.guild.id === BOT_CONFIG.MAIN_SERVER_ID) await handleUnverified(client, member.id);
   }
 });
 
