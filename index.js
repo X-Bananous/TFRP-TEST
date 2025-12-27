@@ -47,7 +47,7 @@ async function runScans() {
   await updateCustomsStatus(client, false);
 
   // 2. Vérification planification SSD (9:10 et 19:10)
-  if ((currentTimeStr === "09:10" || currentTimeStr === "19:10") && lastScheduledPostDate !== todayKey) {
+  if ((currentTimeStr === "09:15" || currentTimeStr === "19:15") && lastScheduledPostDate !== todayKey) {
     lastScheduledPostDate = todayKey;
     console.log(`[SYSTEM] Envoi automatique du statut SSD à ${currentTimeStr}`);
     await updateCustomsStatus(client, true);
