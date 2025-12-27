@@ -5,38 +5,51 @@ import { loadCharacters } from '../services.js';
 
 export const loadUserSanctions = async () => {
     if (!state.user || !state.supabase) return;
-    const { data } = await state.supabase.from('sanctions').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false });
-    state.userSanctions = data || [];
+    try {
+        const { data, error } = await state.supabase
+            .from('sanctions')
+            .select('*')
+            .eq('user_id', state.user.id)
+            .order('created_at', { ascending: false });
+            
+        if (!error) {
+            state.userSanctions = data || [];
+        }
+    } catch(e) {
+        console.warn("Erreur lors du chargement des sanctions (Table peut-être absente).");
+        state.userSanctions = [];
+    }
     render();
 };
 
 export const submitSanctionAppeal = async (sanctionId, text) => {
     if (!state.supabase || text.length > 350) return;
     
-    const { data: sanction } = await state.supabase.from('sanctions').select('appeal_at').eq('id', sanctionId).single();
-    
-    // Règle 1 fois par an
-    if (sanction?.appeal_at) {
-        const lastAppeal = new Date(sanction.appeal_at);
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        if (lastAppeal > oneYearAgo) {
-            ui.showToast("Vous ne pouvez contester qu'une fois par an.", "error");
-            return;
+    try {
+        const { data: sanction } = await state.supabase.from('sanctions').select('appeal_at').eq('id', sanctionId).single();
+        
+        if (sanction?.appeal_at) {
+            const lastAppeal = new Date(sanction.appeal_at);
+            const oneYearAgo = new Date();
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+            if (lastAppeal > oneYearAgo) {
+                ui.showToast("Vous ne pouvez contester qu'une fois par an.", "error");
+                return;
+            }
         }
-    }
 
-    const { error } = await state.supabase.from('sanctions').update({
-        appeal_text: text,
-        appeal_at: new Date().toISOString()
-    }).eq('id', sanctionId);
+        const { error } = await state.supabase.from('sanctions').update({
+            appeal_text: text,
+            appeal_at: new Date().toISOString()
+        }).eq('id', sanctionId);
 
-    if (!error) {
-        ui.showToast("Contestation envoyée au Conseil.", "success");
-        await loadUserSanctions();
-    } else {
-        ui.showToast("Erreur lors de l'envoi de l'appel.", "error");
-    }
+        if (!error) {
+            ui.showToast("Contestation envoyée au Conseil.", "success");
+            await loadUserSanctions();
+        } else {
+            ui.showToast("Erreur lors de l'envoi de l'appel.", "error");
+        }
+    } catch(e) { ui.showToast("Erreur système appel.", "error"); }
 };
 
 export const openAppealModal = (sanctionId) => {
@@ -111,7 +124,7 @@ export const cancelDataDeletion = async () => {
       
     if (!error) {
       state.user.deletion_requested_at = null;
-      ui.showToast("Suppression annulée. Vos données sont en sécurité.", "success");
+      ui.showToast("Suppression annulée.", "success");
       render();
     } else {
       ui.showToast("Erreur lors de l'annulation.", "error");
@@ -124,14 +137,7 @@ export const requestCharacterDeletion = async (charId) => {
 
     ui.showModal({
         title: "Purger l'Identité",
-        content: `
-            <div class="space-y-4">
-                <p class="text-sm text-gray-300">Voulez-vous marquer le dossier de <b>${char.first_name} ${char.last_name}</b> pour suppression ?</p>
-                <div class="bg-red-500/10 p-4 rounded-xl border border-red-500/20 text-[10px] text-red-400 uppercase font-black leading-relaxed">
-                    Cette action effacera définitivement l'inventaire, le compte en banque et les affiliations de ce personnage dans 3 jours.
-                </div>
-            </div>
-        `,
+        content: `Voulez-vous marquer le dossier de <b>${char.first_name} ${char.last_name}</b> pour suppression définitive dans 3 jours ?`,
         confirmText: "Confirmer la purge",
         type: "danger",
         onConfirm: async () => {
@@ -139,15 +145,12 @@ export const requestCharacterDeletion = async (charId) => {
             const { error } = await state.supabase
                 .from('characters')
                 .update({ deletion_requested_at: now })
-                .eq('id', charId)
-                .eq('user_id', state.user.id);
+                .eq('id', charId);
 
             if (!error) {
                 ui.showToast("Demande de suppression envoyée.", "warning");
                 await loadCharacters();
                 render();
-            } else {
-                ui.showToast("Erreur système lors de la requête.", "error");
             }
         }
     });
@@ -157,14 +160,11 @@ export const cancelCharacterDeletion = async (charId) => {
     const { error } = await state.supabase
         .from('characters')
         .update({ deletion_requested_at: null })
-        .eq('id', charId)
-        .eq('user_id', state.user.id);
+        .eq('id', charId);
 
     if (!error) {
-        ui.showToast("Suppression du personnage annulée.", "success");
+        ui.showToast("Suppression annulée.", "success");
         await loadCharacters();
         render();
-    } else {
-        ui.showToast("Erreur lors de l'annulation.", "error");
     }
 };
