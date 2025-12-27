@@ -58,6 +58,66 @@ export const setStaffTab = async (tab) => {
     }
 };
 
+// SANCTION ACTIONS
+export const searchUserForSanction = async (query) => {
+    state.staffSanctionSearchQuery = query;
+    if (query.length > 2) {
+        state.staffSanctionResults = await services.searchProfiles(query);
+    } else {
+        state.staffSanctionResults = [];
+    }
+    render();
+};
+
+export const selectUserForSanction = (profile) => {
+    state.activeSanctionTarget = profile;
+    state.staffSanctionResults = [];
+    state.staffSanctionSearchQuery = profile.username;
+    render();
+};
+
+export const applySanctionStaff = async (e) => {
+    e.preventDefault();
+    const btn = e.submitter;
+    const target = state.activeSanctionTarget;
+    if (!target) return ui.showToast("Cible non définie.", "error");
+
+    const data = new FormData(e.target);
+    const type = data.get('type');
+    const reason = data.get('reason');
+    const duration = parseInt(data.get('duration'));
+
+    // Check perms
+    const myPerms = state.user.permissions || {};
+    if (type === 'warn' && !myPerms.can_warn && !state.user.isFounder) return ui.showToast("Pas autorisé à warn.", "error");
+    if (type === 'mute' && !myPerms.can_mute && !state.user.isFounder) return ui.showToast("Pas autorisé à mute.", "error");
+    if (type === 'ban' && !myPerms.can_ban && !state.user.isFounder) return ui.showToast("Pas autorisé à ban.", "error");
+
+    toggleBtnLoading(btn, true, "Application...");
+
+    const expires_at = duration ? new Date(Date.now() + duration * 60000).toISOString() : (type === 'warn' ? null : null);
+    
+    const { error } = await state.supabase.from('sanctions').insert({
+        user_id: target.id,
+        staff_id: state.user.id,
+        type,
+        reason,
+        expires_at
+    });
+
+    if (!error) {
+        ui.showToast(`Sanction ${type.toUpperCase()} appliquée.`, "success");
+        state.activeSanctionTarget = null;
+        state.staffSanctionSearchQuery = '';
+        e.target.reset();
+    } else {
+        ui.showToast("Erreur serveur lors de la sanction.", "error");
+    }
+    
+    toggleBtnLoading(btn, false);
+    render();
+};
+
 export const giveWheelTurn = async (userId) => {
     if (!hasPermission('can_give_wheel_turn')) return;
     
@@ -678,7 +738,10 @@ export const renderPermEditor = (profile) => {
         can_execute_commands: "Accès au Terminal ERLC. Permet d'envoyer des instructions directes au serveur de jeu via l'API (messages globaux, annonces de braquage, etc.).",
         can_give_wheel_turn: "Gestionnaire de Récompenses. Autorise l'attribution de tours de Roue de la Fortune aux citoyens via le registre administratif.",
         can_use_dm: "Messagerie Directe Bot. Autorise l'envoi de messages privés (MP) via l'identité du bot pour des communications administratives ou RP.",
-        can_use_say: "Transmission Publique Bot. Permet d'utiliser le bot pour parler dans les salons textuels publics de façon officielle."
+        can_use_say: "Transmission Publique Bot. Permet d'utiliser le bot pour parler dans les salons textuels publics de façon officielle.",
+        can_warn: "Autorise l'application d'avertissements (Warns).",
+        can_mute: "Autorise la mise en sourdine (Mute) des citoyens.",
+        can_ban: "Autorise le bannissement définitif ou temporaire (Ban)."
     };
 
     const checkboxes = [
@@ -697,7 +760,10 @@ export const renderPermEditor = (profile) => {
         { k: 'can_execute_commands', l: 'Console ERLC' },
         { k: 'can_give_wheel_turn', l: 'Maître des Roues' },
         { k: 'can_use_dm', l: 'Messagerie Bot' },
-        { k: 'can_use_say', l: 'Transmission Bot' }
+        { k: 'can_use_say', l: 'Transmission Bot' },
+        { k: 'can_warn', l: 'Warn System' },
+        { k: 'can_mute', l: 'Mute System' },
+        { k: 'can_ban', l: 'Ban System' }
     ].map(p => `
         <div class="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/[0.08] ${isDisabled ? 'opacity-50 grayscale' : ''}">
             <label class="flex items-center gap-4 cursor-pointer">

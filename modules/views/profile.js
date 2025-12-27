@@ -1,4 +1,3 @@
-
 import { state } from '../state.js';
 
 export const ProfileView = () => {
@@ -29,7 +28,7 @@ export const ProfileView = () => {
         let charTimeRemaining = "";
         if (isCharDeleting) {
             const expiry = new Date(charDelDate.getTime() + (3 * 24 * 60 * 60 * 1000));
-            const diff = expiry - new Date();
+            const diff = expiry - now;
             if (diff > 0) {
                 const d = Math.floor(diff / (1000 * 60 * 60 * 24));
                 const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -66,6 +65,40 @@ export const ProfileView = () => {
         `;
     }).join('');
 
+    const sanctionsHtml = state.userSanctions.length > 0 ? state.userSanctions.map(s => {
+        const typeColor = s.type === 'warn' ? 'yellow' : s.type === 'mute' ? 'orange' : 'red';
+        const hasAppealed = !!s.appeal_at;
+        
+        return `
+            <div class="p-6 bg-black/40 border border-${typeColor}-500/20 rounded-[32px] group relative overflow-hidden transition-all hover:border-${typeColor}-500/40">
+                <div class="absolute top-0 left-0 w-1 h-full bg-${typeColor}-500"></div>
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-${typeColor}-500/10 flex items-center justify-center text-${typeColor}-400 border border-${typeColor}-500/20">
+                            <i data-lucide="${s.type === 'ban' ? 'shield-off' : s.type === 'mute' ? 'mic-off' : 'alert-triangle'}" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <div class="font-black text-white text-base uppercase italic tracking-tight">${s.type.toUpperCase()}</div>
+                            <div class="text-[9px] text-gray-500 font-mono mt-0.5">${new Date(s.created_at).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                         ${hasAppealed ? '<span class="text-[8px] bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded font-black uppercase border border-blue-500/20 shadow-lg">Appel déposé</span>' : ''}
+                    </div>
+                </div>
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/5 text-xs text-gray-400 italic mb-4 font-medium leading-relaxed">"${s.reason}"</div>
+                ${!hasAppealed ? `
+                    <button onclick="actions.openAppealModal('${s.id}')" class="w-full py-2.5 rounded-xl bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-white/10 hover:bg-white hover:text-black transition-all">Déposer une contestation (1/an)</button>
+                ` : `
+                    <div class="p-4 bg-blue-900/10 border border-blue-500/20 rounded-2xl">
+                         <div class="text-[8px] text-blue-400 uppercase font-black mb-1">Votre Argumentaire</div>
+                         <p class="text-[11px] text-gray-300 italic">"${s.appeal_text}"</p>
+                    </div>
+                `}
+            </div>
+        `;
+    }).join('') : '<div class="p-12 text-center text-gray-700 italic border-2 border-dashed border-white/5 rounded-[40px] uppercase font-black tracking-widest text-[10px] opacity-40">Registre de sanctions vierge</div>';
+
     return `
     <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
         <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-blue-900/10 to-transparent pointer-events-none"></div>
@@ -92,7 +125,6 @@ export const ProfileView = () => {
         <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
             <div class="max-w-4xl mx-auto space-y-12 pb-20">
                 
-                <!-- MAIN IDENTITY BLOCK -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <div class="lg:col-span-5 glass-panel p-10 rounded-[48px] border border-white/5 bg-[#0a0a0c] flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
                         <div class="absolute inset-0 bg-gradient-to-b from-blue-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
@@ -115,7 +147,6 @@ export const ProfileView = () => {
                     </div>
 
                     <div class="lg:col-span-7 space-y-6">
-                        <!-- PERMISSIONS CARD -->
                         <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] h-full flex flex-col">
                             <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
                                 <i data-lucide="shield-check" class="w-4 h-4"></i> Accréditations & Droits
@@ -138,6 +169,16 @@ export const ProfileView = () => {
                     </div>
                 </div>
 
+                <!-- SANCTIONS SECTION -->
+                <div class="space-y-6">
+                    <h3 class="text-xs font-black text-red-500 uppercase tracking-[0.4em] flex items-center gap-4 px-2">
+                        <span class="w-8 h-px bg-red-500/30"></span> Registre Disciplinaire
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${sanctionsHtml}
+                    </div>
+                </div>
+
                 <!-- CHARACTER MANAGEMENT SECTION -->
                 <div class="space-y-6">
                     <h3 class="text-xs font-black text-blue-400 uppercase tracking-[0.4em] flex items-center gap-4 px-2">
@@ -148,7 +189,6 @@ export const ProfileView = () => {
                     </div>
                 </div>
 
-                <!-- RGPD & SECURITY SECTION -->
                 <div class="glass-panel p-10 rounded-[48px] border ${isDeleting ? 'border-orange-500/40 bg-orange-950/10 shadow-orange-900/10' : 'border-red-500/10 bg-red-950/[0.02]'} relative overflow-hidden transition-all duration-700">
                     <div class="absolute top-0 right-0 w-64 h-64 ${isDeleting ? 'bg-orange-500/5' : 'bg-red-500/5'} rounded-full blur-[100px] pointer-events-none"></div>
                     
@@ -177,10 +217,6 @@ export const ProfileView = () => {
                             `}
                         </div>
                     </div>
-                </div>
-
-                <div class="text-center pt-20 pb-10 opacity-30">
-                    <div class="text-[9px] font-black uppercase tracking-[0.6em] text-gray-700">Unified Citizenship Portal • Final Layer v4.5.1</div>
                 </div>
             </div>
         </div>

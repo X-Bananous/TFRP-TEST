@@ -14,7 +14,7 @@ export const BOT_CONFIG = {
   ],
   UNVERIFIED_ROLE_ID: "1445853684696223846",
   
-  // Mapping strict Permissions Site -> IDs de Rôles Discord fournis
+  // Mapping strict Permissions Site -> IDs de Rôles Discord
   PERM_ROLE_MAP: {
     "can_approve_characters": "1445853687573385259", // Whitelist [PS]
     "can_manage_characters": "1454487849574465680",  // Personnage [PS]
@@ -31,6 +31,10 @@ export const BOT_CONFIG = {
     "can_execute_commands": "1454488529177673856",   // C.ERLC [PS]
     "can_give_wheel_turn": "1454488530490228829",    // Roues [PS]
     "can_use_dm": "1454488531341938841",             // Messagerie [PS]
-    "can_use_say": "1454488532197310475"             // Transmission [PS]
+    "can_use_say": "1454488532197310475",             // Transmission [PS]
+    // NOUVELLES PERMISSIONS SANCTIONS
+    "can_mute": "1454848384211910717",
+    "can_warn": "1454848385310818314",
+    "can_ban": "1454848386271318117"
   }
 };

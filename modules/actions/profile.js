@@ -1,8 +1,71 @@
-
 import { state } from '../state.js';
 import { render } from '../utils.js';
 import { ui } from '../ui.js';
 import { loadCharacters } from '../services.js';
+
+export const loadUserSanctions = async () => {
+    if (!state.user || !state.supabase) return;
+    const { data } = await state.supabase.from('sanctions').select('*').eq('user_id', state.user.id).order('created_at', { ascending: false });
+    state.userSanctions = data || [];
+    render();
+};
+
+export const submitSanctionAppeal = async (sanctionId, text) => {
+    if (!state.supabase || text.length > 350) return;
+    
+    const { data: sanction } = await state.supabase.from('sanctions').select('appeal_at').eq('id', sanctionId).single();
+    
+    // Règle 1 fois par an
+    if (sanction?.appeal_at) {
+        const lastAppeal = new Date(sanction.appeal_at);
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        if (lastAppeal > oneYearAgo) {
+            ui.showToast("Vous ne pouvez contester qu'une fois par an.", "error");
+            return;
+        }
+    }
+
+    const { error } = await state.supabase.from('sanctions').update({
+        appeal_text: text,
+        appeal_at: new Date().toISOString()
+    }).eq('id', sanctionId);
+
+    if (!error) {
+        ui.showToast("Contestation envoyée au Conseil.", "success");
+        await loadUserSanctions();
+    } else {
+        ui.showToast("Erreur lors de l'envoi de l'appel.", "error");
+    }
+};
+
+export const openAppealModal = (sanctionId) => {
+    ui.showModal({
+        title: "Contester la Sanction",
+        content: `
+            <div class="space-y-4">
+                <p class="text-xs text-gray-400">Exposez vos arguments de façon concise (Max 350 caractères). Cette action est limitée à une fois par an par sanction.</p>
+                <textarea id="appeal-text" maxlength="350" class="glass-input w-full p-4 rounded-2xl h-40 text-sm italic" placeholder="Votre défense..."></textarea>
+                <div id="char-count" class="text-right text-[10px] text-gray-600 font-mono">0 / 350</div>
+            </div>
+        `,
+        confirmText: "Envoyer l'appel",
+        onConfirm: async () => {
+            const text = document.getElementById('appeal-text').value;
+            if (text.trim().length > 0) {
+                await submitSanctionAppeal(sanctionId, text);
+            }
+        }
+    });
+    
+    setTimeout(() => {
+        const area = document.getElementById('appeal-text');
+        const counter = document.getElementById('char-count');
+        if(area && counter) {
+            area.oninput = () => { counter.textContent = `${area.value.length} / 350`; };
+        }
+    }, 100);
+};
 
 export const requestDataDeletion = async () => {
     ui.showModal({

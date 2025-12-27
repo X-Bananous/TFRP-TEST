@@ -24,6 +24,8 @@ import { verificationCommand } from "./bot/commands/verification.js";
 import { statusCommand, ssdDeployCommand } from "./bot/commands/status.js";
 import { aideCommand } from "./bot/commands/aide.js";
 import { panelCommand } from "./bot/commands/panel.js";
+import { sanctionsCommand } from "./bot/commands/sanctions.js";
+import { sanctionnerCommand } from "./bot/commands/sanctionner.js";
 
 const client = new Client({
   intents: [
@@ -41,7 +43,7 @@ async function runScans() {
 }
 
 client.once("ready", async () => {
-  console.log(`Bot TFRP v6.3 opérationnel : ${client.user.tag}`);
+  console.log(`Bot TFRP v6.4 opérationnel : ${client.user.tag}`);
 
   const commands = [
     personnagesCommand.data.toJSON(),
@@ -51,18 +53,18 @@ client.once("ready", async () => {
     sayCommand.data.toJSON(),
     dmCommand.data.toJSON(),
     aideCommand.data.toJSON(),
-    panelCommand.data.toJSON()
+    panelCommand.data.toJSON(),
+    sanctionsCommand.data.toJSON(),
+    sanctionnerCommand.data.toJSON()
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try { 
     console.log("[Système] Déploiement des commandes sur le serveur...");
-    // Enregistrement sur le serveur spécifique pour affichage INSTANTANÉ
     await rest.put(
       Routes.applicationGuildCommands(client.user.id, BOT_CONFIG.MAIN_SERVER_ID), 
       { body: commands }
     );
-    // Enregistrement global (optionnel, pour les MPs)
     await rest.put(
       Routes.applicationCommands(client.user.id), 
       { body: commands }
@@ -87,6 +89,8 @@ client.on("interactionCreate", async interaction => {
     if (commandName === "dm") return dmCommand.execute(interaction);
     if (commandName === "aide") return aideCommand.execute(interaction);
     if (commandName === "panel") return panelCommand.execute(interaction);
+    if (commandName === "sanctions") return sanctionsCommand.execute(interaction);
+    if (commandName === "sanctionner") return sanctionnerCommand.execute(interaction);
   }
 
   if (interaction.isButton()) {

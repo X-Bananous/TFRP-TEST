@@ -56,3 +56,25 @@ export async function getProfile(profileId) {
 export async function updateProfilePermissions(profileId, permissions) {
   return await supabase.from("profiles").update({ permissions }).eq("id", profileId);
 }
+
+// SANCTIONS DB LOGIC
+export async function createSanction(data) {
+  return await supabase.from("sanctions").insert(data).select().single();
+}
+
+export async function getActiveSanctions(userId) {
+  const { data } = await supabase.from("sanctions")
+    .select("*")
+    .eq("user_id", userId)
+    .or('expires_at.is.null,expires_at.gt.now()')
+    .order("created_at", { ascending: false });
+  return data || [];
+}
+
+export async function getAllSanctions(userId) {
+  const { data } = await supabase.from("sanctions")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return data || [];
+}
