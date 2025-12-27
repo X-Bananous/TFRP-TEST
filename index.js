@@ -1,3 +1,4 @@
+
 import {
   Client,
   GatewayIntentBits,
@@ -165,8 +166,6 @@ async function handleVerification(userId, characters) {
       mainMember = await mainGuild.members.fetch(userId).catch(() => null);
 
       if (mainMember) {
-        // 1. Gestion des rôles "Vérifié" (Ajout Verified / Retrait Unverified)
-        
         // Ajouter les rôles VÉRIFIÉS
         for (const roleId of VERIFIED_ROLE_IDS) {
           if (!mainMember.roles.cache.has(roleId)) {
@@ -200,8 +199,20 @@ async function handleVerification(userId, characters) {
   // --- ÉTAPE 2 : NOTIFICATIONS (LOGS + MP) ---
   if (toNotify.length === 0) return;
 
+  // Récupération des profils des douaniers (staff) pour afficher leurs noms
+  const staffIds = [...new Set(toNotify.map(c => c.verifiedby).filter(id => !!id))];
+  let staffProfiles = [];
+  if (staffIds.length > 0) {
+    const { data } = await supabase.from("profiles").select("id, username").in("id", staffIds);
+    staffProfiles = data || [];
+  }
+
   const ts = Math.floor(Date.now() / 1000);
-  const charList = toNotify.map(c => `- **${c.first_name} ${c.last_name}** (${c.job || 'Citoyen'})`).join("\n");
+  const charList = toNotify.map(c => {
+    const staff = staffProfiles.find(s => s.id === c.verifiedby);
+    const staffName = staff ? staff.username : "Un douanier";
+    return `- **${c.first_name} ${c.last_name}** (${c.job || 'Citoyen'}) • *Validé par ${staffName}*`;
+  }).join("\n");
   
   const logEmbed = new EmbedBuilder().setFooter({ text: "TFRP Manager" });
   const row = new ActionRowBuilder().addComponents(
@@ -214,7 +225,7 @@ async function handleVerification(userId, characters) {
             .setColor(COLOR_DARK_BLUE)
             .setThumbnail(mainMember.user.displayAvatarURL());
     
-    try { await mainMember.send({ embeds: [logEmbed], components: [row] }); } catch (e) {}
+    try { await mainMember.send({ embeds: [logEmbed.addFields({ name: "Personnage(s) détecté(s)", value: charList, inline: false })], components: [row] }); } catch (e) {}
 
   } else {
     logEmbed.setTitle("Personnage validé, mais utilisateur inconnu")
@@ -222,10 +233,13 @@ async function handleVerification(userId, characters) {
             .setColor(COLOR_WARNING);
   }
 
-  logEmbed.addFields(
-    { name: "Personnage(s) détecté(s)", value: charList, inline: false },
-    { name: "Validé le", value: `<t:${ts}:F>`, inline: false }
-  );
+  // On évite de rajouter deux fois les fields si on a déjà envoyé le MP au dessus
+  if (!mainMember || logEmbed.data.fields?.length === 0) {
+    logEmbed.addFields(
+        { name: "Personnage(s) détecté(s)", value: charList, inline: false },
+        { name: "Validé le", value: `<t:${ts}:F>`, inline: false }
+    );
+  }
 
   try {
     const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
@@ -377,7 +391,6 @@ client.on("interactionCreate", async interaction => {
             .maybeSingle();
         
         if (profile) {
-            // On essaie plusieurs champs possibles pour le nom
             verifiedByName = profile.username || profile.full_name || (profile.first_name ? `${profile.first_name} ${profile.last_name}` : null) || "Staff Inconnu";
         }
     }
@@ -402,7 +415,7 @@ client.on("interactionCreate", async interaction => {
       )
       .setFooter({ text: `ID Fiche: ${char.id} • TFRP Manager` });
 
-    await interaction.editReply({ embeds: [detailEmbed], components: [interaction.message.components[0]] }); // On garde le menu pour changer de perso
+    await interaction.editReply({ embeds: [detailEmbed], components: [interaction.message.components[0]] }); 
     return;
   }
 
@@ -438,7 +451,6 @@ client.on("interactionCreate", async interaction => {
           }
           return interaction.editReply({ embeds: [responseEmbed] });
         } else {
-          // Si pas de perso accepté, on applique le statut Non Vérifié
           await handleUnverified(user.id);
           
           const errorEmbed = new EmbedBuilder()
@@ -462,12 +474,10 @@ client.on("interactionCreate", async interaction => {
           return interaction.editReply({ content: "Aucun personnage enregistré sur la plateforme." });
         }
 
-        // Création du Menu Déroulant
         const selectMenu = new StringSelectMenuBuilder()
           .setCustomId('select_char_details')
           .setPlaceholder('Sélectionnez un personnage pour voir les détails');
 
-        // On limite à 25 options (limite Discord)
         allChars.slice(0, 25).forEach(char => {
             const statusEmoji = char.status === 'accepted' ? '✅' : (char.status === 'rejected' ? '❌' : '⏳');
             selectMenu.addOptions(
