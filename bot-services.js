@@ -11,7 +11,7 @@ import {
   TextInputStyle
 } from "discord.js";
 import { BOT_CONFIG } from "./bot-config.js";
-import { getPendingCharactersCount, supabase } from "./bot-db.js";
+import { getPendingCharactersCount, supabase, getProfile } from "./bot-db.js";
 
 /**
  * Calcule l'âge à partir d'une string date (YYYY-MM-DD)
@@ -32,44 +32,95 @@ export function calculateAge(birthDateStr) {
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
   
-  let statusEmoji = "🟢";
   let statusLabel = "Fluide";
   let statusColor = BOT_CONFIG.COLORS.SUCCESS;
   let statusDesc = "Le temps de réponse est inférieur à 24h, vous recevrez la réponse généralement dans la journée.";
 
   if (pendingCount > 50) {
-    statusEmoji = "🔴";
     statusLabel = "Ralenti";
     statusColor = BOT_CONFIG.COLORS.ERROR;
     statusDesc = "Le temps de réponse peut varier entre 48h et plus (Sous-effectif ou surdemande >50).";
   } else if (pendingCount > 25) {
-    statusEmoji = "🟠";
     statusLabel = "Perturbé";
     statusColor = BOT_CONFIG.COLORS.WARNING;
     statusDesc = "Le temps de réponse est en moyenne de 24h à 48h en fonction des demandes reçues.";
   }
 
   const embed = new EmbedBuilder()
-    .setTitle("Statut des Services de Douanes (SSD)")
+    .setTitle("STATUT DES SERVICES DE DOUANES (SSD)")
     .setColor(statusColor)
-    .setDescription(`**État actuel : ${statusEmoji} ${statusLabel}**\n\n${statusDesc}\n\n` +
-      "**Légende des indicateurs :**\n" +
-      "⚫ **Interrompu** - Maintenance ou panne serveur.\n" +
-      "🔴 **Ralenti** - Délai > 48h (Surcharge critique).\n" +
-      "🟠 **Perturbé** - Délai 24h-48h (Forte activité).\n" +
-      "🟢 **Fluide** - Délai < 24h (Activité normale).\n" +
-      "⚪ **Fast Checking** - Réponse 5-10 min (Purge staff).")
+    .setDescription(`ETAT ACTUEL : ${statusLabel.toUpperCase()}\n\n${statusDesc.toUpperCase()}\n\n` +
+      "LEGENDE DES INDICATEURS :\n" +
+      "INTERROMPU - Maintenance ou panne serveur.\n" +
+      "RALENTI - Delai superieur a 48h (Surcharge critique).\n" +
+      "PERTURBE - Delai 24h-48h (Forte activite).\n" +
+      "FLUIDE - Delai inferieur a 24h (Activite normale).\n" +
+      "FAST CHECKING - Reponse 5-10 min (Purge staff).")
     .addFields(
-      { name: "📊 Dossiers en file d'attente", value: `\`${pendingCount}\` fiches à valider`, inline: true },
-      { name: "🕒 Dernière mise à jour", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
+      { name: "DOSSIERS EN FILE D'ATTENTE", value: `${pendingCount} fiches à valider`, inline: false },
+      { name: "DERNIERE MISE A JOUR", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
     )
-    .setFooter({ text: "TFRP Automatic Customs System" });
+    .setFooter({ text: "TFRP AUTOMATIC CUSTOMS SYSTEM" });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('btn_reload_ssd')
-      .setLabel('Actualiser le statut')
-      .setEmoji('🔄')
+      .setLabel('ACTUALISER LE STATUT')
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  return { embeds: [embed], components: [row] };
+}
+
+/**
+ * Génère l'embed de présentation initiale pour /personnages
+ */
+export function getPersonnagesHomeEmbed(username) {
+  return new EmbedBuilder()
+    .setTitle("GESTION DES DOSSIERS CITOYENS")
+    .setColor(BOT_CONFIG.COLORS.DARK_BLUE)
+    .setDescription(`Bienvenue dans votre interface de gestion de dossiers, ${username.toUpperCase()}.\n\n` +
+      "Vous pouvez ici consulter l'integralite de vos fiches, modifier vos informations d'etat civil ou creer un nouveau dossier si vous disposez de slots libres.\n\n" +
+      "RAPPEL : Toute modification de Nom ou Prenom entrainera une re-validation automatique par les services de douanes.")
+    .setFooter({ text: "TFRP SECURED TERMINAL" });
+}
+
+/**
+ * Génère l'embed de détails complet d'un personnage (Vertical/Stacked)
+ */
+export async function getCharacterDetailsEmbed(char) {
+  const statusMap = { 'pending': 'EN ATTENTE', 'accepted': 'VALIDE', 'rejected': 'REFUSE' };
+  const alignmentMap = { 'legal': 'LEGAL / CIVIL', 'illegal': 'CLANDESTIN / ILLEGAL' };
+  
+  const staffProfile = char.verifiedby ? await getProfile(char.verifiedby) : null;
+  const verifierName = staffProfile ? staffProfile.username.toUpperCase() : "NON RENSEIGNE";
+
+  const embed = new EmbedBuilder()
+    .setTitle(`DOSSIER : ${char.first_name.toUpperCase()} ${char.last_name.toUpperCase()}`)
+    .setColor(char.status === 'accepted' ? BOT_CONFIG.COLORS.SUCCESS : char.status === 'rejected' ? BOT_CONFIG.COLORS.ERROR : BOT_CONFIG.COLORS.WARNING)
+    .addFields(
+      { name: "PRENOM", value: char.first_name, inline: false },
+      { name: "NOM", value: char.last_name, inline: false },
+      { name: "DATE DE NAISSANCE", value: char.birth_date, inline: false },
+      { name: "LIEU DE NAISSANCE", value: char.birth_place || "LOS ANGELES", inline: false },
+      { name: "AGE", value: `${char.age} ANS`, inline: false },
+      { name: "ORIENTATION", value: alignmentMap[char.alignment] || char.alignment.toUpperCase(), inline: false },
+      { name: "STATUT DOUANIER", value: statusMap[char.status] || char.status.toUpperCase(), inline: false },
+      { name: "PROFESSION", value: (char.job || "SANS EMPLOI").toUpperCase(), inline: false },
+      { name: "POINTS PERMIS", value: `${char.driver_license_points ?? 12}/12`, inline: false },
+      { name: "BARREAU", value: char.bar_passed ? "ADMIS" : "NON TITULAIRE", inline: false },
+      { name: "VALIDE PAR", value: verifierName, inline: false }
+    )
+    .setFooter({ text: `ID DOSSIER : ${char.id}` });
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`btn_edit_char_${char.id}`)
+      .setLabel('MODIFIER LE DOSSIER')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('btn_back_to_list')
+      .setLabel('RETOUR A LA LISTE')
       .setStyle(ButtonStyle.Secondary)
   );
 
@@ -83,8 +134,7 @@ export async function updateCustomsStatus(client) {
   const components = await getSSDComponents();
   const pendingCount = await getPendingCharactersCount();
   
-  // Update Bot Activity
-  const label = pendingCount > 50 ? "🔴 Ralenti" : pendingCount > 25 ? "🟠 Perturbé" : "🟢 Fluide";
+  const label = pendingCount > 50 ? "Ralenti" : pendingCount > 25 ? "Perturbe" : "Fluide";
   client.user.setActivity({ 
     name: `Douanes: ${label} (${pendingCount} WL)`, 
     type: ActivityType.Watching 
@@ -113,44 +163,44 @@ export async function updateCustomsStatus(client) {
 export function buildCharacterModal(isEdit = false, char = null) {
   const modal = new ModalBuilder()
     .setCustomId(isEdit ? `edit_char_modal_${char.id}` : 'create_char_modal')
-    .setTitle(isEdit ? 'Mise à jour Citoyenne' : 'Nouveau Dossier Citoyen');
+    .setTitle(isEdit ? 'MISE A JOUR CITOYENNE' : 'NOUVEAU DOSSIER CITOYEN');
 
   const firstName = new TextInputBuilder()
     .setCustomId('first_name')
-    .setLabel('Prénom')
+    .setLabel('PRENOM')
     .setValue(char ? char.first_name : '')
-    .setPlaceholder('Ex: Jean')
+    .setPlaceholder('EX: JEAN')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
   const lastName = new TextInputBuilder()
     .setCustomId('last_name')
-    .setLabel('Nom de famille')
+    .setLabel('NOM DE FAMILLE')
     .setValue(char ? char.last_name : '')
-    .setPlaceholder('Ex: Dupont')
+    .setPlaceholder('EX: DUPONT')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
   const birthDate = new TextInputBuilder()
     .setCustomId('birth_date')
-    .setLabel('Date de naissance (AAAA-MM-JJ)')
+    .setLabel('DATE DE NAISSANCE (AAAA-MM-JJ)')
     .setValue(char ? char.birth_date : '')
-    .setPlaceholder('Ex: 1998-05-12')
+    .setPlaceholder('EX: 1998-05-12')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
   const birthPlace = new TextInputBuilder()
     .setCustomId('birth_place')
-    .setLabel('Lieu de naissance')
-    .setValue(char ? char.birth_place : 'Los Angeles')
+    .setLabel('LIEU DE NAISSANCE')
+    .setValue(char ? char.birth_place : 'LOS ANGELES')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
   const alignment = new TextInputBuilder()
     .setCustomId('alignment')
-    .setLabel('Orientation (legal ou illegal)')
+    .setLabel('ORIENTATION (LEGAL OU ILLEGAL)')
     .setValue(char ? char.alignment : 'legal')
-    .setPlaceholder('Entrez "legal" ou "illegal"')
+    .setPlaceholder('ENTREZ LEGAL OU ILLEGAL')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
@@ -184,7 +234,6 @@ export async function handleVerification(client, userId, characters) {
     }
   } catch (err) {}
   
-  // Marquer comme notifié
   const toNotifyIds = characters.filter(c => !c.is_notified).map(c => c.id);
   if (toNotifyIds.length > 0) {
     await supabase.from("characters").update({ is_notified: true }).in("id", toNotifyIds);

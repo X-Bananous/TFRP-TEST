@@ -29,7 +29,9 @@ import {
   updateCustomsStatus,
   getSSDComponents,
   buildCharacterModal,
-  calculateAge
+  calculateAge,
+  getPersonnagesHomeEmbed,
+  getCharacterDetailsEmbed
 } from "./bot-services.js";
 
 const client = new Client({
@@ -45,11 +47,8 @@ const client = new Client({
  */
 async function runScans() {
   console.log("[SYSTEM] Lancement du scan périodique...");
-  
-  // 1. Mise à jour statut des douanes
   await updateCustomsStatus(client);
 
-  // 2. Traitement des nouvelles validations
   const newChars = await getNewValidations();
   if (newChars.length > 0) {
     const charsByUser = {};
@@ -81,14 +80,61 @@ client.once("ready", async () => {
   } catch (e) { console.error(e); }
 
   runScans();
-  setInterval(runScans, 300000); // 5 minutes
+  setInterval(runScans, 300000); 
 });
 
 /* ================= ÉVÉNEMENTS D'INTERACTION ================= */
 
+/**
+ * Affiche l'interface de sélection des personnages
+ */
+async function sendCharacterList(interaction, isUpdate = false) {
+    const allChars = await getAllUserCharacters(interaction.user.id);
+    const homeEmbed = getPersonnagesHomeEmbed(interaction.user.username);
+
+    if (allChars.length === 0) {
+      const embed = new EmbedBuilder()
+        .setTitle("AUCUN DOSSIER TROUVE")
+        .setDescription("Vous ne possedez actuellement aucun dossier citoyen dans notre base de donnees.\n\nSouhaitez-vous en creer un maintenant ?")
+        .setColor(BOT_CONFIG.COLORS.WARNING);
+      
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('btn_create_char').setLabel('CREER MON PREMIER DOSSIER').setStyle(ButtonStyle.Success)
+      );
+      
+      if (isUpdate) return interaction.editReply({ embeds: [embed], components: [row] });
+      return interaction.editReply({ embeds: [embed], components: [row] });
+    }
+
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select_char_manage')
+      .setPlaceholder('Selectionner un citoyen a gerer');
+
+    allChars.forEach(char => {
+        selectMenu.addOptions(new StringSelectMenuOptionBuilder()
+            .setLabel(`${char.first_name.toUpperCase()} ${char.last_name.toUpperCase()}`)
+            .setDescription(`STATUS: ${char.status.toUpperCase()} | JOB: ${(char.job || 'CIVIL').toUpperCase()}`)
+            .setValue(char.id)
+        );
+    });
+
+    const actionRow = new ActionRowBuilder().addComponents(selectMenu);
+    
+    // Ajout bouton création si slot libre (Max 1 par défaut configuré précédemment)
+    const btnRow = new ActionRowBuilder();
+    if (allChars.length < 1) { // Ajuster selon CONFIG.MAX_CHARS si nécessaire
+       btnRow.addComponents(new ButtonBuilder().setCustomId('btn_create_char').setLabel('CREER UN NOUVEAU DOSSIER').setStyle(ButtonStyle.Success));
+    }
+
+    const components = [actionRow];
+    if (btnRow.components.length > 0) components.push(btnRow);
+
+    if (isUpdate) return interaction.editReply({ embeds: [homeEmbed], components: components });
+    return interaction.editReply({ embeds: [homeEmbed], components: components });
+}
+
 client.on("interactionCreate", async interaction => {
   
-  // --- 1. COMMANDES SLASH ---
   if (interaction.isChatInputCommand()) {
     const { commandName, user } = interaction;
 
@@ -99,70 +145,29 @@ client.on("interactionCreate", async interaction => {
 
     if (commandName === "personnages") {
       await interaction.deferReply({ ephemeral: true });
-      const allChars = await getAllUserCharacters(user.id);
-
-      if (allChars.length === 0) {
-        const embed = new EmbedBuilder()
-          .setTitle("Aucun dossier trouvé")
-          .setDescription("Vous ne possédez actuellement aucun dossier citoyen dans notre base de données.\n\nSouhaitez-vous en créer un maintenant ?")
-          .setColor(BOT_CONFIG.COLORS.WARNING);
-        
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId('btn_create_char').setLabel('Créer mon premier dossier').setStyle(ButtonStyle.Success).setEmoji('📝')
-        );
-        return interaction.editReply({ embeds: [embed], components: [row] });
-      }
-
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId('select_char_manage')
-        .setPlaceholder('Sélectionner un citoyen à gérer');
-
-      allChars.forEach(char => {
-          selectMenu.addOptions(new StringSelectMenuOptionBuilder()
-              .setLabel(`${char.first_name} ${char.last_name}`)
-              .setDescription(`Status: ${char.status} | Job: ${char.job || 'Civil'}`)
-              .setValue(char.id)
-          );
-      });
-
-      const embed = new EmbedBuilder()
-        .setTitle("Dossiers Citoyens")
-        .setDescription("Sélectionnez l'un de vos personnages ci-dessous pour voir les détails ou modifier ses informations.")
-        .setColor(BOT_CONFIG.COLORS.DARK_BLUE);
-
-      return interaction.editReply({ 
-        embeds: [embed], 
-        components: [new ActionRowBuilder().addComponents(selectMenu)] 
-      });
-    }
-
-    if (commandName === "verification") {
-      await interaction.deferReply({ ephemeral: true });
-      const acceptedChars = await getUserAcceptedCharacters(user.id);
-      if (acceptedChars.length > 0) {
-        await handleVerification(client, user.id, acceptedChars);
-        return interaction.editReply({ content: "✅ Vos accès ont été synchronisés avec succès." });
-      } else {
-        await handleUnverified(client, user.id);
-        return interaction.editReply({ content: "❌ Aucun personnage validé trouvé. Vos accès sont restreints." });
-      }
+      await sendCharacterList(interaction);
     }
 
     if (commandName === "ssd") {
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-        return interaction.reply({ content: "Accès refusé.", ephemeral: true });
+        return interaction.reply({ content: "ACCES REFUSE.", ephemeral: true });
       }
       await interaction.deferReply({ ephemeral: true });
       await updateCustomsStatus(client);
-      return interaction.editReply({ content: "Statut des douanes envoyé dans le salon dédié." });
+      return interaction.editReply({ content: "STATUT DES DOUANES ENVOYE." });
     }
   }
 
-  // --- 2. BOUTONS & MENUS ---
   if (interaction.isButton()) {
     if (interaction.customId === 'btn_reload_ssd') {
       await interaction.deferUpdate();
       await updateCustomsStatus(client);
+      return;
+    }
+
+    if (interaction.customId === 'btn_back_to_list') {
+      await interaction.deferUpdate();
+      await sendCharacterList(interaction, true);
       return;
     }
 
@@ -173,7 +178,7 @@ client.on("interactionCreate", async interaction => {
     if (interaction.customId.startsWith('btn_edit_char_')) {
       const charId = interaction.customId.replace('btn_edit_char_', '');
       const char = await getCharacterById(charId);
-      if (!char) return interaction.reply({ content: "Erreur récupération dossier.", ephemeral: true });
+      if (!char) return interaction.reply({ content: "ERREUR RECUPERATION DOSSIER.", ephemeral: true });
       return interaction.showModal(buildCharacterModal(true, char));
     }
   }
@@ -183,30 +188,12 @@ client.on("interactionCreate", async interaction => {
     const charId = interaction.values[0];
     const char = await getCharacterById(charId);
 
-    if (!char) return interaction.followUp({ content: "Dossier introuvable.", ephemeral: true });
-
-    const statusEmoji = char.status === 'accepted' ? '🟢' : char.status === 'rejected' ? '🔴' : '🟡';
-    const detailEmbed = new EmbedBuilder()
-      .setTitle(`${char.first_name} ${char.last_name}`)
-      .setColor(BOT_CONFIG.COLORS.DARK_BLUE)
-      .addFields(
-        { name: "État Civil", value: `Né le ${char.birth_date} à ${char.birth_place}\nÂge: ${char.age} ans`, inline: true },
-        { name: "Situation", value: `Orientation: ${char.alignment}\nStatus: ${statusEmoji} ${char.status}\nProfession: ${char.job || 'Aucune'}`, inline: true }
-      )
-      .setFooter({ text: `ID Dossier: ${char.id}` });
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`btn_edit_char_${char.id}`)
-        .setLabel('Modifier les informations')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('✍️')
-    );
-
-    return interaction.editReply({ embeds: [detailEmbed], components: [row] });
+    if (!char) return interaction.followUp({ content: "DOSSIER INTROUVABLE.", ephemeral: true });
+    
+    const details = await getCharacterDetailsEmbed(char);
+    return interaction.editReply(details);
   }
 
-  // --- 3. SOUMISSION DES MODALS ---
   if (interaction.isModalSubmit()) {
     const isEdit = interaction.customId.startsWith('edit_char_modal_');
     const charId = isEdit ? interaction.customId.replace('edit_char_modal_', '') : null;
@@ -219,10 +206,9 @@ client.on("interactionCreate", async interaction => {
       alignment: interaction.fields.getTextInputValue('alignment').toLowerCase()
     };
 
-    // Validation
     const age = calculateAge(fields.birth_date);
-    if (age < 13) return interaction.reply({ content: "⚠️ Erreur : Le personnage doit avoir au moins 13 ans.", ephemeral: true });
-    if (!['legal', 'illegal'].includes(fields.alignment)) return interaction.reply({ content: "⚠️ Erreur : L'orientation doit être 'legal' ou 'illegal'.", ephemeral: true });
+    if (age < 13) return interaction.reply({ content: "ERREUR : LE PERSONNAGE DOIT AVOIR AU MOINS 13 ANS.", ephemeral: true });
+    if (!['legal', 'illegal'].includes(fields.alignment)) return interaction.reply({ content: "ERREUR : L'ORIENTATION DOIT ETRE 'LEGAL' OU 'ILLEGAL'.", ephemeral: true });
 
     let status = 'pending';
     let job = 'unemployed';
@@ -236,13 +222,11 @@ client.on("interactionCreate", async interaction => {
       isNotified = oldChar.is_notified;
       verifiedby = oldChar.verifiedby;
 
-      // Si le nom change -> Reset validation (Anti-abus)
-      if (fields.first_name !== oldChar.first_name || fields.last_name !== oldChar.last_name) {
+      if (fields.first_name.toLowerCase() !== oldChar.first_name.toLowerCase() || fields.last_name.toLowerCase() !== oldChar.last_name.toLowerCase()) {
         status = 'pending';
         verifiedby = null;
         isNotified = false;
       }
-      // Si alignement change -> Reset job
       if (fields.alignment !== oldChar.alignment) job = 'unemployed';
     }
 
@@ -259,19 +243,16 @@ client.on("interactionCreate", async interaction => {
     const { error } = isEdit ? await updateCharacter(charId, payload) : await createCharacter(payload);
 
     if (error) {
-      return interaction.reply({ content: `❌ Erreur BDD: ${error.message}`, ephemeral: true });
+      return interaction.reply({ content: `ERREUR BDD: ${error.message}`, ephemeral: true });
     } else {
-      const msg = isEdit ? "✅ Dossier citoyen mis à jour. (Une re-validation peut être requise si les noms ont changé)" : "✅ Premier dossier créé ! Il est maintenant en attente de validation par les douanes.";
+      const msg = isEdit ? "DOSSIER CITOYEN MIS A JOUR AVEC SUCCES." : "DOSSIER TRANSMIS POUR VALIDATION.";
       return interaction.reply({ content: msg, ephemeral: true });
     }
   }
 });
 
-/* ================= GESTION DES NOUVEAUX MEMBRES ================= */
-
 client.on("guildMemberAdd", async (member) => {
   if (member.user.bot) return;
-  
   const acceptedChars = await getUserAcceptedCharacters(member.id);
   if (acceptedChars.length > 0) {
     await handleVerification(client, member.id, acceptedChars);
