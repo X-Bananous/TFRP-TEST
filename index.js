@@ -80,6 +80,12 @@ client.on("interactionCreate", async interaction => {
       await interaction.deferUpdate();
       await updateCustomsStatus(client);
     }
+    
+    if (interaction.customId === 'btn_back_to_list') {
+      await interaction.deferUpdate();
+      // On réexécute la commande initiale en mode mise à jour
+      await personnagesCommand.execute(interaction, true);
+    }
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === 'select_char_manage') {
