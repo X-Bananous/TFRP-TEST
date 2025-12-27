@@ -1,3 +1,4 @@
+
 import {
   Client,
   GatewayIntentBits,
@@ -20,22 +21,18 @@ import {
   getCharacterById,
   createCharacter,
   updateCharacter,
-  getProfile,
-  supabase
+  getProfile
 } from "./bot-db.js";
 import { 
   handleVerification,
   updateCustomsStatus,
   getSSDComponents,
-  buildCharacterModal,
-  calculateAge,
   getPersonnagesHomeEmbed,
   getCharacterDetailsEmbed,
   getVerificationStatusEmbed,
-  syncRolesToPermissions,
   handleUnverified,
-  ensureRolesExist,
-  syncPermissionsToRoles
+  performGlobalSync,
+  calculateAge
 } from "./bot-services.js";
 
 const client = new Client({
@@ -48,7 +45,15 @@ const client = new Client({
 });
 
 async function runScans() {
+  console.log("[Système] Lancement du cycle de synchronisation...");
+  
+  // 1. Mise à jour statut douanes
   await updateCustomsStatus(client);
+  
+  // 2. Synchronisation globale DB <-> Discord (Permissions et Rôles)
+  await performGlobalSync(client);
+  
+  // 3. Vérification des nouvelles validations pour notifications
   const newChars = await getNewValidations();
   if (newChars.length > 0) {
     const charsByUser = {};
@@ -63,25 +68,21 @@ async function runScans() {
 }
 
 client.once("ready", async () => {
-  console.log(`Système opérationnel : ${client.user.tag}`);
-
-  // Vérification et création des rôles au démarrage
-  const mainGuild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
-  if (mainGuild) await ensureRolesExist(mainGuild);
+  console.log(`Connecté en tant que : ${client.user.tag}`);
 
   const commands = [
     new SlashCommandBuilder().setName('personnages').setDescription('Gérer vos fiches citoyennes'),
     new SlashCommandBuilder().setName('verification').setDescription('Lancer la synchronisation du terminal'),
     new SlashCommandBuilder().setName('status').setDescription('Statut détaillé des douanes'),
-    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal SSD (Staff uniquement)'),
+    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal ssd (staff uniquement)'),
     
     new SlashCommandBuilder().setName('say')
-      .setDescription('Faire parler le bot (Permission requise)')
+      .setDescription('Faire parler le bot (permission requise)')
       .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
       .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier')),
 
     new SlashCommandBuilder().setName('dm')
-      .setDescription('Envoyer un message privé via le bot (Permission requise)')
+      .setDescription('Envoyer un message privé via le bot (permission requise)')
       .addUserOption(opt => opt.setName('cible').setDescription('Destinataire').setRequired(true))
       .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
       .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier'))
@@ -92,17 +93,11 @@ client.once("ready", async () => {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
   } catch (e) { console.error(e); }
 
+  // Premier scan immédiat
   runScans();
-  setInterval(runScans, 300000); 
-});
-
-/**
- * SYNCHRONISATION DISCORD -> SITE (Bidirectionnel)
- * Détecte si un staff modifie les rôles manuellement sur Discord
- */
-client.on("guildMemberUpdate", async (oldMember, newMember) => {
-  if (newMember.guild.id !== BOT_CONFIG.MAIN_SERVER_ID) return;
-  await syncRolesToPermissions(newMember);
+  
+  // Boucle de scan toutes les 60 secondes (1 minute)
+  setInterval(runScans, 60000); 
 });
 
 async function sendCharacterList(interaction, isUpdate = false) {
@@ -125,10 +120,6 @@ async function sendCharacterList(interaction, isUpdate = false) {
     }
 
     const components = [new ActionRowBuilder().addComponents(selectMenu)];
-    if (allChars.length < 1) { 
-       components.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('btn_create_char').setLabel('Ouvrir une fiche').setStyle(ButtonStyle.Success)));
-    }
-
     const payload = { embeds: [homeEmbed], components: components, ephemeral: true };
     return isUpdate ? interaction.editReply(payload) : interaction.reply(payload);
 }
@@ -188,7 +179,7 @@ client.on("interactionCreate", async interaction => {
           const successEmbed = new EmbedBuilder().setTitle("Message transmis").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Votre message privé a été envoyé à <@${target.id}>.`);
           return interaction.reply({ embeds: [successEmbed], ephemeral: true });
         } catch (e) {
-          const failEmbed = new EmbedBuilder().setTitle("Échec de l'envoi").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Impossible de contacter <@${target.id}> (Messages privés fermés).`);
+          const failEmbed = new EmbedBuilder().setTitle("Échec de l'envoi").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Impossible de contacter <@${target.id}> (messages privés fermés).`);
           return interaction.reply({ embeds: [failEmbed], ephemeral: true });
         }
       }
@@ -213,13 +204,6 @@ client.on("interactionCreate", async interaction => {
       await interaction.deferUpdate();
       await sendCharacterList(interaction, true);
     }
-    if (interaction.customId === 'btn_create_char') {
-      await interaction.showModal(buildCharacterModal(false));
-    }
-    if (interaction.customId.startsWith('btn_edit_char_')) {
-      const char = await getCharacterById(interaction.customId.replace('btn_edit_char_', ''));
-      if (char) await interaction.showModal(buildCharacterModal(true, char));
-    }
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === 'select_char_manage') {
@@ -229,36 +213,6 @@ client.on("interactionCreate", async interaction => {
         const details = await getCharacterDetailsEmbed(char);
         await interaction.editReply(details);
     }
-  }
-
-  if (interaction.isModalSubmit()) {
-    const isEdit = interaction.customId.startsWith('edit_char_modal_');
-    const charId = isEdit ? interaction.customId.replace('edit_char_modal_', '') : null;
-    const f = {
-      first_name: interaction.fields.getTextInputValue('first_name'),
-      last_name: interaction.fields.getTextInputValue('last_name'),
-      birth_date: interaction.fields.getTextInputValue('birth_date'),
-      birth_place: interaction.fields.getTextInputValue('birth_place'),
-      alignment: interaction.fields.getTextInputValue('alignment').toLowerCase()
-    };
-
-    const age = calculateAge(f.birth_date);
-    if (age < 13) return interaction.reply({ content: "Erreur : L'âge minimum requis est de 13 ans.", ephemeral: true });
-
-    let status = 'pending', job = 'unemployed';
-    if (isEdit) {
-      const old = await getCharacterById(charId);
-      status = old.status; job = old.job;
-      if (f.first_name.toLowerCase() !== old.first_name.toLowerCase() || f.last_name.toLowerCase() !== old.last_name.toLowerCase()) {
-        status = 'pending';
-      }
-      if (f.alignment !== old.alignment) job = 'unemployed';
-    }
-
-    const payload = { user_id: interaction.user.id, ...f, age, status, job, is_notified: false };
-    const { error } = isEdit ? await updateCharacter(charId, payload) : await createCharacter(payload);
-
-    return interaction.reply({ content: error ? `Erreur base de données : ${error.message}` : "Votre dossier a été transmis pour analyse.", ephemeral: true });
   }
 });
 

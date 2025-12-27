@@ -1,3 +1,4 @@
+
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -28,61 +29,58 @@ export function calculateAge(birthDateStr) {
 }
 
 /**
- * Crée les rôles de permissions s'ils n'existent pas sur le serveur principal
+ * Assure l'existence des rôles et synchronise tous les membres
  */
-export async function ensureRolesExist(guild) {
+export async function performGlobalSync(client) {
+  const guild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
   if (!guild) return;
+
+  // 1. S'assurer que les rôles existent
   const roles = await guild.roles.fetch();
-  
   for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
-    let role = roles.find(r => r.name === config.name);
-    if (!role) {
-      console.log(`Création du rôle manquant : ${config.name}`);
+    if (!roles.find(r => r.name === config.name)) {
+      console.log(`[Système] Création du rôle : ${config.name}`);
       await guild.roles.create({
         name: config.name,
         color: config.color,
-        reason: 'Initialisation automatique du système de permissions TFRP'
-      }).catch(console.error);
+        reason: 'Initialisation automatique TFRP'
+      }).catch(() => {});
     }
   }
-}
 
-/**
- * Synchronise Discord -> Site (Lors d'un changement manuel sur Discord)
- */
-export async function syncRolesToPermissions(member) {
-  if (!member || member.user.bot) return;
-  const currentRoles = member.roles.cache;
-  const newPermissions = {};
+  // 2. Récupérer les membres et les profils
+  const members = await guild.members.fetch();
+  const { data: profiles } = await supabase.from('profiles').select('id, permissions');
   
-  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
-    if (currentRoles.some(r => r.name === config.name)) {
-      newPermissions[perm] = true;
-    }
-  }
-  
-  await updateProfilePermissions(member.id, newPermissions);
-}
+  const rolesMap = guild.roles.cache;
 
-/**
- * Synchronise Site -> Discord (Lors d'une interaction ou vérification)
- */
-export async function syncPermissionsToRoles(member, permissions) {
-  if (!member || member.user.bot) return;
-  const perms = permissions || {};
-  const guildRoles = member.guild.roles.cache;
-  
-  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
-    const hasPerm = perms[perm] === true;
-    const role = guildRoles.find(r => r.name === config.name);
-    
-    if (role) {
-      const hasRole = member.roles.cache.has(role.id);
-      if (hasPerm && !hasRole) {
+  for (const [memberId, member] of members) {
+    if (member.user.bot) continue;
+
+    const profile = profiles?.find(p => p.id === memberId);
+    const dbPerms = profile?.permissions || {};
+    const currentRoles = member.roles.cache;
+    let hasChanged = false;
+    const newDbPerms = { ...dbPerms };
+
+    for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
+      const role = rolesMap.find(r => r.name === config.name);
+      if (!role) continue;
+
+      const hasRole = currentRoles.has(role.id);
+      const hasPerm = dbPerms[perm] === true;
+
+      // Logique de fusion : si l'un a le droit, l'autre doit l'avoir
+      if (hasRole && !hasPerm) {
+        newDbPerms[perm] = true;
+        hasChanged = true;
+      } else if (hasPerm && !hasRole) {
         await member.roles.add(role).catch(() => {});
-      } else if (!hasPerm && hasRole) {
-        await member.roles.remove(role).catch(() => {});
       }
+    }
+
+    if (hasChanged) {
+      await updateProfilePermissions(memberId, newDbPerms);
     }
   }
 }
@@ -113,12 +111,12 @@ export async function getVerificationStatusEmbed(userId) {
     });
   }
 
-  embed.setFooter({ text: "TFRP Unified Network" });
+  embed.setFooter({ text: "Réseau unifié tfrp" });
   return embed;
 }
 
 /**
- * Gère la vérification automatique et les logs (Salon + MP)
+ * Gère la vérification ponctuelle et les notifications
  */
 export async function handleVerification(client, userId, characters) {
   const mention = `<@${userId}>`;
@@ -130,7 +128,7 @@ export async function handleVerification(client, userId, characters) {
     if (mainGuild) {
       const mainMember = await mainGuild.members.fetch(userId).catch(() => null);
       if (mainMember) {
-        // 1. Mise à jour des rôles citoyens de base
+        // Rôles citoyens
         for (const roleId of BOT_CONFIG.VERIFIED_ROLE_IDS) {
           if (!mainMember.roles.cache.has(roleId)) await mainMember.roles.add(roleId).catch(() => {});
         }
@@ -138,10 +136,7 @@ export async function handleVerification(client, userId, characters) {
           await mainMember.roles.remove(BOT_CONFIG.UNVERIFIED_ROLE_ID).catch(() => {});
         }
 
-        // 2. Synchronisation bidirectionnelle des permissions Staff
-        await syncPermissionsToRoles(mainMember, profile?.permissions);
-
-        // 3. Journalisation dans le salon de logs
+        // Logs
         const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
         if (logChannel) {
           const logEmbed = new EmbedBuilder()
@@ -149,25 +144,23 @@ export async function handleVerification(client, userId, characters) {
             .setColor(BOT_CONFIG.EMBED_COLOR)
             .setDescription(`Le citoyen ${mention} a été synchronisé avec succès.\nDossiers valides : ${acceptedChars.length}`)
             .setTimestamp()
-            .setFooter({ text: "Logs Système" });
+            .setFooter({ text: "Journal système" });
           await logChannel.send({ embeds: [logEmbed] });
         }
 
-        // 4. Notification par message privé
         const user = await client.users.fetch(userId).catch(() => null);
         if (user) {
           const mpEmbed = new EmbedBuilder()
             .setTitle("Vérification terminée")
             .setColor(BOT_CONFIG.EMBED_COLOR)
             .setDescription(`Bonjour ${mention},\n\nVos dossiers ont été mis à jour par les services d'immigration. Vos accès au territoire sont désormais actifs.`)
-            .setFooter({ text: "TFRP Transmission" });
+            .setFooter({ text: "Transmission tfrp" });
           await user.send({ embeds: [mpEmbed] }).catch(() => {});
         }
       }
     }
   } catch (err) {}
 
-  // Marquer comme notifié sur le site
   const toNotifyIds = characters.map(c => c.id);
   if (toNotifyIds.length > 0) {
     await supabase.from("characters").update({ is_notified: true }).in("id", toNotifyIds);
@@ -188,7 +181,7 @@ export async function getSSDComponents() {
   }
 
   const embed = new EmbedBuilder()
-    .setTitle("Services de Douanes (SSD)")
+    .setTitle("Services de douanes (ssd)")
     .setColor(BOT_CONFIG.EMBED_COLOR)
     .setDescription(`État actuel : ${statusEmoji} ${statusLabel}\n\n` +
       "Légende :\n" +
@@ -200,7 +193,7 @@ export async function getSSDComponents() {
       { name: "Dossiers en attente", value: `${pendingCount} fiches`, inline: false },
       { name: "Dernière mise à jour", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
     )
-    .setFooter({ text: "TFRP Automation" });
+    .setFooter({ text: "Automatisation tfrp" });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('Actualiser').setStyle(ButtonStyle.Secondary)
@@ -219,8 +212,7 @@ export function getPersonnagesHomeEmbed(mention) {
 export async function getCharacterDetailsEmbed(char) {
   const statusEmoji = char.status === 'accepted' ? '🟢' : char.status === 'rejected' ? '🔴' : '🟡';
   const alignLabel = char.alignment === 'illegal' ? 'Clandestin' : 'Civil';
-  const verifier = char.verifiedby ? await getProfile(char.verifiedby) : null;
-  const verifierMention = verifier ? `<@${char.verifiedby}>` : "Non renseigné";
+  const verifierMention = char.verifiedby ? `<@${char.verifiedby}>` : "Non renseigné";
 
   const embed = new EmbedBuilder()
     .setTitle(`Dossier : ${char.first_name} ${char.last_name}`)
@@ -244,27 +236,6 @@ export async function getCharacterDetailsEmbed(char) {
   return { embeds: [embed], components: [row] };
 }
 
-export function buildCharacterModal(isEdit = false, char = null) {
-  const modal = new ModalBuilder()
-    .setCustomId(isEdit ? `edit_char_modal_${char.id}` : 'create_char_modal')
-    .setTitle(isEdit ? 'Révision de dossier' : 'Nouvelle fiche d\'immigration');
-
-  const firstName = new TextInputBuilder().setCustomId('first_name').setLabel('Prénom').setValue(char ? char.first_name : '').setStyle(TextInputStyle.Short).setRequired(true);
-  const lastName = new TextInputBuilder().setCustomId('last_name').setLabel('Nom').setValue(char ? char.last_name : '').setStyle(TextInputStyle.Short).setRequired(true);
-  const birthDate = new TextInputBuilder().setCustomId('birth_date').setLabel('Date de naissance (AAAA-MM-JJ)').setValue(char ? char.birth_date : '').setPlaceholder('Ex: 1995-05-15').setStyle(TextInputStyle.Short).setRequired(true);
-  const birthPlace = new TextInputBuilder().setCustomId('birth_place').setLabel('Lieu de naissance').setValue(char ? char.birth_place : 'Los Angeles').setStyle(TextInputStyle.Short).setRequired(true);
-  const alignment = new TextInputBuilder().setCustomId('alignment').setLabel('Orientation (legal ou illegal)').setValue(char ? char.alignment : 'legal').setStyle(TextInputStyle.Short).setRequired(true);
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(firstName),
-    new ActionRowBuilder().addComponents(lastName),
-    new ActionRowBuilder().addComponents(birthDate),
-    new ActionRowBuilder().addComponents(birthPlace),
-    new ActionRowBuilder().addComponents(alignment)
-  );
-  return modal;
-}
-
 export async function updateCustomsStatus(client) {
   const components = await getSSDComponents();
   const pendingCount = await getPendingCharactersCount();
@@ -274,7 +245,7 @@ export async function updateCustomsStatus(client) {
     const channel = await client.channels.fetch(BOT_CONFIG.CUSTOMS_CHANNEL_ID);
     if (!channel) return;
     const messages = await channel.messages.fetch({ limit: 10 });
-    const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.includes("Douanes"));
+    const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.toLowerCase().includes("douanes"));
     if (botMsg) await botMsg.edit(components);
     else await channel.send(components);
   } catch (e) {}
