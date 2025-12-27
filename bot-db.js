@@ -47,6 +47,10 @@ export async function updateCharacter(charId, charData) {
 }
 
 export async function getProfile(profileId) {
-  const { data } = await supabase.from("profiles").select("username").eq("id", profileId).maybeSingle();
+  const { data } = await supabase.from("profiles").select("*").eq("id", profileId).maybeSingle();
   return data;
+}
+
+export async function updateProfilePermissions(profileId, permissions) {
+  return await supabase.from("profiles").update({ permissions }).eq("id", profileId);
 }
