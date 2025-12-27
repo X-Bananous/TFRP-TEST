@@ -1,4 +1,3 @@
-
 import {
   Client,
   GatewayIntentBits,
@@ -19,8 +18,6 @@ import {
   getUserAcceptedCharacters, 
   getAllUserCharacters, 
   getCharacterById,
-  createCharacter,
-  updateCharacter,
   getProfile
 } from "./bot-db.js";
 import { 
@@ -31,8 +28,7 @@ import {
   getCharacterDetailsEmbed,
   getVerificationStatusEmbed,
   handleUnverified,
-  performGlobalSync,
-  calculateAge
+  performGlobalSync
 } from "./bot-services.js";
 
 const client = new Client({
@@ -44,16 +40,19 @@ const client = new Client({
   ]
 });
 
+/**
+ * Cycle de synchronisation automatisé (Toutes les 60 secondes)
+ */
 async function runScans() {
-  console.log("[Système] Lancement du cycle de synchronisation...");
+  console.log("[Système] Lancement du cycle de synchronisation bidirectionnelle...");
   
-  // 1. Mise à jour statut douanes
-  await updateCustomsStatus(client);
-  
-  // 2. Synchronisation globale DB <-> Discord (Permissions et Rôles)
+  // 1. Audit et Sync Rôles Discord <-> Permissions Site
   await performGlobalSync(client);
   
-  // 3. Vérification des nouvelles validations pour notifications
+  // 2. Mise à jour de l'affichage SSD
+  await updateCustomsStatus(client);
+  
+  // 3. Traitement des notifications de validation
   const newChars = await getNewValidations();
   if (newChars.length > 0) {
     const charsByUser = {};
@@ -68,24 +67,24 @@ async function runScans() {
 }
 
 client.once("ready", async () => {
-  console.log(`Connecté en tant que : ${client.user.tag}`);
+  console.log(`Système opérationnel : ${client.user.tag}`);
 
   const commands = [
-    new SlashCommandBuilder().setName('personnages').setDescription('Gérer vos fiches citoyennes'),
-    new SlashCommandBuilder().setName('verification').setDescription('Lancer la synchronisation du terminal'),
-    new SlashCommandBuilder().setName('status').setDescription('Statut détaillé des douanes'),
-    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal ssd (staff uniquement)'),
+    new SlashCommandBuilder().setName('personnages').setDescription('Accéder à vos identités enregistrées'),
+    new SlashCommandBuilder().setName('verification').setDescription('Synchroniser vos documents'),
+    new SlashCommandBuilder().setName('status').setDescription('Statut des services douaniers'),
+    new SlashCommandBuilder().setName('ssd').setDescription('Déployer le terminal SSD (Staff uniquement)'),
     
     new SlashCommandBuilder().setName('say')
-      .setDescription('Faire parler le bot (permission requise)')
-      .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
-      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier')),
+      .setDescription('Diffuser un message via le bot (Permission requise)')
+      .addStringOption(opt => opt.setName('message').setDescription('Contenu de la transmission').setRequired(true))
+      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un document')),
 
     new SlashCommandBuilder().setName('dm')
-      .setDescription('Envoyer un message privé via le bot (permission requise)')
+      .setDescription('Envoi de message privé via le bot (Permission requise)')
       .addUserOption(opt => opt.setName('cible').setDescription('Destinataire').setRequired(true))
-      .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
-      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier'))
+      .addStringOption(opt => opt.setName('message').setDescription('Contenu de la transmission').setRequired(true))
+      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un document'))
   ].map(c => c.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -93,10 +92,8 @@ client.once("ready", async () => {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
   } catch (e) { console.error(e); }
 
-  // Premier scan immédiat
+  // Exécution immédiate puis intervalle
   runScans();
-  
-  // Boucle de scan toutes les 60 secondes (1 minute)
   setInterval(runScans, 60000); 
 });
 
@@ -105,7 +102,7 @@ async function sendCharacterList(interaction, isUpdate = false) {
     const mention = `<@${interaction.user.id}>`;
     const homeEmbed = getPersonnagesHomeEmbed(mention);
 
-    const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('Choisir un dossier');
+    const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('Sélectionner une fiche citoyenne');
     
     if (allChars.length > 0) {
         allChars.forEach(char => {
@@ -116,7 +113,7 @@ async function sendCharacterList(interaction, isUpdate = false) {
             );
         });
     } else {
-        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel("Aucun dossier").setValue("none").setDisabled(true));
+        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel("Aucune donnée").setValue("none").setDisabled(true));
     }
 
     const components = [new ActionRowBuilder().addComponents(selectMenu)];
@@ -158,9 +155,9 @@ client.on("interactionCreate", async interaction => {
 
       if (!perms[requiredPerm]) {
         const errorEmbed = new EmbedBuilder()
-          .setTitle("Accès refusé")
+          .setTitle("Accès restreint")
           .setColor(BOT_CONFIG.EMBED_COLOR)
-          .setDescription(`Désolé <@${user.id}>, vous n'avez pas l'accréditation nécessaire pour utiliser cette transmission.`);
+          .setDescription(`Désolé ${user}, votre niveau d'accréditation est insuffisant.`);
         return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
       }
 
@@ -170,16 +167,16 @@ client.on("interactionCreate", async interaction => {
 
       if (commandName === "say") {
         await interaction.channel.send({ content: messageContent, files });
-        const successEmbed = new EmbedBuilder().setTitle("Transmission effectuée").setColor(BOT_CONFIG.EMBED_COLOR).setDescription("Votre message a été diffusé.");
+        const successEmbed = new EmbedBuilder().setTitle("Signal transmis").setColor(BOT_CONFIG.EMBED_COLOR).setDescription("Votre message a été diffusé avec succès.");
         return interaction.reply({ embeds: [successEmbed], ephemeral: true });
       } else {
         const target = options.getUser('cible');
         try {
           await target.send({ content: messageContent, files });
-          const successEmbed = new EmbedBuilder().setTitle("Message transmis").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Votre message privé a été envoyé à <@${target.id}>.`);
+          const successEmbed = new EmbedBuilder().setTitle("Signal transmis").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Votre message privé a été délivré à <@${target.id}>.`);
           return interaction.reply({ embeds: [successEmbed], ephemeral: true });
         } catch (e) {
-          const failEmbed = new EmbedBuilder().setTitle("Échec de l'envoi").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Impossible de contacter <@${target.id}> (messages privés fermés).`);
+          const failEmbed = new EmbedBuilder().setTitle("Échec de transmission").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Impossible de contacter <@${target.id}> (Communications fermées).`);
           return interaction.reply({ embeds: [failEmbed], ephemeral: true });
         }
       }
@@ -187,11 +184,11 @@ client.on("interactionCreate", async interaction => {
 
     if (commandName === "ssd") {
       if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-         return interaction.reply({ content: "Vous n'avez pas la permission de déployer ce terminal.", ephemeral: true });
+         return interaction.reply({ content: "Seul le commandement peut déployer ce terminal.", ephemeral: true });
       }
       const components = await getSSDComponents();
       await interaction.channel.send(components);
-      return interaction.reply({ content: "Terminal douanier déployé.", ephemeral: true });
+      return interaction.reply({ content: "Terminal déployé.", ephemeral: true });
     }
   }
 

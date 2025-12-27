@@ -14,24 +14,23 @@ export const BOT_CONFIG = {
   ],
   UNVERIFIED_ROLE_ID: "1445853684696223846",
   
-  // Mapping Permissions Site -> Noms des Rôles Discord
-  // Le bot créera ces rôles s'ils n'existent pas
+  // Mapping strict Permissions Site -> IDs de Rôles Discord fournis
   PERM_ROLE_MAP: {
-    "can_approve_characters": { name: "Staff - Whitelist", color: "#f1c40f" },
-    "can_manage_characters": { name: "Staff - Registre Civil", color: "#3498db" },
-    "can_manage_economy": { name: "Staff - Économie", color: "#2ecc71" },
-    "can_manage_illegal": { name: "Staff - Audit Illégal", color: "#e74c3c" },
-    "can_manage_enterprises": { name: "Staff - Réseau Commercial", color: "#e67e22" },
-    "can_manage_staff": { name: "Staff - Directoire Administration", color: "#9b59b6" },
-    "can_manage_inventory": { name: "Staff - Saisie d'objets", color: "#1abc9c" },
-    "can_change_team": { name: "Staff - Mutation Secteur", color: "#34495e" },
-    "can_go_onduty": { name: "Staff - Badge Service", color: "#95a5a6" },
-    "can_manage_jobs": { name: "Staff - Affectation Métier", color: "#d35400" },
-    "can_launch_session": { name: "Staff - Cycle de Session", color: "#2980b9" },
-    "can_execute_commands": { name: "Staff - Console ERLC", color: "#c0392b" },
-    "can_bypass_login": { name: "Staff - Accès Fondation", color: "#000000" },
-    "can_give_wheel_turn": { name: "Staff - Maître des Roues", color: "#f39c12" },
-    "can_use_dm": { name: "Staff - Messagerie Bot", color: "#8e44ad" },
-    "can_use_say": { name: "Staff - Transmission Bot", color: "#27ae60" }
+    "can_approve_characters": "1445853687573385259", // Whitelist [PS]
+    "can_manage_characters": "1454487849574465680",  // Personnage [PS]
+    "can_manage_economy": "1454487850132308109",     // Economie [PS]
+    "can_manage_illegal": "1454487850899869726",     // Illégal [PS]
+    "can_manage_enterprises": "1454487851126489099", // Commerce [PS]
+    "can_manage_staff": "1454487852342706187",       // Directoire [PS]
+    "can_manage_inventory": "1454487852447695114",   // S.Objet [PS]
+    "can_change_team": "1454487852716130355",        // Secteurs [PS]
+    "can_go_onduty": "1454487853898928274",          // Service [PS]
+    "can_manage_jobs": "1454487853923832074",         // Métier [PS]
+    "can_bypass_login": "1454488526405111963",       // A.Fondation [PS]
+    "can_launch_session": "1454488527483179042",     // Session [PS]
+    "can_execute_commands": "1454488529177673856",   // C.ERLC [PS]
+    "can_give_wheel_turn": "1454488530490228829",    // Roues [PS]
+    "can_use_dm": "1454488531341938841",             // Messagerie [PS]
+    "can_use_say": "1454488532197310475"             // Transmission [PS]
   }
 };

@@ -1,13 +1,9 @@
-
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
   ButtonBuilder, 
   ButtonStyle, 
-  ActivityType,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle
+  ActivityType
 } from "discord.js";
 import { BOT_CONFIG } from "./bot-config.js";
 import { 
@@ -29,64 +25,53 @@ export function calculateAge(birthDateStr) {
 }
 
 /**
- * Assure l'existence des rôles et synchronise tous les membres
+ * Synchronisation bidirectionnelle : Fusionne les rôles Discord et les permissions DB
  */
 export async function performGlobalSync(client) {
   const guild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
   if (!guild) return;
 
-  // 1. S'assurer que les rôles existent
-  const roles = await guild.roles.fetch();
-  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
-    if (!roles.find(r => r.name === config.name)) {
-      console.log(`[Système] Création du rôle : ${config.name}`);
-      await guild.roles.create({
-        name: config.name,
-        color: config.color,
-        reason: 'Initialisation automatique TFRP'
-      }).catch(() => {});
-    }
-  }
+  try {
+    const members = await guild.members.fetch();
+    const { data: profiles } = await supabase.from('profiles').select('id, permissions');
+    
+    for (const [memberId, member] of members) {
+      if (member.user.bot) continue;
 
-  // 2. Récupérer les membres et les profils
-  const members = await guild.members.fetch();
-  const { data: profiles } = await supabase.from('profiles').select('id, permissions');
-  
-  const rolesMap = guild.roles.cache;
+      const profile = profiles?.find(p => p.id === memberId);
+      const dbPerms = profile?.permissions || {};
+      const currentRoles = member.roles.cache;
+      let dbHasChanged = false;
+      const newDbPerms = { ...dbPerms };
 
-  for (const [memberId, member] of members) {
-    if (member.user.bot) continue;
+      for (const [permKey, roleId] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
+        const hasRoleOnDiscord = currentRoles.has(roleId);
+        const hasPermInDb = dbPerms[permKey] === true;
 
-    const profile = profiles?.find(p => p.id === memberId);
-    const dbPerms = profile?.permissions || {};
-    const currentRoles = member.roles.cache;
-    let hasChanged = false;
-    const newDbPerms = { ...dbPerms };
+        // Discord -> DB (Merge positif)
+        if (hasRoleOnDiscord && !hasPermInDb) {
+          newDbPerms[permKey] = true;
+          dbHasChanged = true;
+        } 
+        // DB -> Discord (Merge positif)
+        else if (hasPermInDb && !hasRoleOnDiscord) {
+          await member.roles.add(roleId).catch(() => {
+            console.warn(`[Erreur] Attribution du rôle ${roleId} impossible pour ${member.user.tag}`);
+          });
+        }
+      }
 
-    for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
-      const role = rolesMap.find(r => r.name === config.name);
-      if (!role) continue;
-
-      const hasRole = currentRoles.has(role.id);
-      const hasPerm = dbPerms[perm] === true;
-
-      // Logique de fusion : si l'un a le droit, l'autre doit l'avoir
-      if (hasRole && !hasPerm) {
-        newDbPerms[perm] = true;
-        hasChanged = true;
-      } else if (hasPerm && !hasRole) {
-        await member.roles.add(role).catch(() => {});
+      if (dbHasChanged) {
+        await updateProfilePermissions(memberId, newDbPerms);
       }
     }
-
-    if (hasChanged) {
-      await updateProfilePermissions(memberId, newDbPerms);
-    }
+  } catch (error) {
+    console.error(`[Système] Erreur lors de la synchronisation globale :`, error);
   }
 }
 
 /**
- * Embed de statut pour /verification
+ * Embed de vérification pour la commande /verification
  */
 export async function getVerificationStatusEmbed(userId) {
   const allChars = await getAllUserCharacters(userId);
@@ -95,14 +80,14 @@ export async function getVerificationStatusEmbed(userId) {
   const embed = new EmbedBuilder()
     .setTitle("Synchronisation du terminal")
     .setColor(BOT_CONFIG.EMBED_COLOR)
-    .setDescription(`Analyse des dossiers enregistrés pour ${mention}`);
+    .setDescription(`Analyse des données pour le citoyen ${mention}`);
 
   if (allChars.length === 0) {
-    embed.addFields({ name: "Résultat", value: "Aucune fiche citoyenne détectée dans la base de données.", inline: false });
+    embed.addFields({ name: "Résultat", value: "Aucune fiche citoyenne détectée dans les archives.", inline: false });
   } else {
     allChars.forEach(char => {
       const emoji = char.status === 'accepted' ? '🟢' : char.status === 'rejected' ? '🔴' : '🟡';
-      const label = char.status === 'accepted' ? 'Validé' : char.status === 'rejected' ? 'Refusé' : 'En attente de douanes';
+      const label = char.status === 'accepted' ? 'Validé' : char.status === 'rejected' ? 'Refusé' : 'En attente';
       embed.addFields({ 
         name: `${char.first_name} ${char.last_name}`, 
         value: `Statut : ${emoji} ${label}\nIdentifiant : ${char.id.substring(0,8)}`, 
@@ -111,17 +96,16 @@ export async function getVerificationStatusEmbed(userId) {
     });
   }
 
-  embed.setFooter({ text: "Réseau unifié tfrp" });
+  embed.setFooter({ text: "Système de synchronisation tfrp" });
   return embed;
 }
 
 /**
- * Gère la vérification ponctuelle et les notifications
+ * Traitement des nouvelles validations (Roles citoyen + Logs)
  */
 export async function handleVerification(client, userId, characters) {
   const mention = `<@${userId}>`;
   const acceptedChars = characters.filter(c => c.status === 'accepted');
-  const profile = await getProfile(userId);
   
   try {
     const mainGuild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
@@ -136,25 +120,26 @@ export async function handleVerification(client, userId, characters) {
           await mainMember.roles.remove(BOT_CONFIG.UNVERIFIED_ROLE_ID).catch(() => {});
         }
 
-        // Logs
+        // Log centralisé
         const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
         if (logChannel) {
           const logEmbed = new EmbedBuilder()
-            .setTitle("Protocole de vérification")
+            .setTitle("Vérification citoyenne")
             .setColor(BOT_CONFIG.EMBED_COLOR)
-            .setDescription(`Le citoyen ${mention} a été synchronisé avec succès.\nDossiers valides : ${acceptedChars.length}`)
+            .setDescription(`Le terminal de ${mention} a été mis à jour.\nDossiers approuvés : ${acceptedChars.length}`)
             .setTimestamp()
-            .setFooter({ text: "Journal système" });
+            .setFooter({ text: "Flux système" });
           await logChannel.send({ embeds: [logEmbed] });
         }
 
+        // Notification privée
         const user = await client.users.fetch(userId).catch(() => null);
         if (user) {
           const mpEmbed = new EmbedBuilder()
-            .setTitle("Vérification terminée")
+            .setTitle("Mise à jour terminée")
             .setColor(BOT_CONFIG.EMBED_COLOR)
-            .setDescription(`Bonjour ${mention},\n\nVos dossiers ont été mis à jour par les services d'immigration. Vos accès au territoire sont désormais actifs.`)
-            .setFooter({ text: "Transmission tfrp" });
+            .setDescription(`Bonjour ${mention},\n\nVos accès au territoire ont été synchronisés. Vos documents sont désormais valides.`)
+            .setFooter({ text: "Notification tfrp" });
           await user.send({ embeds: [mpEmbed] }).catch(() => {});
         }
       }
@@ -168,35 +153,35 @@ export async function handleVerification(client, userId, characters) {
 }
 
 /**
- * Embed du Statut des Services de Douanes (SSD)
+ * Embed du terminal des douanes (SSD)
  */
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
   let statusLabel = "Fluide"; let statusEmoji = "🟢";
 
   if (pendingCount > 50) {
-    statusLabel = "Ralenti"; statusEmoji = "🔴";
+    statusLabel = "Surchargé"; statusEmoji = "🔴";
   } else if (pendingCount > 25) {
-    statusLabel = "Perturbé"; statusEmoji = "🟠";
+    statusLabel = "Ralenti"; statusEmoji = "🟠";
   }
 
   const embed = new EmbedBuilder()
-    .setTitle("Services de douanes (ssd)")
+    .setTitle("Terminal des douanes")
     .setColor(BOT_CONFIG.EMBED_COLOR)
-    .setDescription(`État actuel : ${statusEmoji} ${statusLabel}\n\n` +
+    .setDescription(`État des services : ${statusEmoji} ${statusLabel}\n\n` +
       "Légende :\n" +
-      "⚫ Interrompu - Surcharge majeure\n" +
-      "🔴 Ralenti - Délai supérieur à 48h\n" +
-      "🟠 Perturbé - Délai de 24h à 48h\n" +
-      "🟢 Fluide - Délai inférieur à 24h")
+      "⚫ Hors-ligne\n" +
+      "🔴 Surchargé - Délai prolongé\n" +
+      "🟠 Perturbé - Délai modéré\n" +
+      "🟢 Fluide - Délai court")
     .addFields(
       { name: "Dossiers en attente", value: `${pendingCount} fiches`, inline: false },
-      { name: "Dernière mise à jour", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
+      { name: "Dernière analyse", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
     )
-    .setFooter({ text: "Automatisation tfrp" });
+    .setFooter({ text: "Douanes tfrp" });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('Actualiser').setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('Actualiser le signal').setStyle(ButtonStyle.Secondary)
   );
 
   return { embeds: [embed], components: [row] };
@@ -204,9 +189,9 @@ export async function getSSDComponents() {
 
 export function getPersonnagesHomeEmbed(mention) {
   return new EmbedBuilder()
-    .setTitle("Terminal citoyen")
+    .setTitle("Gestion des identités")
     .setColor(BOT_CONFIG.EMBED_COLOR)
-    .setDescription(`Bienvenue sur votre interface, ${mention}.\n\nVeuillez sélectionner un dossier pour consultation ou modification.`);
+    .setDescription(`Bienvenue sur votre interface citoyenne, ${mention}.\n\nVeuillez sélectionner un dossier pour consultation.`);
 }
 
 export async function getCharacterDetailsEmbed(char) {
@@ -222,15 +207,14 @@ export async function getCharacterDetailsEmbed(char) {
       { name: "Âge", value: `${char.age} ans`, inline: true },
       { name: "Orientation", value: alignLabel, inline: true },
       { name: "Statut", value: `${statusEmoji} ${char.status}`, inline: true },
-      { name: "Métier", value: char.job || "Sans emploi", inline: true },
-      { name: "Points permis", value: `${char.driver_license_points ?? 12}/12`, inline: true },
-      { name: "Validateur", value: verifierMention, inline: false }
+      { name: "Profession", value: char.job || "Sans emploi", inline: true },
+      { name: "Permis", value: `${char.driver_license_points ?? 12}/12 pts`, inline: true },
+      { name: "Dernière révision", value: verifierMention, inline: false }
     )
     .setFooter({ text: `Référence : ${char.id}` });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`btn_edit_char_${char.id}`).setLabel('Modifier').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('btn_back_to_list').setLabel('Retour').setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId('btn_back_to_list').setLabel('Retour aux dossiers').setStyle(ButtonStyle.Secondary)
   );
 
   return { embeds: [embed], components: [row] };
