@@ -1,3 +1,4 @@
+
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -48,16 +49,12 @@ export async function performGlobalSync(client) {
         const hasRoleOnDiscord = currentRoles.has(roleId);
         const hasPermInDb = dbPerms[permKey] === true;
 
-        // Discord -> DB (Merge positif)
         if (hasRoleOnDiscord && !hasPermInDb) {
           newDbPerms[permKey] = true;
           dbHasChanged = true;
         } 
-        // DB -> Discord (Merge positif)
         else if (hasPermInDb && !hasRoleOnDiscord) {
-          await member.roles.add(roleId).catch(() => {
-            console.warn(`[Erreur] Attribution du rôle ${roleId} impossible pour ${member.user.tag}`);
-          });
+          await member.roles.add(roleId).catch(() => {});
         }
       }
 
@@ -101,7 +98,7 @@ export async function getVerificationStatusEmbed(userId) {
 }
 
 /**
- * Traitement des nouvelles validations (Roles citoyen + Logs)
+ * Traitement des nouvelles validations
  */
 export async function handleVerification(client, userId, characters) {
   const mention = `<@${userId}>`;
@@ -112,7 +109,6 @@ export async function handleVerification(client, userId, characters) {
     if (mainGuild) {
       const mainMember = await mainGuild.members.fetch(userId).catch(() => null);
       if (mainMember) {
-        // Rôles citoyens
         for (const roleId of BOT_CONFIG.VERIFIED_ROLE_IDS) {
           if (!mainMember.roles.cache.has(roleId)) await mainMember.roles.add(roleId).catch(() => {});
         }
@@ -120,7 +116,6 @@ export async function handleVerification(client, userId, characters) {
           await mainMember.roles.remove(BOT_CONFIG.UNVERIFIED_ROLE_ID).catch(() => {});
         }
 
-        // Log centralisé
         const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
         if (logChannel) {
           const logEmbed = new EmbedBuilder()
@@ -132,7 +127,6 @@ export async function handleVerification(client, userId, characters) {
           await logChannel.send({ embeds: [logEmbed] });
         }
 
-        // Notification privée
         const user = await client.users.fetch(userId).catch(() => null);
         if (user) {
           const mpEmbed = new EmbedBuilder()
@@ -153,38 +147,44 @@ export async function handleVerification(client, userId, characters) {
 }
 
 /**
- * Embed du terminal des douanes (SSD)
+ * Embed du terminal des douanes (SSD) avec les nouveaux status
  */
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
-  let statusLabel = "Fluide"; let statusEmoji = "🟢";
+  let statusLabel = "Fluide"; 
+  let statusEmoji = "🟢";
 
   if (pendingCount > 50) {
-    statusLabel = "Surchargé"; statusEmoji = "🔴";
+    statusLabel = "Ralenti"; 
+    statusEmoji = "🔴";
   } else if (pendingCount > 25) {
-    statusLabel = "Ralenti"; statusEmoji = "🟠";
+    statusLabel = "Perturbé"; 
+    statusEmoji = "🟠";
+  } else if (pendingCount <= 5) {
+    statusLabel = "Fast Checking";
+    statusEmoji = "⚪";
   }
 
   const embed = new EmbedBuilder()
-    .setTitle("Terminal des douanes")
+    .setTitle("Statut des Services de Douanes (SSD)")
     .setColor(BOT_CONFIG.EMBED_COLOR)
-    .setDescription(`État des services : ${statusEmoji} ${statusLabel}\n\n` +
-      "Légende :\n" +
-      "⚫ Hors-ligne\n" +
-      "🔴 Surchargé - Délai prolongé\n" +
-      "🟠 Perturbé - Délai modéré\n" +
-      "🟢 Fluide - Délai court")
+    .setDescription(`État actuel : ${statusEmoji} **${statusLabel}**\n\n` +
+      "⚫ **Interrompu** - Aucun service disponible (maintenance ou panne).\n" +
+      "🔴 **Ralenti** - Délai de 48h ou plus (Sous-effectif ou >50 demandes).\n" +
+      "🟠 **Perturbé** - Délai de 24h à 48h (Surdemande >25).\n" +
+      "🟢 **Fluide** - Délai inférieur à 24h (Réponse dans la journée).\n" +
+      "⚪ **Fast Checking** - Délai de 5 à 10 minutes (Douaniers mobilisés).")
     .addFields(
-      { name: "Dossiers en attente", value: `${pendingCount} fiches`, inline: false },
+      { name: "Dossiers en attente", value: `**${pendingCount}** fiches citoyennes`, inline: false },
       { name: "Dernière analyse", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
     )
-    .setFooter({ text: "Douanes tfrp" });
+    .setFooter({ text: "Douanes tfrp • Système Automatisé" });
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('Actualiser le signal').setStyle(ButtonStyle.Secondary)
   );
 
-  return { embeds: [embed], components: [row] };
+  return { embeds: [embed], components: [row], emoji: statusEmoji };
 }
 
 export function getPersonnagesHomeEmbed(mention) {
@@ -220,19 +220,32 @@ export async function getCharacterDetailsEmbed(char) {
   return { embeds: [embed], components: [row] };
 }
 
+/**
+ * Mise à jour du statut du bot avec la pastille SSD
+ */
 export async function updateCustomsStatus(client) {
   const components = await getSSDComponents();
   const pendingCount = await getPendingCharactersCount();
-  client.user.setActivity({ name: `Douanes : ${pendingCount} dossiers`, type: ActivityType.Watching });
+  
+  // Utilisation de la pastille de couleur dans le statut d'activité
+  client.user.setActivity({ 
+    name: `${components.emoji} Douanes : ${pendingCount} dossiers`, 
+    type: ActivityType.Watching 
+  });
 
   try {
     const channel = await client.channels.fetch(BOT_CONFIG.CUSTOMS_CHANNEL_ID);
     if (!channel) return;
     const messages = await channel.messages.fetch({ limit: 10 });
-    const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.toLowerCase().includes("douanes"));
-    if (botMsg) await botMsg.edit(components);
-    else await channel.send(components);
-  } catch (e) {}
+    const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.includes("Douanes"));
+    
+    // On retire la propriété emoji avant d'envoyer car c'est une donnée interne
+    const { emoji, ...payload } = components;
+    if (botMsg) await botMsg.edit(payload);
+    else await channel.send(payload);
+  } catch (e) {
+    console.error("[SSD] Erreur mise à jour salon:", e);
+  }
 }
 
 export async function handleUnverified(client, userId) {
