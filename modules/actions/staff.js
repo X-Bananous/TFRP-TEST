@@ -62,7 +62,6 @@ export const setStaffTab = async (tab) => {
 export const giveWheelTurn = async (userId) => {
     if (!hasPermission('can_give_wheel_turn')) return;
     
-    // On récupère le profil ciblé pour afficher son solde actuel
     const { data: profile } = await state.supabase.from('profiles').select('username, whell_turn').eq('id', userId).single();
     const current = profile?.whell_turn || 0;
 
@@ -253,7 +252,7 @@ export const decideApplication = async (id, status) => {
     const { error } = await state.supabase.from('characters').update({ 
         status: status,
         verifiedby: state.user.id,
-        is_notified: false // Réinitialise pour que le bot traite l'entrée comme nouvelle
+        is_notified: false 
     }).eq('id', id);
 
     if (!error) {
@@ -670,7 +669,7 @@ export const renderPermEditor = (profile) => {
         can_manage_economy: "Accès de niveau Trésorier. Permet d'ajuster les soldes bancaires et liquides de n'importe quel citoyen, d'effectuer des saisies ou des crédits globaux sur toute la population.",
         can_manage_illegal: "Supervision des activités criminelles. Permet de créer, dissoudre ou modifier les gangs (syndicats) et de valider/refuser les gains des braquages complexes.",
         can_manage_enterprises: "Contrôle du Registre du Commerce. Autorise la fondation ou la dissolution de n'importe quelle entreprise, ainsi que la modération (approbation/rejet) des articles mis en vente.",
-        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits'accès administratifs.",
+        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits d'accès administratifs.",
         can_manage_inventory: "Droit de perquisition administrative. Permet de visualiser, confisquer ou injecter des objets directement dans le sac d'un citoyen à distance.",
         can_change_team: "Mutation d'Alignement. Permet de basculer un citoyen du secteur Légal vers l'Illégal et vice-versa, réinitialisant ses accès de faction.",
         can_go_onduty: "Autorisation de Service Live. Permet d'apparaître comme modérateur actif sur le Panel pour les citoyens et d'accéder aux fonctionnalités de terrain.",
@@ -678,7 +677,9 @@ export const renderPermEditor = (profile) => {
         can_bypass_login: "Accès Racine (Bypass). Permet de naviguer sur l'intégralité du panel administratif sans avoir besoin de charger un personnage citoyen actif.",
         can_launch_session: "Contrôle des Cycles. Autorise l'ouverture et la fermeture des sessions de jeu officielles, déclenchant la synchronisation globale du CAD.",
         can_execute_commands: "Accès au Terminal ERLC. Permet d'envoyer des instructions directes au serveur de jeu via l'API (messages globaux, annonces de braquage, etc.).",
-        can_give_wheel_turn: "Gestionnaire de Récompenses. Autorise l'attribution de tours de Roue de la Fortune aux citoyens via le registre administratif."
+        can_give_wheel_turn: "Gestionnaire de Récompenses. Autorise l'attribution de tours de Roue de la Fortune aux citoyens via le registre administratif.",
+        can_use_dm: "Messagerie Directe Bot. Autorise l'envoi de messages privés (MP) via l'identité du bot pour des communications administratives ou RP.",
+        can_use_say: "Transmission Publique Bot. Permet d'utiliser le bot pour parler dans les salons textuels publics de façon officielle."
     };
 
     const checkboxes = [
@@ -695,7 +696,9 @@ export const renderPermEditor = (profile) => {
         { k: 'can_bypass_login', l: 'Accès Fondation' },
         { k: 'can_launch_session', l: 'Cycle de Session' },
         { k: 'can_execute_commands', l: 'Console ERLC' },
-        { k: 'can_give_wheel_turn', l: 'Maître des Roues' }
+        { k: 'can_give_wheel_turn', l: 'Maître des Roues' },
+        { k: 'can_use_dm', l: 'Messagerie Bot' },
+        { k: 'can_use_say', l: 'Transmission Bot' }
     ].map(p => `
         <div class="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/[0.08] ${isDisabled ? 'opacity-50 grayscale' : ''}">
             <label class="flex items-center gap-4 cursor-pointer">
