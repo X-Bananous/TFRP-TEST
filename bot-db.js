@@ -13,6 +13,17 @@ export async function getPendingCharactersCount() {
   return error ? 0 : (count || 0);
 }
 
+export async function getOldestPendingCharacter() {
+  const { data } = await supabase
+    .from("characters")
+    .select("created_at")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
 export async function getNewValidations() {
   const { data } = await supabase
     .from("characters")
@@ -35,14 +46,6 @@ export async function getAllUserCharacters(userId) {
 export async function getCharacterById(charId) {
   const { data } = await supabase.from("characters").select("*").eq("id", charId).maybeSingle();
   return data;
-}
-
-export async function createCharacter(charData) {
-  return await supabase.from("characters").insert([charData]);
-}
-
-export async function updateCharacter(charId, charData) {
-  return await supabase.from("characters").update(charData).eq("id", charId);
 }
 
 export async function getProfile(profileId) {
