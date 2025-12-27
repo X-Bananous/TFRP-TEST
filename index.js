@@ -20,8 +20,7 @@ import {
   getCharacterById,
   createCharacter,
   updateCharacter,
-  getProfile,
-  supabase
+  getProfile
 } from "./bot-db.js";
 import { 
   handleVerification,
@@ -33,7 +32,8 @@ import {
   getCharacterDetailsEmbed,
   getVerificationStatusEmbed,
   syncRolesToPermissions,
-  handleUnverified
+  handleUnverified,
+  ensureRolesExist
 } from "./bot-services.js";
 
 const client = new Client({
@@ -60,27 +60,29 @@ async function runScans() {
   }
 }
 
-/* ================= INITIALISATION ================= */
-
 client.once("ready", async () => {
   console.log(`[SYSTEM] ${client.user.tag} OPERATIONNEL.`);
 
+  // Création automatique des rôles manquants sur le serveur principal
+  const mainGuild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
+  if (mainGuild) await ensureRolesExist(mainGuild);
+
   const commands = [
-    new SlashCommandBuilder().setName('personnages').setDescription('Gérer vos fiches citoyennes'),
-    new SlashCommandBuilder().setName('verification').setDescription('Synchroniser vos accès avec vos dossiers'),
+    new SlashCommandBuilder().setName('personnages').setDescription('Accéder à vos dossiers citoyen'),
+    new SlashCommandBuilder().setName('verification').setDescription('Lancer la synchronisation du terminal'),
     new SlashCommandBuilder().setName('status').setDescription('Statut détaillé des douanes'),
-    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal SSD (Staff uniquement)'),
+    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal SSD (Staff)'),
     
     new SlashCommandBuilder().setName('say')
-      .setDescription('Envoyer un message via le bot (Permission requise)')
-      .addStringOption(opt => opt.setName('message').setDescription('Contenu du message').setRequired(true))
-      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Pièce jointe')),
+      .setDescription('Faire parler le bot (Permission Staff)')
+      .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
+      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier')),
 
     new SlashCommandBuilder().setName('dm')
-      .setDescription('Envoyer un message privé via le bot (Permission requise)')
+      .setDescription('Envoyer un MP via le bot (Permission Staff)')
       .addUserOption(opt => opt.setName('cible').setDescription('Destinataire').setRequired(true))
-      .addStringOption(opt => opt.setName('message').setDescription('Contenu du message').setRequired(true))
-      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Pièce jointe'))
+      .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
+      .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier'))
   ].map(c => c.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -92,38 +94,34 @@ client.once("ready", async () => {
   setInterval(runScans, 300000); 
 });
 
-/* ================= ÉVÉNEMENTS DE SYNCHRONISATION ================= */
-
-// Détection d'un changement de rôle sur Discord -> Mise à jour du site
+// Synchro bidirectionnelle : Discord -> Site (Changement de rôles manuel)
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
   if (newMember.guild.id !== BOT_CONFIG.MAIN_SERVER_ID) return;
   await syncRolesToPermissions(newMember);
 });
-
-/* ================= GESTION DES INTERACTIONS ================= */
 
 async function sendCharacterList(interaction, isUpdate = false) {
     const allChars = await getAllUserCharacters(interaction.user.id);
     const mention = `<@${interaction.user.id}>`;
     const homeEmbed = getPersonnagesHomeEmbed(mention);
 
-    const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('Sélectionner un citoyen');
+    const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('SELECTIONNER UN DOSSIER');
     
     if (allChars.length > 0) {
         allChars.forEach(char => {
             selectMenu.addOptions(new StringSelectMenuOptionBuilder()
                 .setLabel(`${char.first_name.toUpperCase()} ${char.last_name.toUpperCase()}`)
-                .setDescription(`Status: ${char.status.toUpperCase()} | Métier: ${(char.job || 'CIVIL').toUpperCase()}`)
+                .setDescription(`STATUT: ${char.status.toUpperCase()}`)
                 .setValue(char.id)
             );
         });
     } else {
-        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel("AUCUN PERSONNAGE").setValue("none").setDisabled(true));
+        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel("AUCUN DOSSIER").setValue("none").setDisabled(true));
     }
 
     const components = [new ActionRowBuilder().addComponents(selectMenu)];
     if (allChars.length < 1) { 
-       components.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('btn_create_char').setLabel('NOUVELLE FICHE').setStyle(ButtonStyle.Success)));
+       components.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('btn_create_char').setLabel('OUVRIR UNE FICHE').setStyle(ButtonStyle.Success)));
     }
 
     const payload = { embeds: [homeEmbed], components: components, ephemeral: true };
@@ -164,29 +162,29 @@ client.on("interactionCreate", async interaction => {
 
       if (!perms[requiredPerm]) return interaction.reply({ content: "ACCÈS REFUSÉ : ACCRÉDITATION INSUFFISANTE.", ephemeral: true });
 
-      const content = options.getString('message');
+      const msg = options.getString('message');
       const attachment = options.getAttachment('fichier');
-      const files = attachment ? [attachment.url] : [];
+      const files = attachment ? [attachment] : [];
 
       if (commandName === "say") {
-        await interaction.channel.send({ content, files });
-        return interaction.reply({ content: "MESSAGE TRANSMIS.", ephemeral: true });
+        await interaction.channel.send({ content: msg, files });
+        return interaction.reply({ content: "TRANSMISSION EFFECTUÉE.", ephemeral: true });
       } else {
         const target = options.getUser('cible');
         try {
-          await target.send({ content, files });
-          return interaction.reply({ content: `MESSAGE PRIVÉ ENVOYÉ À <@${target.id}>.`, ephemeral: true });
+          await target.send({ content: msg, files });
+          return interaction.reply({ content: `MESSAGE PRIVÉ TRANSMIS À <@${target.id}>.`, ephemeral: true });
         } catch (e) {
-          return interaction.reply({ content: "IMPOSSIBLE DE CONTACTER LA CIBLE (MP FERMÉS).", ephemeral: true });
+          return interaction.reply({ content: "ÉCHEC : LA CIBLE N'ACCEPTE PAS LES MP.", ephemeral: true });
         }
       }
     }
 
     if (commandName === "ssd") {
-      if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) return interaction.reply({ content: "ACCÈS REFUSÉ.", ephemeral: true });
+      if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) return interaction.reply({ content: "REFUSÉ.", ephemeral: true });
       const components = await getSSDComponents();
       await interaction.channel.send(components);
-      return interaction.reply({ content: "STATUT DÉPLOYÉ.", ephemeral: true });
+      return interaction.reply({ content: "TERMINAL DÉPLOYÉ.", ephemeral: true });
     }
   }
 
@@ -244,7 +242,7 @@ client.on("interactionCreate", async interaction => {
     const payload = { user_id: interaction.user.id, ...f, age, status, job, is_notified: false };
     const { error } = isEdit ? await updateCharacter(charId, payload) : await createCharacter(payload);
 
-    return interaction.reply({ content: error ? `ERREUR BASE DE DONNÉES : ${error.message}` : "DOSSIER TRANSMIS POUR ANALYSE.", ephemeral: true });
+    return interaction.reply({ content: error ? `ERREUR : ${error.message}` : "DOSSIER TRAITÉ AVEC SUCCÈS.", ephemeral: true });
   }
 });
 

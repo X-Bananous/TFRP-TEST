@@ -12,8 +12,8 @@ export const BOT_CONFIG = {
     ERROR: 0xCC0000,
     WARNING: 0xFFA500,
     SUCCESS: 0x00FF00,
-    GREY: 0x2F3136,
-    WHITE: 0xFFFFFF
+    PURPLE: 0x9B59B6,
+    GREY: 0x2F3136
   },
   VERIFIED_ROLE_IDS: [
     "1450941712938696845",
@@ -21,22 +21,22 @@ export const BOT_CONFIG = {
   ],
   UNVERIFIED_ROLE_ID: "1445853684696223846",
   
-  // Mapping Permissions Site -> IDs de Rôles Discord
-  PERM_ROLE_MAP: {
-    "can_approve_characters": "1454483754981392434",
-    "can_manage_characters": "1454483756088954930",
-    "can_manage_economy": "1454483757137526835",
-    "can_manage_illegal": "1454483758156611644",
-    "can_manage_enterprises": "1454483759146471465",
-    "can_manage_staff": "1454483760115351612",
-    "can_manage_inventory": "1454483761084235836",
-    "can_change_team": "1454483762057314354",
-    "can_go_onduty": "1454483763026202674",
-    "can_manage_jobs": "1454483763995217981",
-    "can_launch_session": "1454483764964360252",
-    "can_execute_commands": "1454483765938225213",
-    "can_use_dm": "1454483766911111248",
-    "can_use_say": "1454483767884189756"
+  // Mapping Permissions Site -> Noms des Rôles (pour création auto et synchro)
+  PERM_ROLES: {
+    "can_approve_characters": { name: "Staff - Whitelist", color: "#f1c40f" },
+    "can_manage_characters": { name: "Staff - Registre", color: "#3498db" },
+    "can_manage_economy": { name: "Staff - Economie", color: "#2ecc71" },
+    "can_manage_illegal": { name: "Staff - Illegal", color: "#e74c3c" },
+    "can_manage_enterprises": { name: "Staff - Entreprises", color: "#e67e22" },
+    "can_manage_staff": { name: "Staff - Administration", color: "#9b59b6" },
+    "can_manage_inventory": { name: "Staff - Inventaires", color: "#1abc9c" },
+    "can_change_team": { name: "Staff - Mutations", color: "#34495e" },
+    "can_go_onduty": { name: "Staff - Service", color: "#95a5a6" },
+    "can_manage_jobs": { name: "Staff - Metiers", color: "#d35400" },
+    "can_launch_session": { name: "Staff - Sessions", color: "#2980b9" },
+    "can_execute_commands": { name: "Staff - Console", color: "#c0392b" },
+    "can_use_dm": { name: "Staff - Messagerie", color: "#8e44ad" },
+    "can_use_say": { name: "Staff - Transmission", color: "#27ae60" }
   },
 
   PROTECTED_GUILDS: [

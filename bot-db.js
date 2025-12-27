@@ -15,6 +15,7 @@ export async function getPendingCharactersCount() {
 }
 
 export async function getNewValidations() {
+  // Récupère les personnages acceptés qui n'ont pas encore été notifiés
   const { data } = await supabase
     .from("characters")
     .select("*")
