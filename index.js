@@ -8,7 +8,8 @@ import {
   EmbedBuilder,
   ActionRowBuilder,
   StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder
+  StringSelectMenuOptionBuilder,
+  PermissionFlagsBits
 } from "discord.js";
 import { BOT_CONFIG } from "./bot-config.js";
 import { 
@@ -34,26 +35,13 @@ const client = new Client({
   ]
 });
 
-let lastScheduledPostDate = ""; // Pour éviter les doubles posts dans la même minute
-
 /* ================= SCANS PÉRIODIQUES ================= */
 
 async function runScans() {
-  const now = new Date();
-  const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  const todayKey = now.toDateString() + currentTimeStr;
-
-  // 1. Mise à jour automatique de l'activité du bot (toutes les 5 min)
+  // 1. Mise à jour de l'activité du bot (Status) uniquement
   await updateCustomsStatus(client, false);
 
-  // 2. Vérification planification SSD (9:10 et 19:10)
-  if ((currentTimeStr === "09:15" || currentTimeStr === "19:15") && lastScheduledPostDate !== todayKey) {
-    lastScheduledPostDate = todayKey;
-    console.log(`[SYSTEM] Envoi automatique du statut SSD à ${currentTimeStr}`);
-    await updateCustomsStatus(client, true);
-  }
-
-  // 3. Scan des nouvelles fiches acceptées sur le site
+  // 2. Scan des nouvelles fiches acceptées sur le site
   const newChars = await getNewValidations();
   if (newChars.length > 0) {
     const charsByUser = {};
@@ -66,7 +54,7 @@ async function runScans() {
     }
   }
 
-  // 4. Scan de sécurité (Kick si perso supprimé ou invalide sur guildes protégées)
+  // 3. Scan de sécurité (Kick si perso supprimé ou invalide sur guildes protégées)
   for (const guildId of BOT_CONFIG.PROTECTED_GUILDS) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) continue;
@@ -104,8 +92,8 @@ client.once("ready", async () => {
   // Premier scan immédiat
   runScans();
   
-  // Boucle de scan toutes les minutes pour la précision de l'horloge SSD
-  setInterval(runScans, 60000); 
+  // Boucle de scan toutes les 5 minutes (plus besoin de la précision à la minute)
+  setInterval(runScans, 300000); 
 });
 
 /* ================= ÉVÉNEMENTS ================= */

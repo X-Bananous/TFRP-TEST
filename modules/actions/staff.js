@@ -1,3 +1,4 @@
+
 import { state } from '../state.js';
 import { render, router } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -251,7 +252,8 @@ export const decideApplication = async (id, status) => {
     
     const { error } = await state.supabase.from('characters').update({ 
         status: status,
-        verifiedby: state.user.id
+        verifiedby: state.user.id,
+        is_notified: false // Réinitialise pour que le bot traite l'entrée comme nouvelle
     }).eq('id', id);
 
     if (!error) {

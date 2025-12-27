@@ -37,17 +37,20 @@ export const submitCharacter = async (e) => {
     let status = state.isAdminEditing ? 'accepted' : 'pending';
     let job = 'unemployed';
     let isNotified = false;
+    let verifiedBy = null;
 
     if (state.editingCharacter) {
         const oldChar = state.editingCharacter;
         status = oldChar.status;
         job = oldChar.job;
         isNotified = oldChar.is_notified;
+        verifiedBy = oldChar.verifiedby;
 
-        // Reset to pending only if names changed (Birth date change is now allowed without reset)
+        // Reset to pending and clear validator if names changed (Player edit)
         if (!state.isAdminEditing && (data.first_name !== oldChar.first_name || data.last_name !== oldChar.last_name)) {
             status = 'pending';
             isNotified = false;
+            verifiedBy = null;
         }
 
         // Reset job only if alignment changed
@@ -66,13 +69,9 @@ export const submitCharacter = async (e) => {
         user_id: targetUserId,
         alignment: data.alignment,
         job: job,
-        is_notified: isNotified
+        is_notified: state.isAdminEditing ? true : isNotified,
+        verifiedby: state.isAdminEditing ? state.user.id : verifiedBy
     };
-
-    // Si un admin effectue l'action, on marque qui a vérifié/créé
-    if (state.isAdminEditing) {
-        charData.verifiedby = state.user.id;
-    }
 
     let error = null;
 
