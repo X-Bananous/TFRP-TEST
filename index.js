@@ -1,4 +1,3 @@
-
 import {
   Client,
   GatewayIntentBits,
@@ -39,15 +38,10 @@ async function runScans() {
   console.log("[Système] Lancement du scan SSD/Sync...");
   await performGlobalSync(client);
   await updateCustomsStatus(client);
-  
-  const newChars = await getNewValidations();
-  if (newChars.length > 0) {
-    // Logique de notification (v5 standard)
-  }
 }
 
 client.once("ready", async () => {
-  console.log(`Bot TFRP v6.2 opérationnel : ${client.user.tag}`);
+  console.log(`Bot TFRP v6.3 opérationnel : ${client.user.tag}`);
 
   const commands = [
     personnagesCommand.data.toJSON(),
@@ -62,8 +56,21 @@ client.once("ready", async () => {
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try { 
-    await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
-  } catch (e) { console.error(e); }
+    console.log("[Système] Déploiement des commandes sur le serveur...");
+    // Enregistrement sur le serveur spécifique pour affichage INSTANTANÉ
+    await rest.put(
+      Routes.applicationGuildCommands(client.user.id, BOT_CONFIG.MAIN_SERVER_ID), 
+      { body: commands }
+    );
+    // Enregistrement global (optionnel, pour les MPs)
+    await rest.put(
+      Routes.applicationCommands(client.user.id), 
+      { body: commands }
+    );
+    console.log("[Système] Commandes Slash synchronisées !");
+  } catch (e) { 
+    console.error("[Erreur] Échec synchronisation commandes :", e); 
+  }
 
   runScans();
   setInterval(runScans, 60000); 

@@ -1,4 +1,3 @@
-
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getAllUserCharacters, getCharacterById } from "../../bot-db.js";
 import { BOT_CONFIG } from "../../bot-config.js";
@@ -67,10 +66,9 @@ export async function handlePersonnagesSelect(interaction) {
       { name: "Profession actuelle", value: char.job ? char.job.toUpperCase() : "SANS EMPLOI", inline: false },
       { name: "Points de permis", value: `${char.driver_license_points ?? 12} / 12`, inline: false },
       { name: "Licence de droit", value: barLabel, inline: false },
-      { name: "Statut administratif", value: `${statusEmoji} ${char.status.toUpperCase()}`, inline: false },
-      { name: "Identifiant archive", value: `\`${char.id}\``, inline: false }
+      { name: "Statut administratif", value: `${statusEmoji} ${char.status.toUpperCase()}`, inline: false }
     )
-    .setFooter({ text: "Transmission TFRP • Terminal Sécurisé • v6.2" });
+    .setFooter({ text: "Transmission TFRP • Terminal Sécurisé • v6.3" });
 
   const row = new ActionRowBuilder();
   
@@ -82,11 +80,10 @@ export async function handlePersonnagesSelect(interaction) {
 
   row.addComponents(backBtn);
 
-  // Sécurité : N'ajouter le bouton de modification QUE si l'utilisateur est le propriétaire
-  if (char.user_id === interaction.user.id) {
-    const isActionable = char.status !== 'pending';
+  // Sécurité : Cliquable QUE si accepté ou refusé ET que l'utilisateur est le proprio
+  if (char.user_id === interaction.user.id && char.status !== 'pending') {
     const linkBtn = new ButtonBuilder()
-      .setLabel(isActionable ? 'Modifier sur le Panel' : 'Dossier en attente...')
+      .setLabel('Modifier sur le Panel')
       .setURL(BOT_CONFIG.SITE_URL)
       .setStyle(ButtonStyle.Link);
     
