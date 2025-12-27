@@ -32,9 +32,10 @@ export const BOT_CONFIG = {
     "can_give_wheel_turn": "1454488530490228829",    // Roues [PS]
     "can_use_dm": "1454488531341938841",             // Messagerie [PS]
     "can_use_say": "1454488532197310475",             // Transmission [PS]
-    // NOUVELLES PERMISSIONS SANCTIONS
-    "can_mute": "1454848384211910717",
-    "can_warn": "1454848385310818314",
-    "can_ban": "1454848386271318117"
+    
+    // PERMISSIONS MODÉRATION (Mise à jour avec les IDs fournis)
+    "can_warn": "1454617528411095071",
+    "can_mute": "1454617655162966016",
+    "can_ban": "1454617714604642506"
   }
 };
