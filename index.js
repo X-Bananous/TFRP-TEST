@@ -115,10 +115,6 @@ async function kickUnverified(member) {
   try { await member.kick("Automatique : Aucun personnage valide."); } catch (e) {}
 }
 
-/**
- * Gère le cas d'un utilisateur NON VÉRIFIÉ sur le serveur principal.
- * Ajoute le rôle Non Vérifié et retire les rôles Vérifié.
- */
 async function handleUnverified(userId) {
   try {
     const mainGuild = await client.guilds.fetch(MAIN_SERVER_ID).catch(() => null);
@@ -127,19 +123,16 @@ async function handleUnverified(userId) {
     const mainMember = await mainGuild.members.fetch(userId).catch(() => null);
     if (!mainMember) return;
 
-    // Ajouter le rôle NON VÉRIFIÉ
     if (!mainMember.roles.cache.has(UNVERIFIED_ROLE_ID)) {
       await mainMember.roles.add(UNVERIFIED_ROLE_ID).catch(e => console.error(`[ROLE ERROR] Add Unverified: ${e.message}`));
     }
 
-    // Retirer les rôles VÉRIFIÉ
     for (const roleId of VERIFIED_ROLE_IDS) {
       if (mainMember.roles.cache.has(roleId)) {
         await mainMember.roles.remove(roleId).catch(e => console.error(`[ROLE ERROR] Remove Verified (${roleId}): ${e.message}`));
       }
     }
     
-    // Retirer les rôles métiers par sécurité
     for (const jobRole of Object.values(JOB_ROLES)) {
       if (mainMember.roles.cache.has(jobRole)) {
         await mainMember.roles.remove(jobRole).catch(e => console.error(`[ROLE ERROR] Remove Job (${jobRole}): ${e.message}`));
@@ -151,34 +144,23 @@ async function handleUnverified(userId) {
   }
 }
 
-/**
- * Coeur du système : Gère les rôles et les notifications pour un User ID donné
- */
 async function handleVerification(userId, characters) {
   const toNotify = characters.filter(c => c.is_notified !== true);
   
-  // --- ÉTAPE 1 : GESTION DES RÔLES SUR LE SERVEUR PRINCIPAL ---
   let mainMember = null;
   try {
     const mainGuild = await client.guilds.fetch(MAIN_SERVER_ID).catch(() => null);
-    
     if (mainGuild) {
       mainMember = await mainGuild.members.fetch(userId).catch(() => null);
-
       if (mainMember) {
-        // Ajouter les rôles VÉRIFIÉS
         for (const roleId of VERIFIED_ROLE_IDS) {
           if (!mainMember.roles.cache.has(roleId)) {
             await mainMember.roles.add(roleId).catch(e => console.error(`[ROLE ERROR] Add Verified (${roleId}): ${e.message}`));
           }
         }
-
-        // Retirer le rôle NON VÉRIFIÉ
         if (mainMember.roles.cache.has(UNVERIFIED_ROLE_ID)) {
           await mainMember.roles.remove(UNVERIFIED_ROLE_ID).catch(e => console.error(`[ROLE ERROR] Remove Unverified: ${e.message}`));
         }
-
-        // 2. Rôles Métiers
         for (const char of characters) {
           if (char.job) {
             const jobKey = char.job.toLowerCase();
@@ -196,10 +178,8 @@ async function handleVerification(userId, characters) {
     console.error(`[MAIN GUILD ERROR] ${err.message}`);
   }
 
-  // --- ÉTAPE 2 : NOTIFICATIONS (LOGS + MP) ---
   if (toNotify.length === 0) return;
 
-  // Récupération des profils des douaniers (staff) pour afficher leurs noms
   const staffIds = [...new Set(toNotify.map(c => c.verifiedby).filter(id => !!id))];
   let staffProfiles = [];
   if (staffIds.length > 0) {
@@ -214,54 +194,40 @@ async function handleVerification(userId, characters) {
     return `- **${c.first_name} ${c.last_name}** (${c.job || 'Citoyen'}) • *Validé par ${staffName}*`;
   }).join("\n");
   
-  const logEmbed = new EmbedBuilder().setFooter({ text: "TFRP Manager" });
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel("Voir sur le panel").setStyle(ButtonStyle.Link).setURL(SITE_URL)
-  );
-
-  if (mainMember) {
-    logEmbed.setTitle("Citoyenneté Validée")
-            .setDescription(`Le joueur <@${userId}> vient d'être authentifié avec succès.`)
-            .setColor(COLOR_DARK_BLUE)
-            .setThumbnail(mainMember.user.displayAvatarURL());
-    
-    try { await mainMember.send({ embeds: [logEmbed.addFields({ name: "Personnage(s) détecté(s)", value: charList, inline: false })], components: [row] }); } catch (e) {}
-
-  } else {
-    logEmbed.setTitle("Personnage validé, mais utilisateur inconnu")
-            .setDescription(`Les personnages ci-dessous ont été validés, mais le compte Discord <@${userId}> est **introuvable** sur le serveur principal.`)
-            .setColor(COLOR_WARNING);
-  }
-
-  // On évite de rajouter deux fois les fields si on a déjà envoyé le MP au dessus
-  if (!mainMember || logEmbed.data.fields?.length === 0) {
-    logEmbed.addFields(
+  const logEmbed = new EmbedBuilder()
+    .setTitle("Citoyenneté Validée")
+    .setColor(COLOR_DARK_BLUE)
+    .setFooter({ text: "TFRP Manager" })
+    .addFields(
         { name: "Personnage(s) détecté(s)", value: charList, inline: false },
         { name: "Validé le", value: `<t:${ts}:F>`, inline: false }
     );
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setLabel("Accéder au Panel").setStyle(ButtonStyle.Link).setURL(SITE_URL)
+  );
+
+  if (mainMember) {
+    logEmbed.setDescription(`Le joueur <@${userId}> vient d'être authentifié avec succès.`)
+            .setThumbnail(mainMember.user.displayAvatarURL());
+    try { await mainMember.send({ embeds: [logEmbed], components: [row] }); } catch (e) {}
+  } else {
+    logEmbed.setTitle("Validation Citoyenne")
+            .setDescription(`Les personnages ci-dessous ont été validés, mais le compte Discord <@${userId}> est introuvable sur le serveur principal.`)
+            .setColor(COLOR_WARNING);
   }
 
   try {
     const logChannel = await client.channels.fetch(LOG_CHANNEL_ID);
     if (logChannel) {
-        await logChannel.send({ 
-            content: `<@${userId}>`,
-            embeds: [logEmbed],
-            components: [row]
-        });
+        await logChannel.send({ content: `<@${userId}>`, embeds: [logEmbed], components: [row] });
     }
-  } catch (e) {
-    console.error(`[LOG ERROR] ${e.message}`);
-  }
+  } catch (e) { console.error(`[LOG ERROR] ${e.message}`); }
 
-  // --- ÉTAPE 3 : MISE À JOUR DB ---
   const idsToMark = toNotify.map(c => c.id);
   await markAsNotified(idsToMark);
 }
 
-/**
- * Scan des nouveaux personnages en base de données
- */
 async function scanNewValidations() {
   const { data: newChars, error } = await supabase
     .from("characters")
@@ -282,9 +248,6 @@ async function scanNewValidations() {
   }
 }
 
-/**
- * Scan de sécurité sur les serveurs protégés
- */
 async function scanSecurityKick() {
   for (const guildId of PROTECTED_GUILDS) {
     const guild = client.guilds.cache.get(guildId);
@@ -328,11 +291,9 @@ client.once("ready", async () => {
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try { 
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
-    console.log("[SYSTEM] Commandes Slash enregistrées.");
   } catch (e) { console.error(e); }
 
   setInterval(async () => {
-    console.log("[SCAN] Exécution des tâches planifiées...");
     await scanNewValidations();
     await scanSecurityKick();
   }, 300000);
@@ -342,9 +303,7 @@ client.once("ready", async () => {
 
 client.on("guildMemberAdd", async (member) => {
   if (member.user.bot) return;
-
   await sendWelcomeTutorial(member);
-
   const { data: acceptedChars } = await supabase
     .from("characters")
     .select("*")
@@ -354,156 +313,86 @@ client.on("guildMemberAdd", async (member) => {
   if (acceptedChars && acceptedChars.length > 0) {
     await handleVerification(member.id, acceptedChars);
   } else {
-    // Si pas de perso, gestion selon le serveur
     if (PROTECTED_GUILDS.includes(member.guild.id)) {
       await kickUnverified(member);
     } else if (member.guild.id === MAIN_SERVER_ID) {
-      // Sur le serveur principal, on donne le rôle non vérifié
       await handleUnverified(member.id);
     }
   }
 });
 
 client.on("interactionCreate", async interaction => {
-  // Gestion du Select Menu (Détails Personnage)
   if (interaction.isStringSelectMenu() && interaction.customId === 'select_char_details') {
     await interaction.deferUpdate();
-    
     const charId = interaction.values[0];
-    
-    const { data: char, error } = await supabase
-      .from("characters")
-      .select("*")
-      .eq("id", charId)
-      .single();
+    const { data: char, error } = await supabase.from("characters").select("*").eq("id", charId).single();
 
-    if (error || !char) {
-      return interaction.followUp({ content: "Erreur lors de la récupération du personnage.", ephemeral: true });
-    }
+    if (error || !char) return interaction.followUp({ content: "Erreur récupération fiche.", ephemeral: true });
 
-    // Récupération du nom du staff ayant vérifié
     let verifiedByName = "Non renseigné";
     if (char.verifiedby) {
-        const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", char.verifiedby)
-            .maybeSingle();
-        
-        if (profile) {
-            verifiedByName = profile.username || profile.full_name || (profile.first_name ? `${profile.first_name} ${profile.last_name}` : null) || "Staff Inconnu";
-        }
+        const { data: profile } = await supabase.from("profiles").select("username").eq("id", char.verifiedby).maybeSingle();
+        if (profile) verifiedByName = profile.username;
     }
 
-    // Formatage des données
     const birthDate = char.birth_date ? new Date(char.birth_date).toLocaleDateString('fr-FR') : "Inconnue";
     const statusMap = { 'pending': 'En attente', 'accepted': 'Validé', 'rejected': 'Refusé' };
-    const statusText = statusMap[char.status] || char.status;
     const barStatus = char.bar_passed ? "Oui" : "Non";
-    const createdDate = new Date(char.created_at).toLocaleDateString('fr-FR');
 
     const detailEmbed = new EmbedBuilder()
       .setTitle(`Fiche : ${char.first_name} ${char.last_name}`)
       .setColor(COLOR_DARK_BLUE)
       .addFields(
-        { name: "🆔 Identité", value: `**Nom:** ${char.last_name}\n**Prénom:** ${char.first_name}\n**Âge:** ${char.age || '?'} ans`, inline: true },
-        { name: "📍 Naissance", value: `**Date:** ${birthDate}\n**Lieu:** ${char.birth_place || 'Inconnu'}`, inline: true },
-        { name: "📋 Statut", value: `**État:** ${statusText}\n**Métier:** ${char.job || 'Chômeur'}\n**Alignement:** ${char.alignment || 'Neutre'}`, inline: false },
-        { name: "🚗 Permis & Légal", value: `**Points Permis:** ${char.driver_license_points}/12\n**Barreau:** ${barStatus}`, inline: true },
-        { name: "⚖️ Douane", value: `**Validé par:** ${verifiedByName}`, inline: true },
-        { name: "📅 Méta", value: `**Créé le:** ${createdDate}`, inline: true }
+        { name: "Identité", value: `**Nom:** ${char.last_name}\n**Prénom:** ${char.first_name}\n**Âge:** ${char.age || '?'} ans`, inline: false },
+        { name: "Naissance", value: `**Date:** ${birthDate}\n**Lieu:** ${char.birth_place || 'Inconnu'}`, inline: false },
+        { name: "Statut", value: `**État:** ${statusMap[char.status] || char.status}\n**Métier:** ${char.job || 'Chômeur'}\n**Alignement:** ${char.alignment || 'Neutre'}`, inline: false },
+        { name: "Permis & Légal", value: `**Points Permis:** ${char.driver_license_points}/12\n**Barreau:** ${barStatus}`, inline: false },
+        { name: "Douane", value: `**Validé par:** ${verifiedByName}`, inline: false }
       )
-      .setFooter({ text: `ID Fiche: ${char.id} • TFRP Manager` });
+      .setFooter({ text: `Réf: ${char.id} • TFRP Manager` });
 
-    await interaction.editReply({ embeds: [detailEmbed], components: [interaction.message.components[0]] }); 
+    await interaction.editReply({ embeds: [detailEmbed] }); 
     return;
   }
 
-  // Gestion des Commandes Slash
   if (!interaction.isChatInputCommand()) return;
   const { commandName, user } = interaction;
 
   try {
       if (commandName === "verification") {
         await interaction.deferReply({ ephemeral: true });
-
-        const { data: acceptedChars, error } = await supabase
-            .from("characters")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("status", "accepted");
-
-        if (error) throw error;
+        const { data: acceptedChars } = await supabase.from("characters").select("*").eq("user_id", user.id).eq("status", "accepted");
 
         if (acceptedChars && acceptedChars.length > 0) {
           const hasNew = acceptedChars.some(c => c.is_notified !== true);
           await handleVerification(user.id, acceptedChars);
-
-          const responseEmbed = new EmbedBuilder()
-            .setColor(COLOR_DARK_BLUE)
-            .setFooter({ text: "TFRP Manager" })
-            .setTitle("Vérification de compte");
-
-          if (!hasNew) {
-            responseEmbed.setDescription("Votre compte est déjà à jour (Rôles vérifiés).");
-          } else {
-            responseEmbed.setDescription("Vos accès ont été mis à jour.");
-          }
-          return interaction.editReply({ embeds: [responseEmbed] });
+          return interaction.editReply({ embeds: [new EmbedBuilder().setColor(COLOR_DARK_BLUE).setDescription(hasNew ? "Vos accès ont été mis à jour." : "Votre compte est déjà à jour.")] });
         } else {
           await handleUnverified(user.id);
-          
-          const errorEmbed = new EmbedBuilder()
-            .setColor(COLOR_ERROR)
-            .setFooter({ text: "TFRP Manager" })
-            .setDescription("Aucun personnage accepté trouvé. Vos rôles ont été mis à jour en conséquence.");
-          
-          return interaction.editReply({ embeds: [errorEmbed] });
+          return interaction.editReply({ embeds: [new EmbedBuilder().setColor(COLOR_ERROR).setDescription("Aucun personnage accepté trouvé.")] });
         }
       }
 
       if (commandName === "personnages") {
         await interaction.deferReply({ ephemeral: true });
+        const { data: allChars } = await supabase.from("characters").select("*").eq("user_id", user.id);
 
-        const { data: allChars, error } = await supabase
-            .from("characters")
-            .select("*")
-            .eq("user_id", user.id);
+        if (!allChars || allChars.length === 0) return interaction.editReply({ content: "Aucun personnage enregistré." });
 
-        if (error || !allChars || allChars.length === 0) {
-          return interaction.editReply({ content: "Aucun personnage enregistré sur la plateforme." });
-        }
-
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId('select_char_details')
-          .setPlaceholder('Sélectionnez un personnage pour voir les détails');
-
+        const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_details').setPlaceholder('Choisir un personnage');
         allChars.slice(0, 25).forEach(char => {
-            const statusEmoji = char.status === 'accepted' ? '✅' : (char.status === 'rejected' ? '❌' : '⏳');
-            selectMenu.addOptions(
-                new StringSelectMenuOptionBuilder()
-                    .setLabel(`${char.first_name} ${char.last_name}`)
-                    .setDescription(`Métier: ${char.job || 'Aucun'} | Statut: ${char.status}`)
-                    .setValue(char.id)
-                    .setEmoji(statusEmoji)
+            selectMenu.addOptions(new StringSelectMenuOptionBuilder()
+                .setLabel(`${char.first_name} ${char.last_name}`)
+                .setDescription(`Métier: ${char.job || 'Aucun'} | Statut: ${char.status}`)
+                .setValue(char.id)
             );
         });
 
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-
-        const embed = new EmbedBuilder()
-          .setTitle("Vos Personnages TFRP")
-          .setDescription("Utilisez le menu ci-dessous pour afficher la fiche complète d'un de vos personnages.")
-          .setColor(COLOR_DARK_BLUE)
-          .setFooter({ text: "TFRP Manager" });
-
-        return interaction.editReply({ embeds: [embed], components: [row] });
+        const embed = new EmbedBuilder().setTitle("Vos Personnages").setDescription("Sélectionnez une fiche pour voir les détails.").setColor(COLOR_DARK_BLUE);
+        return interaction.editReply({ embeds: [embed], components: [new ActionRowBuilder().addComponents(selectMenu)] });
       }
   } catch (e) {
-      console.error("Interaction Error:", e);
-      if (interaction.deferred || interaction.replied) {
-          await interaction.editReply({ content: "Une erreur technique est survenue." }).catch(() => {});
-      }
+      if (interaction.deferred || interaction.replied) await interaction.editReply({ content: "Erreur technique." }).catch(() => {});
   }
 });
 
