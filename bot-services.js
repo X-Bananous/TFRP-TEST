@@ -1,7 +1,69 @@
 
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from "discord.js";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ActivityType } from "discord.js";
 import { BOT_CONFIG } from "./bot-config.js";
-import { supabase, markAsNotified, getProfile } from "./bot-db.js";
+import { supabase, markAsNotified, getProfile, getPendingCharactersCount } from "./bot-db.js";
+
+/**
+ * Détermine le statut des douanes et envoie l'embed dans le salon dédié
+ */
+export async function updateCustomsStatus(client, forcePost = false) {
+  const pendingCount = await getPendingCharactersCount();
+  
+  let statusEmoji = "🟢";
+  let statusLabel = "Fluide";
+  let statusColor = BOT_CONFIG.COLORS.SUCCESS;
+  let statusDesc = "Le temps de réponse est inférieur à 24h, vous recevrez la réponse généralement dans la journée où vous avez envoyé la demande.";
+
+  if (pendingCount > 50) {
+    statusEmoji = "🔴";
+    statusLabel = "Ralenti";
+    statusColor = BOT_CONFIG.COLORS.ERROR;
+    statusDesc = "Le temps de réponse peut varier entre 48h et plus (Actif en cas de sous-effectifs ou surdemande de WL >50)";
+  } else if (pendingCount > 25) {
+    statusEmoji = "🟠";
+    statusLabel = "Perturbé";
+    statusColor = BOT_CONFIG.COLORS.WARNING;
+    statusDesc = "Le temps de réponse est en moyenne de 24h à 48h en fonction des demandes reçues (Actif en cas de surdemande >25)";
+  }
+
+  // Mise à jour de l'activité du bot
+  client.user.setActivity({
+    name: `Douanes: ${statusEmoji} ${statusLabel} (${pendingCount} attente)`,
+    type: ActivityType.Watching
+  });
+
+  if (!forcePost) return;
+
+  const ssdEmbed = new EmbedBuilder()
+    .setTitle("Statut des Services de Douanes (SSD)")
+    .setColor(statusColor)
+    .setDescription(`**État actuel : ${statusEmoji} ${statusLabel}**\n\n${statusDesc}`)
+    .addFields(
+      { name: "📊 File d'attente", value: `\`${pendingCount}\` fiches en attente de traitement.`, inline: true },
+      { name: "🕒 Dernière mise à jour", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+      { name: "\u200B", value: "---" },
+      { 
+        name: "Légende des statuts", 
+        value: 
+          "⚫ **Interrompu** - Maintenance ou panne du système.\n" +
+          "🔴 **Ralenti** - Délai > 48h (Surcharge ou sous-effectif).\n" +
+          "🟠 **Perturbé** - Délai 24h à 48h (Forte activité).\n" +
+          "🟢 **Fluide** - Délai < 24h (Activité normale).\n" +
+          "⚪ **Fast Checking** - Réponse en 5-10 min (Mobilisation staff)."
+      }
+    )
+    .setFooter({ text: "TFRP Customs Management System" })
+    .setTimestamp();
+
+  try {
+    const channel = await client.channels.fetch(BOT_CONFIG.CUSTOMS_CHANNEL_ID);
+    if (channel) {
+      await channel.send({ embeds: [ssdEmbed] });
+    }
+  } catch (e) {
+    console.error(`[SSD ERROR] Impossible d'envoyer le statut: ${e.message}`);
+  }
+}
 
 /**
  * Envoie le tutoriel de bienvenue par MP

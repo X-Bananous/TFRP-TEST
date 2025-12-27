@@ -22,7 +22,8 @@ import {
   sendWelcomeTutorial, 
   kickUnverified, 
   handleUnverified, 
-  handleVerification 
+  handleVerification,
+  updateCustomsStatus
 } from "./bot-services.js";
 
 const client = new Client({
@@ -33,10 +34,26 @@ const client = new Client({
   ]
 });
 
+let lastScheduledPostDate = ""; // Pour éviter les doubles posts dans la même minute
+
 /* ================= SCANS PÉRIODIQUES ================= */
 
 async function runScans() {
-  // 1. Scan des nouvelles fiches acceptées sur le site
+  const now = new Date();
+  const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const todayKey = now.toDateString() + currentTimeStr;
+
+  // 1. Mise à jour automatique de l'activité du bot (toutes les 5 min)
+  await updateCustomsStatus(client, false);
+
+  // 2. Vérification planification SSD (9:10 et 19:10)
+  if ((currentTimeStr === "09:10" || currentTimeStr === "19:10") && lastScheduledPostDate !== todayKey) {
+    lastScheduledPostDate = todayKey;
+    console.log(`[SYSTEM] Envoi automatique du statut SSD à ${currentTimeStr}`);
+    await updateCustomsStatus(client, true);
+  }
+
+  // 3. Scan des nouvelles fiches acceptées sur le site
   const newChars = await getNewValidations();
   if (newChars.length > 0) {
     const charsByUser = {};
@@ -49,7 +66,7 @@ async function runScans() {
     }
   }
 
-  // 2. Scan de sécurité (Kick si perso supprimé ou invalide sur guildes protégées)
+  // 4. Scan de sécurité (Kick si perso supprimé ou invalide sur guildes protégées)
   for (const guildId of BOT_CONFIG.PROTECTED_GUILDS) {
     const guild = client.guilds.cache.get(guildId);
     if (!guild) continue;
@@ -75,7 +92,8 @@ client.once("ready", async () => {
 
   const commands = [
     new SlashCommandBuilder().setName('verification').setDescription('Force la vérification de vos fiches personnages'),
-    new SlashCommandBuilder().setName('personnages').setDescription('Affiche vos personnages et leurs détails')
+    new SlashCommandBuilder().setName('personnages').setDescription('Affiche vos personnages et leurs détails'),
+    new SlashCommandBuilder().setName('ssd').setDescription('Force l\'envoi du statut des douanes (Staff)')
   ].map(c => c.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -83,7 +101,11 @@ client.once("ready", async () => {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
   } catch (e) { console.error(e); }
 
-  setInterval(runScans, 300000); // Toutes les 5 minutes
+  // Premier scan immédiat
+  runScans();
+  
+  // Boucle de scan toutes les minutes pour la précision de l'horloge SSD
+  setInterval(runScans, 60000); 
 });
 
 /* ================= ÉVÉNEMENTS ================= */
@@ -133,9 +155,18 @@ client.on("interactionCreate", async interaction => {
   }
 
   if (!interaction.isChatInputCommand()) return;
-  const { commandName, user } = interaction;
+  const { commandName, user, member } = interaction;
 
   try {
+      if (commandName === "ssd") {
+        if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+          return interaction.reply({ content: "Vous n'avez pas la permission.", ephemeral: true });
+        }
+        await interaction.deferReply({ ephemeral: true });
+        await updateCustomsStatus(client, true);
+        return interaction.editReply({ content: "Le statut SSD a été envoyé avec succès." });
+      }
+
       if (commandName === "verification") {
         await interaction.deferReply({ ephemeral: true });
         const acceptedChars = await getUserAcceptedCharacters(user.id);

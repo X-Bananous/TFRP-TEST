@@ -5,12 +5,15 @@
 export const BOT_CONFIG = {
   MAIN_SERVER_ID: "1279455759414857759",
   LOG_CHANNEL_ID: "1450962428492775505",
+  CUSTOMS_CHANNEL_ID: "1454245706842771690", // Salon Statut Douanes
   SITE_URL: "https://x-bananous.github.io/tfrp/",
   COLORS: {
     DARK_BLUE: 0x00008B,
     ERROR: 0xCC0000,
     WARNING: 0xFFA500,
-    SUCCESS: 0x00FF00
+    SUCCESS: 0x00FF00,
+    GREY: 0x2F3136,
+    WHITE: 0xFFFFFF
   },
   // Rôles accordés aux citoyens vérifiés
   VERIFIED_ROLE_IDS: [

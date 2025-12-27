@@ -10,6 +10,19 @@ export const supabase = createClient(
 );
 
 /**
+ * Compte le nombre de fiches en attente de validation
+ */
+export async function getPendingCharactersCount() {
+  const { count, error } = await supabase
+    .from("characters")
+    .select("*", { count: 'exact', head: true })
+    .eq("status", "pending");
+  
+  if (error) return 0;
+  return count || 0;
+}
+
+/**
  * Marque des personnages comme ayant été notifiés sur Discord
  */
 export async function markAsNotified(characterIds) {
