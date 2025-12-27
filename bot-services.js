@@ -1,3 +1,4 @@
+
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -33,8 +34,8 @@ export async function getSSDComponents() {
 
   // LOGIQUE DE PRIORITÉ
   if (hour >= 22 || hour < 8) {
-    statusLabel = "Ralenti (Nuit)"; 
-    statusEmoji = "🔴";
+    statusLabel = "Mode Nuit : Réponses peu probables"; 
+    statusEmoji = "⚫";
   } else if (pendingCount > 50) {
     statusLabel = "Ralenti"; 
     statusEmoji = "🔴";
@@ -53,8 +54,8 @@ export async function getSSDComponents() {
     .setTitle("Statut des Services de Douanes (SSD)")
     .setColor(BOT_CONFIG.EMBED_COLOR)
     .setDescription(`État actuel : ${statusEmoji} **${statusLabel}**\n\n` +
-      "⚫ **Interrompu** - Aucun service disponible (maintenance ou panne).\n" +
-      "🔴 **Ralenti** - Délai de 48h ou plus (Nuit, Sous-effectif ou >50 demandes).\n" +
+      "⚫ **Mode Nuit / Interrompu** - Réponses peu probables ou maintenance.\n" +
+      "🔴 **Ralenti** - Délai de 48h ou plus (Sous-effectif ou >50 demandes).\n" +
       "🟠 **Perturbé** - Délai de 24h à 48h (Attente >10m ou >25 demandes).\n" +
       "🟢 **Fluide** - Délai inférieur à 24h (Réponse dans la journée).\n" +
       "⚪ **Fast Checking** - Délai de 5 à 10 minutes (Douaniers mobilisés).")
@@ -122,7 +123,7 @@ export async function updateCustomsStatus(client) {
   const pendingCount = await getPendingCharactersCount();
   
   client.user.setActivity({ 
-    name: `${components.emoji} Douanes : ${pendingCount} dossiers`, 
+    name: `${components.emoji} Douanes : ${pendingCount}`, 
     type: ActivityType.Watching 
   });
 

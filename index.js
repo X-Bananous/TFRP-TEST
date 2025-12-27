@@ -1,3 +1,4 @@
+
 import {
   Client,
   GatewayIntentBits,
@@ -22,6 +23,8 @@ import { dmCommand } from "./bot/commands/dm.js";
 import { personnagesCommand, handlePersonnagesSelect } from "./bot/commands/personnages.js";
 import { verificationCommand } from "./bot/commands/verification.js";
 import { statusCommand, ssdDeployCommand } from "./bot/commands/status.js";
+import { aideCommand } from "./bot/commands/aide.js";
+import { panelCommand } from "./bot/commands/panel.js";
 
 const client = new Client({
   intents: [
@@ -44,7 +47,7 @@ async function runScans() {
 }
 
 client.once("ready", async () => {
-  console.log(`Bot TFRP v6 opérationnel : ${client.user.tag}`);
+  console.log(`Bot TFRP v6.2 opérationnel : ${client.user.tag}`);
 
   const commands = [
     personnagesCommand.data.toJSON(),
@@ -52,7 +55,9 @@ client.once("ready", async () => {
     statusCommand.data.toJSON(),
     ssdDeployCommand.data.toJSON(),
     sayCommand.data.toJSON(),
-    dmCommand.data.toJSON()
+    dmCommand.data.toJSON(),
+    aideCommand.data.toJSON(),
+    panelCommand.data.toJSON()
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -73,6 +78,8 @@ client.on("interactionCreate", async interaction => {
     if (commandName === "ssd") return ssdDeployCommand.execute(interaction);
     if (commandName === "say") return sayCommand.execute(interaction);
     if (commandName === "dm") return dmCommand.execute(interaction);
+    if (commandName === "aide") return aideCommand.execute(interaction);
+    if (commandName === "panel") return panelCommand.execute(interaction);
   }
 
   if (interaction.isButton()) {
@@ -83,7 +90,6 @@ client.on("interactionCreate", async interaction => {
     
     if (interaction.customId === 'btn_back_to_list') {
       await interaction.deferUpdate();
-      // On réexécute la commande initiale en mode mise à jour
       await personnagesCommand.execute(interaction, true);
     }
   }

@@ -1,3 +1,4 @@
+
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getAllUserCharacters, getCharacterById } from "../../bot-db.js";
 import { BOT_CONFIG } from "../../bot-config.js";
@@ -69,7 +70,7 @@ export async function handlePersonnagesSelect(interaction) {
       { name: "Statut administratif", value: `${statusEmoji} ${char.status.toUpperCase()}`, inline: false },
       { name: "Identifiant archive", value: `\`${char.id}\``, inline: false }
     )
-    .setFooter({ text: "Transmission TFRP • Terminal Sécurisé • v6.1" });
+    .setFooter({ text: "Transmission TFRP • Terminal Sécurisé • v6.2" });
 
   const row = new ActionRowBuilder();
   
@@ -79,14 +80,18 @@ export async function handlePersonnagesSelect(interaction) {
     .setLabel('Retour à la liste')
     .setStyle(ButtonStyle.Secondary);
 
-  // Bouton de lien vers le panel (Cliquable si pas en attente)
-  const isActionable = char.status !== 'pending';
-  const linkBtn = new ButtonBuilder()
-    .setLabel(isActionable ? 'Modifier sur le Panel' : 'Dossier en attente...')
-    .setURL(BOT_CONFIG.SITE_URL)
-    .setStyle(ButtonStyle.Link);
-  
-  row.addComponents(backBtn, linkBtn);
+  row.addComponents(backBtn);
+
+  // Sécurité : N'ajouter le bouton de modification QUE si l'utilisateur est le propriétaire
+  if (char.user_id === interaction.user.id) {
+    const isActionable = char.status !== 'pending';
+    const linkBtn = new ButtonBuilder()
+      .setLabel(isActionable ? 'Modifier sur le Panel' : 'Dossier en attente...')
+      .setURL(BOT_CONFIG.SITE_URL)
+      .setStyle(ButtonStyle.Link);
+    
+    row.addComponents(linkBtn);
+  }
 
   await interaction.editReply({ embeds: [embed], components: [row] });
 }
