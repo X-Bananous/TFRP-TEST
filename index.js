@@ -1,4 +1,3 @@
-
 import {
   Client,
   GatewayIntentBits,
@@ -10,7 +9,8 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  EmbedBuilder
 } from "discord.js";
 import { BOT_CONFIG } from "./bot-config.js";
 import { 
@@ -20,7 +20,8 @@ import {
   getCharacterById,
   createCharacter,
   updateCharacter,
-  getProfile
+  getProfile,
+  supabase
 } from "./bot-db.js";
 import { 
   handleVerification,
@@ -33,7 +34,8 @@ import {
   getVerificationStatusEmbed,
   syncRolesToPermissions,
   handleUnverified,
-  ensureRolesExist
+  ensureRolesExist,
+  syncPermissionsToRoles
 } from "./bot-services.js";
 
 const client = new Client({
@@ -61,25 +63,25 @@ async function runScans() {
 }
 
 client.once("ready", async () => {
-  console.log(`[SYSTEM] ${client.user.tag} OPERATIONNEL.`);
+  console.log(`Système opérationnel : ${client.user.tag}`);
 
-  // Création automatique des rôles manquants sur le serveur principal
+  // Vérification et création des rôles au démarrage
   const mainGuild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
   if (mainGuild) await ensureRolesExist(mainGuild);
 
   const commands = [
-    new SlashCommandBuilder().setName('personnages').setDescription('Accéder à vos dossiers citoyen'),
+    new SlashCommandBuilder().setName('personnages').setDescription('Gérer vos fiches citoyennes'),
     new SlashCommandBuilder().setName('verification').setDescription('Lancer la synchronisation du terminal'),
     new SlashCommandBuilder().setName('status').setDescription('Statut détaillé des douanes'),
-    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal SSD (Staff)'),
+    new SlashCommandBuilder().setName('ssd').setDescription('Envoyer le terminal SSD (Staff uniquement)'),
     
     new SlashCommandBuilder().setName('say')
-      .setDescription('Faire parler le bot (Permission Staff)')
+      .setDescription('Faire parler le bot (Permission requise)')
       .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
       .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier')),
 
     new SlashCommandBuilder().setName('dm')
-      .setDescription('Envoyer un MP via le bot (Permission Staff)')
+      .setDescription('Envoyer un message privé via le bot (Permission requise)')
       .addUserOption(opt => opt.setName('cible').setDescription('Destinataire').setRequired(true))
       .addStringOption(opt => opt.setName('message').setDescription('Texte à envoyer').setRequired(true))
       .addAttachmentOption(opt => opt.setName('fichier').setDescription('Joindre un fichier'))
@@ -94,7 +96,10 @@ client.once("ready", async () => {
   setInterval(runScans, 300000); 
 });
 
-// Synchro bidirectionnelle : Discord -> Site (Changement de rôles manuel)
+/**
+ * SYNCHRONISATION DISCORD -> SITE (Bidirectionnel)
+ * Détecte si un staff modifie les rôles manuellement sur Discord
+ */
 client.on("guildMemberUpdate", async (oldMember, newMember) => {
   if (newMember.guild.id !== BOT_CONFIG.MAIN_SERVER_ID) return;
   await syncRolesToPermissions(newMember);
@@ -105,23 +110,23 @@ async function sendCharacterList(interaction, isUpdate = false) {
     const mention = `<@${interaction.user.id}>`;
     const homeEmbed = getPersonnagesHomeEmbed(mention);
 
-    const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('SELECTIONNER UN DOSSIER');
+    const selectMenu = new StringSelectMenuBuilder().setCustomId('select_char_manage').setPlaceholder('Choisir un dossier');
     
     if (allChars.length > 0) {
         allChars.forEach(char => {
             selectMenu.addOptions(new StringSelectMenuOptionBuilder()
-                .setLabel(`${char.first_name.toUpperCase()} ${char.last_name.toUpperCase()}`)
-                .setDescription(`STATUT: ${char.status.toUpperCase()}`)
+                .setLabel(`${char.first_name} ${char.last_name}`)
+                .setDescription(`Statut : ${char.status}`)
                 .setValue(char.id)
             );
         });
     } else {
-        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel("AUCUN DOSSIER").setValue("none").setDisabled(true));
+        selectMenu.addOptions(new StringSelectMenuOptionBuilder().setLabel("Aucun dossier").setValue("none").setDisabled(true));
     }
 
     const components = [new ActionRowBuilder().addComponents(selectMenu)];
     if (allChars.length < 1) { 
-       components.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('btn_create_char').setLabel('OUVRIR UNE FICHE').setStyle(ButtonStyle.Success)));
+       components.push(new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('btn_create_char').setLabel('Ouvrir une fiche').setStyle(ButtonStyle.Success)));
     }
 
     const payload = { embeds: [homeEmbed], components: components, ephemeral: true };
@@ -160,31 +165,42 @@ client.on("interactionCreate", async interaction => {
       const perms = profile?.permissions || {};
       const requiredPerm = commandName === "say" ? "can_use_say" : "can_use_dm";
 
-      if (!perms[requiredPerm]) return interaction.reply({ content: "ACCÈS REFUSÉ : ACCRÉDITATION INSUFFISANTE.", ephemeral: true });
+      if (!perms[requiredPerm]) {
+        const errorEmbed = new EmbedBuilder()
+          .setTitle("Accès refusé")
+          .setColor(BOT_CONFIG.EMBED_COLOR)
+          .setDescription(`Désolé <@${user.id}>, vous n'avez pas l'accréditation nécessaire pour utiliser cette transmission.`);
+        return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+      }
 
-      const msg = options.getString('message');
+      const messageContent = options.getString('message');
       const attachment = options.getAttachment('fichier');
       const files = attachment ? [attachment] : [];
 
       if (commandName === "say") {
-        await interaction.channel.send({ content: msg, files });
-        return interaction.reply({ content: "TRANSMISSION EFFECTUÉE.", ephemeral: true });
+        await interaction.channel.send({ content: messageContent, files });
+        const successEmbed = new EmbedBuilder().setTitle("Transmission effectuée").setColor(BOT_CONFIG.EMBED_COLOR).setDescription("Votre message a été diffusé.");
+        return interaction.reply({ embeds: [successEmbed], ephemeral: true });
       } else {
         const target = options.getUser('cible');
         try {
-          await target.send({ content: msg, files });
-          return interaction.reply({ content: `MESSAGE PRIVÉ TRANSMIS À <@${target.id}>.`, ephemeral: true });
+          await target.send({ content: messageContent, files });
+          const successEmbed = new EmbedBuilder().setTitle("Message transmis").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Votre message privé a été envoyé à <@${target.id}>.`);
+          return interaction.reply({ embeds: [successEmbed], ephemeral: true });
         } catch (e) {
-          return interaction.reply({ content: "ÉCHEC : LA CIBLE N'ACCEPTE PAS LES MP.", ephemeral: true });
+          const failEmbed = new EmbedBuilder().setTitle("Échec de l'envoi").setColor(BOT_CONFIG.EMBED_COLOR).setDescription(`Impossible de contacter <@${target.id}> (Messages privés fermés).`);
+          return interaction.reply({ embeds: [failEmbed], ephemeral: true });
         }
       }
     }
 
     if (commandName === "ssd") {
-      if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) return interaction.reply({ content: "REFUSÉ.", ephemeral: true });
+      if (!member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+         return interaction.reply({ content: "Vous n'avez pas la permission de déployer ce terminal.", ephemeral: true });
+      }
       const components = await getSSDComponents();
       await interaction.channel.send(components);
-      return interaction.reply({ content: "TERMINAL DÉPLOYÉ.", ephemeral: true });
+      return interaction.reply({ content: "Terminal douanier déployé.", ephemeral: true });
     }
   }
 
@@ -227,7 +243,7 @@ client.on("interactionCreate", async interaction => {
     };
 
     const age = calculateAge(f.birth_date);
-    if (age < 13) return interaction.reply({ content: "ERREUR : ÂGE MINIMUM 13 ANS.", ephemeral: true });
+    if (age < 13) return interaction.reply({ content: "Erreur : L'âge minimum requis est de 13 ans.", ephemeral: true });
 
     let status = 'pending', job = 'unemployed';
     if (isEdit) {
@@ -242,7 +258,7 @@ client.on("interactionCreate", async interaction => {
     const payload = { user_id: interaction.user.id, ...f, age, status, job, is_notified: false };
     const { error } = isEdit ? await updateCharacter(charId, payload) : await createCharacter(payload);
 
-    return interaction.reply({ content: error ? `ERREUR : ${error.message}` : "DOSSIER TRAITÉ AVEC SUCCÈS.", ephemeral: true });
+    return interaction.reply({ content: error ? `Erreur base de données : ${error.message}` : "Votre dossier a été transmis pour analyse.", ephemeral: true });
   }
 });
 

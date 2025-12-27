@@ -1,4 +1,3 @@
-
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -29,35 +28,34 @@ export function calculateAge(birthDateStr) {
 }
 
 /**
- * S'assure que les rôles de permissions existent sur le serveur.
- * Sinon, les crée.
+ * Crée les rôles de permissions s'ils n'existent pas sur le serveur principal
  */
 export async function ensureRolesExist(guild) {
   if (!guild) return;
   const roles = await guild.roles.fetch();
   
-  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLES)) {
+  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
     let role = roles.find(r => r.name === config.name);
     if (!role) {
-      console.log(`[SYSTEM] Création du rôle manquant : ${config.name}`);
+      console.log(`Création du rôle manquant : ${config.name}`);
       await guild.roles.create({
         name: config.name,
         color: config.color,
-        reason: 'Initialisation automatique des permissions TFRP'
-      });
+        reason: 'Initialisation automatique du système de permissions TFRP'
+      }).catch(console.error);
     }
   }
 }
 
 /**
- * Synchronise Discord -> Site (guildMemberUpdate)
+ * Synchronise Discord -> Site (Lors d'un changement manuel sur Discord)
  */
 export async function syncRolesToPermissions(member) {
   if (!member || member.user.bot) return;
   const currentRoles = member.roles.cache;
   const newPermissions = {};
   
-  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLES)) {
+  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
     if (currentRoles.some(r => r.name === config.name)) {
       newPermissions[perm] = true;
     }
@@ -67,14 +65,14 @@ export async function syncRolesToPermissions(member) {
 }
 
 /**
- * Synchronise Site -> Discord (Verification/Interaction)
+ * Synchronise Site -> Discord (Lors d'une interaction ou vérification)
  */
 export async function syncPermissionsToRoles(member, permissions) {
   if (!member || member.user.bot) return;
   const perms = permissions || {};
   const guildRoles = member.guild.roles.cache;
   
-  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLES)) {
+  for (const [perm, config] of Object.entries(BOT_CONFIG.PERM_ROLE_MAP)) {
     const hasPerm = perms[perm] === true;
     const role = guildRoles.find(r => r.name === config.name);
     
@@ -90,38 +88,37 @@ export async function syncPermissionsToRoles(member, permissions) {
 }
 
 /**
- * Génère l'embed détaillé pour /verification
+ * Embed de statut pour /verification
  */
 export async function getVerificationStatusEmbed(userId) {
   const allChars = await getAllUserCharacters(userId);
   const mention = `<@${userId}>`;
   
   const embed = new EmbedBuilder()
-    .setTitle("TERMINAL DE SYNCHRONISATION")
-    .setColor(BOT_CONFIG.COLORS.DARK_BLUE)
-    .setDescription(`Analyse du registre national pour ${mention}`);
+    .setTitle("Synchronisation du terminal")
+    .setColor(BOT_CONFIG.EMBED_COLOR)
+    .setDescription(`Analyse des dossiers enregistrés pour ${mention}`);
 
   if (allChars.length === 0) {
-    embed.addFields({ name: "RÉSULTAT", value: "AUCUN DOSSIER TROUVÉ.", inline: false });
-    embed.setColor(BOT_CONFIG.COLORS.ERROR);
+    embed.addFields({ name: "Résultat", value: "Aucune fiche citoyenne détectée dans la base de données.", inline: false });
   } else {
     allChars.forEach(char => {
       const emoji = char.status === 'accepted' ? '🟢' : char.status === 'rejected' ? '🔴' : '🟡';
-      const label = char.status === 'accepted' ? 'VALIDÉ' : char.status === 'rejected' ? 'REFUSÉ' : 'EN ATTENTE';
+      const label = char.status === 'accepted' ? 'Validé' : char.status === 'rejected' ? 'Refusé' : 'En attente de douanes';
       embed.addFields({ 
-        name: `${char.first_name.toUpperCase()} ${char.last_name.toUpperCase()}`, 
-        value: `STATUT : ${emoji} ${label}\nID : ${char.id.substring(0,8).toUpperCase()}`, 
+        name: `${char.first_name} ${char.last_name}`, 
+        value: `Statut : ${emoji} ${label}\nIdentifiant : ${char.id.substring(0,8)}`, 
         inline: false 
       });
     });
   }
 
-  embed.setFooter({ text: "TFRP SECURED NETWORK" });
+  embed.setFooter({ text: "TFRP Unified Network" });
   return embed;
 }
 
 /**
- * Gère la vérification, les rôles, et RESTAURE les logs Salon + MP
+ * Gère la vérification automatique et les logs (Salon + MP)
  */
 export async function handleVerification(client, userId, characters) {
   const mention = `<@${userId}>`;
@@ -133,7 +130,7 @@ export async function handleVerification(client, userId, characters) {
     if (mainGuild) {
       const mainMember = await mainGuild.members.fetch(userId).catch(() => null);
       if (mainMember) {
-        // 1. Rôles de base (Citoyen)
+        // 1. Mise à jour des rôles citoyens de base
         for (const roleId of BOT_CONFIG.VERIFIED_ROLE_IDS) {
           if (!mainMember.roles.cache.has(roleId)) await mainMember.roles.add(roleId).catch(() => {});
         }
@@ -141,39 +138,36 @@ export async function handleVerification(client, userId, characters) {
           await mainMember.roles.remove(BOT_CONFIG.UNVERIFIED_ROLE_ID).catch(() => {});
         }
 
-        // 2. Synchro Staff
+        // 2. Synchronisation bidirectionnelle des permissions Staff
         await syncPermissionsToRoles(mainMember, profile?.permissions);
 
-        // 3. LOG SALON (Si nouveau personnage accepté)
-        const newValidations = characters.filter(c => !c.is_notified && c.status === 'accepted');
-        if (newValidations.length > 0) {
-            const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
-            if (logChannel) {
-              const logEmbed = new EmbedBuilder()
-                .setTitle("VÉRIFICATION RÉUSSIE")
-                .setColor(BOT_CONFIG.COLORS.SUCCESS)
-                .setDescription(`Le citoyen ${mention} a été synchronisé avec succès.\n\nDossiers actifs : **${acceptedChars.length}**`)
-                .setTimestamp()
-                .setFooter({ text: "LOGS SYSTÈME TFRP" });
-              await logChannel.send({ embeds: [logEmbed] });
-            }
+        // 3. Journalisation dans le salon de logs
+        const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
+        if (logChannel) {
+          const logEmbed = new EmbedBuilder()
+            .setTitle("Protocole de vérification")
+            .setColor(BOT_CONFIG.EMBED_COLOR)
+            .setDescription(`Le citoyen ${mention} a été synchronisé avec succès.\nDossiers valides : ${acceptedChars.length}`)
+            .setTimestamp()
+            .setFooter({ text: "Logs Système" });
+          await logChannel.send({ embeds: [logEmbed] });
+        }
 
-            // 4. LOG MP
-            const user = await client.users.fetch(userId).catch(() => null);
-            if (user) {
-              const mpEmbed = new EmbedBuilder()
-                .setTitle("IDENTITÉ CERTIFIÉE")
-                .setColor(BOT_CONFIG.COLORS.SUCCESS)
-                .setDescription(`Félicitations ${mention},\n\nVos fiches d'immigration ont été validées. Vos accès au territoire de Los Angeles sont désormais actifs.`)
-                .setFooter({ text: "TFRP SECURED TRANSMISSION" });
-              await user.send({ embeds: [mpEmbed] }).catch(() => {});
-            }
+        // 4. Notification par message privé
+        const user = await client.users.fetch(userId).catch(() => null);
+        if (user) {
+          const mpEmbed = new EmbedBuilder()
+            .setTitle("Vérification terminée")
+            .setColor(BOT_CONFIG.EMBED_COLOR)
+            .setDescription(`Bonjour ${mention},\n\nVos dossiers ont été mis à jour par les services d'immigration. Vos accès au territoire sont désormais actifs.`)
+            .setFooter({ text: "TFRP Transmission" });
+          await user.send({ embeds: [mpEmbed] }).catch(() => {});
         }
       }
     }
   } catch (err) {}
 
-  // Marquer comme notifié
+  // Marquer comme notifié sur le site
   const toNotifyIds = characters.map(c => c.id);
   if (toNotifyIds.length > 0) {
     await supabase.from("characters").update({ is_notified: true }).in("id", toNotifyIds);
@@ -181,35 +175,35 @@ export async function handleVerification(client, userId, characters) {
 }
 
 /**
- * Statut des Douanes
+ * Embed du Statut des Services de Douanes (SSD)
  */
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
-  let statusLabel = "Fluide"; let statusEmoji = "🟢"; let statusColor = BOT_CONFIG.COLORS.SUCCESS;
+  let statusLabel = "Fluide"; let statusEmoji = "🟢";
 
   if (pendingCount > 50) {
-    statusLabel = "Ralenti"; statusEmoji = "🔴"; statusColor = BOT_CONFIG.COLORS.ERROR;
+    statusLabel = "Ralenti"; statusEmoji = "🔴";
   } else if (pendingCount > 25) {
-    statusLabel = "Perturbé"; statusEmoji = "🟠"; statusColor = BOT_CONFIG.COLORS.WARNING;
+    statusLabel = "Perturbé"; statusEmoji = "🟠";
   }
 
   const embed = new EmbedBuilder()
-    .setTitle("STATUT DES SERVICES DE DOUANES (SSD)")
-    .setColor(statusColor)
-    .setDescription(`**ÉTAT : ${statusEmoji} ${statusLabel.toUpperCase()}**\n\n` +
-      "**LÉGENDE :**\n" +
-      "⚫ **Interrompu** - Surcharge\n" +
-      "🔴 **Ralenti** - Délai > 48h\n" +
-      "🟠 **Perturbé** - Délai 24h-48h\n" +
-      "🟢 **Fluide** - Délai < 24h")
+    .setTitle("Services de Douanes (SSD)")
+    .setColor(BOT_CONFIG.EMBED_COLOR)
+    .setDescription(`État actuel : ${statusEmoji} ${statusLabel}\n\n` +
+      "Légende :\n" +
+      "⚫ Interrompu - Surcharge majeure\n" +
+      "🔴 Ralenti - Délai supérieur à 48h\n" +
+      "🟠 Perturbé - Délai de 24h à 48h\n" +
+      "🟢 Fluide - Délai inférieur à 24h")
     .addFields(
-      { name: "DOSSIERS EN ATTENTE", value: `${pendingCount} fiches`, inline: false },
-      { name: "MAJ", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
+      { name: "Dossiers en attente", value: `${pendingCount} fiches`, inline: false },
+      { name: "Dernière mise à jour", value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: false }
     )
-    .setFooter({ text: "TFRP AUTOMATIC SYSTEM" });
+    .setFooter({ text: "TFRP Automation" });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('ACTUALISER').setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('Actualiser').setStyle(ButtonStyle.Secondary)
   );
 
   return { embeds: [embed], components: [row] };
@@ -217,32 +211,34 @@ export async function getSSDComponents() {
 
 export function getPersonnagesHomeEmbed(mention) {
   return new EmbedBuilder()
-    .setTitle("TERMINAL CITOYEN")
-    .setColor(BOT_CONFIG.COLORS.DARK_BLUE)
-    .setDescription(`Bienvenue ${mention}.\n\nSélectionnez un dossier pour consultation.`);
+    .setTitle("Terminal citoyen")
+    .setColor(BOT_CONFIG.EMBED_COLOR)
+    .setDescription(`Bienvenue sur votre interface, ${mention}.\n\nVeuillez sélectionner un dossier pour consultation ou modification.`);
 }
 
 export async function getCharacterDetailsEmbed(char) {
-  const emoji = char.status === 'accepted' ? '🟢' : char.status === 'rejected' ? '🔴' : '🟡';
-  const align = char.alignment === 'illegal' ? 'CLANDESTIN' : 'CIVIL';
-  const verifier = char.verifiedby ? `<@${char.verifiedby}>` : "NON RENSEIGNÉ";
+  const statusEmoji = char.status === 'accepted' ? '🟢' : char.status === 'rejected' ? '🔴' : '🟡';
+  const alignLabel = char.alignment === 'illegal' ? 'Clandestin' : 'Civil';
+  const verifier = char.verifiedby ? await getProfile(char.verifiedby) : null;
+  const verifierMention = verifier ? `<@${char.verifiedby}>` : "Non renseigné";
 
   const embed = new EmbedBuilder()
-    .setTitle(`DOSSIER : ${char.first_name.toUpperCase()} ${char.last_name.toUpperCase()}`)
-    .setColor(char.status === 'accepted' ? BOT_CONFIG.COLORS.SUCCESS : char.status === 'rejected' ? BOT_CONFIG.COLORS.ERROR : BOT_CONFIG.COLORS.WARNING)
+    .setTitle(`Dossier : ${char.first_name} ${char.last_name}`)
+    .setColor(BOT_CONFIG.EMBED_COLOR)
     .addFields(
-      { name: "PRÉNOM", value: char.first_name, inline: true },
-      { name: "NOM", value: char.last_name, inline: true },
-      { name: "ÂGE", value: `${char.age} ans`, inline: true },
-      { name: "ORIENTATION", value: align, inline: true },
-      { name: "STATUT", value: `${emoji} ${char.status.toUpperCase()}`, inline: true },
-      { name: "VALIDATEUR", value: verifier, inline: false }
+      { name: "Identité", value: `${char.first_name} ${char.last_name}`, inline: true },
+      { name: "Âge", value: `${char.age} ans`, inline: true },
+      { name: "Orientation", value: alignLabel, inline: true },
+      { name: "Statut", value: `${statusEmoji} ${char.status}`, inline: true },
+      { name: "Métier", value: char.job || "Sans emploi", inline: true },
+      { name: "Points permis", value: `${char.driver_license_points ?? 12}/12`, inline: true },
+      { name: "Validateur", value: verifierMention, inline: false }
     )
-    .setFooter({ text: `REF : ${char.id}` });
+    .setFooter({ text: `Référence : ${char.id}` });
 
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`btn_edit_char_${char.id}`).setLabel('MODIFIER').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('btn_back_to_list').setLabel('RETOUR').setStyle(ButtonStyle.Secondary)
+    new ButtonBuilder().setCustomId(`btn_edit_char_${char.id}`).setLabel('Modifier').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('btn_back_to_list').setLabel('Retour').setStyle(ButtonStyle.Secondary)
   );
 
   return { embeds: [embed], components: [row] };
@@ -251,20 +247,20 @@ export async function getCharacterDetailsEmbed(char) {
 export function buildCharacterModal(isEdit = false, char = null) {
   const modal = new ModalBuilder()
     .setCustomId(isEdit ? `edit_char_modal_${char.id}` : 'create_char_modal')
-    .setTitle(isEdit ? 'RÉVISION' : 'NOUVELLE FICHE');
+    .setTitle(isEdit ? 'Révision de dossier' : 'Nouvelle fiche d\'immigration');
 
-  const f1 = new TextInputBuilder().setCustomId('first_name').setLabel('PRÉNOM').setValue(char ? char.first_name : '').setStyle(TextInputStyle.Short).setRequired(true);
-  const f2 = new TextInputBuilder().setCustomId('last_name').setLabel('NOM').setValue(char ? char.last_name : '').setStyle(TextInputStyle.Short).setRequired(true);
-  const f3 = new TextInputBuilder().setCustomId('birth_date').setLabel('DATE DE NAISSANCE (AAAA-MM-JJ)').setValue(char ? char.birth_date : '').setPlaceholder('1995-05-15').setStyle(TextInputStyle.Short).setRequired(true);
-  const f4 = new TextInputBuilder().setCustomId('birth_place').setLabel('LIEU DE NAISSANCE').setValue(char ? char.birth_place : 'Los Angeles').setStyle(TextInputStyle.Short).setRequired(true);
-  const f5 = new TextInputBuilder().setCustomId('alignment').setLabel('ORIENTATION (legal ou illegal)').setValue(char ? char.alignment : 'legal').setStyle(TextInputStyle.Short).setRequired(true);
+  const firstName = new TextInputBuilder().setCustomId('first_name').setLabel('Prénom').setValue(char ? char.first_name : '').setStyle(TextInputStyle.Short).setRequired(true);
+  const lastName = new TextInputBuilder().setCustomId('last_name').setLabel('Nom').setValue(char ? char.last_name : '').setStyle(TextInputStyle.Short).setRequired(true);
+  const birthDate = new TextInputBuilder().setCustomId('birth_date').setLabel('Date de naissance (AAAA-MM-JJ)').setValue(char ? char.birth_date : '').setPlaceholder('Ex: 1995-05-15').setStyle(TextInputStyle.Short).setRequired(true);
+  const birthPlace = new TextInputBuilder().setCustomId('birth_place').setLabel('Lieu de naissance').setValue(char ? char.birth_place : 'Los Angeles').setStyle(TextInputStyle.Short).setRequired(true);
+  const alignment = new TextInputBuilder().setCustomId('alignment').setLabel('Orientation (legal ou illegal)').setValue(char ? char.alignment : 'legal').setStyle(TextInputStyle.Short).setRequired(true);
 
   modal.addComponents(
-    new ActionRowBuilder().addComponents(f1),
-    new ActionRowBuilder().addComponents(f2),
-    new ActionRowBuilder().addComponents(f3),
-    new ActionRowBuilder().addComponents(f4),
-    new ActionRowBuilder().addComponents(f5)
+    new ActionRowBuilder().addComponents(firstName),
+    new ActionRowBuilder().addComponents(lastName),
+    new ActionRowBuilder().addComponents(birthDate),
+    new ActionRowBuilder().addComponents(birthPlace),
+    new ActionRowBuilder().addComponents(alignment)
   );
   return modal;
 }
@@ -272,14 +268,13 @@ export function buildCharacterModal(isEdit = false, char = null) {
 export async function updateCustomsStatus(client) {
   const components = await getSSDComponents();
   const pendingCount = await getPendingCharactersCount();
-  const label = pendingCount > 50 ? "🔴 Ralenti" : pendingCount > 25 ? "🟠 Perturbé" : "🟢 Fluide";
-  client.user.setActivity({ name: `Douanes: ${label}`, type: ActivityType.Watching });
+  client.user.setActivity({ name: `Douanes : ${pendingCount} dossiers`, type: ActivityType.Watching });
 
   try {
     const channel = await client.channels.fetch(BOT_CONFIG.CUSTOMS_CHANNEL_ID);
     if (!channel) return;
     const messages = await channel.messages.fetch({ limit: 10 });
-    const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.includes("SSD"));
+    const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.includes("Douanes"));
     if (botMsg) await botMsg.edit(components);
     else await channel.send(components);
   } catch (e) {}
