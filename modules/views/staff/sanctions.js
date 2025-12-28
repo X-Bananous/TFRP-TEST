@@ -3,9 +3,10 @@ import { state } from '../../state.js';
 export const StaffSanctionsView = () => {
     const results = state.staffSanctionResults || [];
     const target = state.activeSanctionTarget;
+    const globalSanctions = state.globalSanctions || [];
 
     return `
-        <div class="h-full flex flex-col gap-8 animate-fade-in">
+        <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
                 
                 <!-- LEFT: SEARCH & TARGET -->
@@ -15,29 +16,17 @@ export const StaffSanctionsView = () => {
                             <i data-lucide="search" class="w-5 h-5 text-purple-400"></i> Rechercher Cible
                         </h3>
                         <div class="relative z-20">
-                            <input type="text" oninput="actions.searchUserForSanction(this.value)" value="${state.staffSanctionSearchQuery}" placeholder="Discord ID ou Pseudo..." class="glass-input w-full p-4 pl-12 rounded-2xl text-sm font-bold bg-black/40 border-white/10 uppercase">
+                            <input type="text" oninput="actions.searchUserForSanction(this.value)" value="${state.staffSanctionSearchQuery}" placeholder="Discord ID ou Pseudo..." class="glass-input w-full p-4 pl-12 rounded-2xl text-sm font-bold bg-black/40 border-white/10 uppercase" autocomplete="off">
                             <i data-lucide="user" class="w-5 h-5 absolute left-4 top-4 text-gray-600"></i>
                             
-                            ${results.length > 0 ? `
-                                <div class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-50 shadow-2xl custom-scrollbar animate-fade-in">
-                                    ${results.map(r => `
-                                        <div onclick="actions.selectUserForSanction(${JSON.stringify(r).replace(/"/g, '&quot;')})" class="p-4 hover:bg-white/10 cursor-pointer flex items-center gap-4 border-b border-white/5 last:border-0">
-                                            <img src="${r.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-10 h-10 rounded-xl object-cover border border-white/10">
-                                            <div>
-                                                <div class="font-bold text-white text-sm uppercase">${r.username}</div>
-                                                <div class="text-[9px] text-gray-500 font-mono">UID: ${r.id}</div>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : ''}
+                            <div id="sanction-search-results" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden animate-fade-in"></div>
                         </div>
                     </div>
 
                     ${target ? `
                         <div class="glass-panel p-8 rounded-[40px] border border-purple-500/30 bg-purple-950/[0.02] shadow-xl animate-slide-up">
                             <div class="flex items-center gap-6 mb-8">
-                                <img src="${target.avatar_url}" class="w-16 h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
+                                <img src="${target.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-16 h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
                                 <div>
                                     <div class="font-black text-white text-xl uppercase italic tracking-tighter">${target.username}</div>
                                     <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest">Cible Identifiée</div>
@@ -107,12 +96,35 @@ export const StaffSanctionsView = () => {
                         </div>
                     </div>
 
-                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] flex-1 flex flex-col min-h-0">
-                         <h3 class="font-black text-white text-sm uppercase tracking-widest mb-6 shrink-0 flex items-center gap-3">
-                            <i data-lucide="history" class="w-5 h-5 text-blue-400"></i> Dernières Interventions Mondiales
-                        </h3>
-                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 italic text-center py-20 text-gray-700 uppercase font-black text-[10px] tracking-[0.4em] opacity-30">
-                            Flux en attente de données temps réel...
+                    <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col min-h-0 h-[500px] shadow-2xl overflow-hidden">
+                         <div class="p-6 border-b border-white/5 bg-white/[0.02] shrink-0">
+                             <h3 class="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3">
+                                <i data-lucide="history" class="w-5 h-5 text-blue-400"></i> Dernières Interventions Mondiales
+                            </h3>
+                         </div>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                            ${globalSanctions.length === 0 ? `
+                                <div class="h-full flex flex-col items-center justify-center opacity-20 text-center py-20">
+                                    <i data-lucide="shield-check" class="w-16 h-16 mb-4"></i>
+                                    <p class="text-xs font-black uppercase tracking-widest">Registre vierge pour le moment</p>
+                                </div>
+                            ` : globalSanctions.map(s => {
+                                const tColor = s.type === 'warn' ? 'yellow' : s.type === 'mute' ? 'orange' : 'red';
+                                return `
+                                    <div class="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-${tColor}-500/30 transition-all group">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-lg bg-${tColor}-500/10 flex items-center justify-center text-${tColor}-400 border border-${tColor}-500/20 font-black text-[9px]">${s.type.toUpperCase()}</div>
+                                                <div>
+                                                    <div class="font-bold text-white text-xs uppercase">Cible: <span class="text-${tColor}-300">${s.target?.username || 'Inconnu'}</span></div>
+                                                    <div class="text-[8px] text-gray-500 font-mono">Par: ${s.staff?.username || 'Système'} • ${new Date(s.created_at).toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-[11px] text-gray-400 italic bg-black/40 p-2 rounded-xl border border-white/5">"${s.reason}"</div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 </div>

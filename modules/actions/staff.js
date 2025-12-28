@@ -47,6 +47,9 @@ export const setStaffTab = async (tab) => {
         if (tab === 'permissions') {
             await services.fetchStaffProfiles();
         }
+        if (tab === 'sanctions') {
+            await services.fetchGlobalSanctions();
+        }
         if (tab === 'sessions' || tab === 'logs') {
             await services.fetchERLCData();
             await services.fetchActiveSession();
@@ -58,22 +61,41 @@ export const setStaffTab = async (tab) => {
     }
 };
 
-// SANCTION ACTIONS
+// SANCTION ACTIONS (FIXED SEARCH)
 export const searchUserForSanction = async (query) => {
+    const container = document.getElementById('sanction-search-results');
+    if (!container) return;
+    
     state.staffSanctionSearchQuery = query;
     if (query.length > 2) {
-        state.staffSanctionResults = await services.searchProfiles(query);
+        const results = await services.searchProfiles(query);
+        state.staffSanctionResults = results;
+        
+        if (results.length > 0) {
+            container.innerHTML = results.map(r => `
+                <div onclick="actions.selectUserForSanction('${r.id}', '${r.username}', '${r.avatar_url}')" class="p-4 hover:bg-white/10 cursor-pointer flex items-center gap-4 border-b border-white/5 last:border-0">
+                    <img src="${r.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-10 h-10 rounded-xl object-cover border border-white/10">
+                    <div>
+                        <div class="font-bold text-white text-sm uppercase">${r.username}</div>
+                        <div class="text-[9px] text-gray-500 font-mono">UID: ${r.id}</div>
+                    </div>
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
     } else {
         state.staffSanctionResults = [];
+        container.classList.add('hidden');
     }
-    render();
 };
 
-export const selectUserForSanction = (profile) => {
-    state.activeSanctionTarget = profile;
+export const selectUserForSanction = (id, username, avatar_url) => {
+    state.activeSanctionTarget = { id, username, avatar_url };
     state.staffSanctionResults = [];
-    state.staffSanctionSearchQuery = profile.username;
-    render();
+    state.staffSanctionSearchQuery = username;
+    render(); // Full render OK here as we move to the next phase (form display)
 };
 
 export const applySanctionStaff = async (e) => {
@@ -95,7 +117,7 @@ export const applySanctionStaff = async (e) => {
 
     toggleBtnLoading(btn, true, "Application...");
 
-    const expires_at = duration ? new Date(Date.now() + duration * 60000).toISOString() : (type === 'warn' ? null : null);
+    const expires_at = duration && duration > 0 ? new Date(Date.now() + duration * 60000).toISOString() : null;
     
     const { error } = await state.supabase.from('sanctions').insert({
         user_id: target.id,
@@ -109,13 +131,13 @@ export const applySanctionStaff = async (e) => {
         ui.showToast(`Sanction ${type.toUpperCase()} appliquée.`, "success");
         state.activeSanctionTarget = null;
         state.staffSanctionSearchQuery = '';
-        e.target.reset();
+        await services.fetchGlobalSanctions();
+        render();
     } else {
         ui.showToast("Erreur serveur lors de la sanction.", "error");
     }
     
     toggleBtnLoading(btn, false);
-    render();
 };
 
 export const giveWheelTurn = async (userId) => {
@@ -728,7 +750,7 @@ export const renderPermEditor = (profile) => {
         can_manage_economy: "Accès de niveau Trésorier. Permet d'ajuster les soldes bancaires et liquides de n'importe quel citoyen, d'effectuer des saisies ou des crédits globaux sur toute la population.",
         can_manage_illegal: "Supervision des activités criminelles. Permet de créer, dissoudre ou modifier les gangs (syndicats) et de valider/refuser les gains des braquages complexes.",
         can_manage_enterprises: "Contrôle du Registre du Commerce. Autorise la fondation ou la dissolution de n'importe quelle entreprise, ainsi que la modération (approbation/rejet) des articles mis en vente.",
-        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits d'accès administratifs.",
+        can_manage_staff: "Accréditation de niveau Commandement. Permet de nommer de nouveaux membres du personnel et de configurer précisément leurs droits'accès administratifs.",
         can_manage_inventory: "Droit de perquisition administrative. Permet de visualiser, confisquer ou injecter des objets directement dans le sac d'un citoyen à distance.",
         can_change_team: "Mutation d'Alignement. Permet de basculer un citoyen du secteur Légal vers l'Illégal et vice-versa, réinitialisant ses accès de faction.",
         can_go_onduty: "Autorisation de Service Live. Permet d'apparaître comme modérateur actif sur le Panel pour les citoyens et d'accéder aux fonctionnalités de terrain.",

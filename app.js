@@ -450,6 +450,11 @@ const finalizeLoginLogic = async () => {
     await loadCharacters();
     await fetchActiveSession();
     
+    // CHARGER LES SANCTIONS DU JOUEUR
+    if (window.actions.loadUserSanctions) {
+        try { await window.actions.loadUserSanctions(); } catch(e) {}
+    }
+
     if (state.user.isBanned) {
         state.currentView = 'banned';
         render();

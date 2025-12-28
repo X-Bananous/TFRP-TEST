@@ -128,6 +128,16 @@ export const loadCharacters = async () => {
     state.characters = error ? [] : data;
 };
 
+export const fetchGlobalSanctions = async () => {
+    if (!state.supabase) return;
+    const { data } = await state.supabase
+        .from('sanctions')
+        .select('*, target:profiles!sanctions_user_id_fkey(username), staff:profiles!sanctions_staff_id_fkey(username)')
+        .order('created_at', { ascending: false })
+        .limit(30);
+    state.globalSanctions = data || [];
+};
+
 export const setupRealtimeListener = () => {
     if(!state.supabase) return;
 
@@ -142,21 +152,16 @@ export const setupRealtimeListener = () => {
             render();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'sanctions' }, async (payload) => {
-            // Si la sanction concerne l'utilisateur actuel
             if (payload.new?.user_id === state.user?.id || payload.old?.user_id === state.user?.id) {
                 if (payload.eventType === 'INSERT') {
                     showToast(`Une nouvelle sanction (${payload.new.type}) a été appliquée à votre dossier.`, "warning");
                 }
-                // Recharger les sanctions du profil
                 if (window.actions.loadUserSanctions) await window.actions.loadUserSanctions();
             }
-            // Toujours recharger si on est sur l'onglet sanction du staff
             if (state.activeHubPanel === 'staff' && state.activeStaffTab === 'sanctions') {
-                // Pas de rechargement auto des résultats de recherche pour ne pas couper la saisie, 
-                // mais on notifie qu'il y a du nouveau.
-                showToast("Mise à jour du registre des sanctions détectée.", "info");
+                await fetchGlobalSanctions();
+                render();
             }
-            render();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_sessions' }, async (payload) => {
             await fetchActiveSession();
