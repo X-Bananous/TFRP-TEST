@@ -7,17 +7,18 @@ export const StaffSanctionsView = () => {
     const targetHistory = state.activeSanctionTargetHistory || [];
 
     return `
-        <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20 no-overflow-clipping">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0 no-overflow-clipping">
+        <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
                 
                 <!-- LEFT: SEARCH & TARGET -->
-                <div class="lg:col-span-5 flex flex-col gap-6 no-overflow-clipping">
+                <div class="lg:col-span-5 flex flex-col gap-6">
+                    <!-- On garde le no-overflow-clipping UNIQUEMENT sur le conteneur du dropdown pour éviter les coupures -->
                     <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative no-overflow-clipping">
                         <h3 class="font-black text-white text-lg uppercase italic tracking-tighter mb-6 flex items-center gap-3">
                             <i data-lucide="search" class="w-5 h-5 text-purple-400"></i> Rechercher Cible
                         </h3>
                         <div class="relative z-[100]">
-                            <input type="text" oninput="actions.searchUserForSanction(this.value)" value="${state.staffSanctionSearchQuery}" placeholder="Discord ID ou Pseudo..." class="glass-input w-full p-4 pl-12 rounded-2xl text-sm font-bold bg-black/40 border-white/10 uppercase" autocomplete="off">
+                            <input type="text" oninput="actions.searchUserForSanction(this.value)" value="${state.staffSanctionSearchQuery || ''}" placeholder="Discord ID ou Pseudo..." class="glass-input w-full p-4 pl-12 rounded-2xl text-sm font-bold bg-black/40 border-white/10 uppercase" autocomplete="off">
                             <i data-lucide="user" class="w-5 h-5 absolute left-4 top-4 text-gray-600"></i>
                             
                             <div id="sanction-search-results" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-[150] shadow-2xl custom-scrollbar hidden animate-fade-in"></div>
@@ -95,7 +96,7 @@ export const StaffSanctionsView = () => {
                 </div>
 
                 <!-- RIGHT: REGISTRE -->
-                <div class="lg:col-span-7 flex flex-col h-full min-h-0 overflow-hidden">
+                <div class="lg:col-span-7 flex flex-col min-h-0">
                     <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl overflow-hidden relative">
                          <div class="p-6 border-b border-white/5 bg-white/[0.02] shrink-0">
                              <h3 class="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3">
@@ -110,7 +111,7 @@ export const StaffSanctionsView = () => {
                                 </div>
                             ` : globalSanctions.map(s => {
                                 const tColor = s.type === 'warn' ? 'yellow' : s.type === 'mute' ? 'orange' : 'red';
-                                const canRevoke = state.user.isFounder || s.staff_id === state.user.id;
+                                const canRevoke = state.user?.isFounder || s.staff_id === state.user?.id;
                                 return `
                                     <div class="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-${tColor}-500/30 transition-all group relative">
                                         <div class="flex justify-between items-start mb-2">

@@ -69,10 +69,12 @@ export const spinWheel = async () => {
     let winner = WHEEL_REWARDS[0];
     for (const reward of WHEEL_REWARDS) {
         randomVal -= reward.weight;
-        if (randomVal <= 0) { winner = reward; break; }
+        if (randomVal <= 0) { 
+            winner = reward; 
+            break; 
+        }
     }
 
-    // CAPTURE FORCÉE DU GAGNANT
     const currentWinner = { ...winner };
     state.lastWheelWinner = currentWinner;
 
@@ -89,7 +91,9 @@ export const spinWheel = async () => {
     setTimeout(() => {
         const strip = document.getElementById('case-strip');
         if (strip) {
-            strip.style.transition = 'none'; strip.style.transform = 'translateX(0)'; strip.offsetHeight;
+            strip.style.transition = 'none'; 
+            strip.style.transform = 'translateX(0)'; 
+            strip.offsetHeight; 
             const targetX = (80 * SLOT_WIDTH) + Math.floor(Math.random() * 60) - 30;
             strip.style.transition = 'transform 8.5s cubic-bezier(0.12, 0, 0.05, 1)';
             strip.style.transform = `translateX(-${targetX}px)`;
@@ -102,7 +106,6 @@ export const spinWheel = async () => {
         await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
         state.user.whell_turn = newTurns;
 
-        // DÉCLENCHEMENT MODAL FORCÉE
         if (currentWinner.type === 'money') {
             showCharacterChoiceModal(currentWinner);
         } else {
@@ -114,21 +117,25 @@ export const spinWheel = async () => {
 
 const showCharacterChoiceModal = (reward) => {
     const charsHtml = state.characters.map(c => `
-        <button onclick="actions.claimMoneyReward(${reward.value}, '${c.id}')" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-emerald-600/20 transition-all text-left flex items-center justify-between group">
-            <div><div class="font-black text-white uppercase italic group-hover:text-emerald-400">${c.first_name} ${c.last_name}</div></div>
-            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-700"></i>
+        <button onclick="actions.claimMoneyReward(${reward.value}, '${c.id}')" 
+            class="w-full p-5 rounded-[24px] bg-white/5 border border-white/10 hover:bg-emerald-600/20 hover:border-emerald-500/50 transition-all text-left flex items-center justify-between group">
+            <div>
+                <div class="font-black text-white uppercase italic group-hover:text-emerald-400">${c.first_name} ${c.last_name}</div>
+                <div class="text-[9px] text-gray-600 font-black uppercase tracking-widest mt-1">ID Citoyen : #${c.id.substring(0,8).toUpperCase()}</div>
+            </div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-700 group-hover:text-emerald-400"></i>
         </button>`).join('');
 
     ui.showModal({
         title: "ATTRIBUER LE GAIN",
-        isClosable: false, // MODAL NON FERMABLE SANS ACTION
+        isClosable: false,
         content: `
-            <div class="text-center mb-8">
-                <div class="text-6xl mb-4">💰</div>
-                <div class="text-3xl font-black text-emerald-400">+$ ${reward.value.toLocaleString()}</div>
-                <p class="text-gray-400 text-xs mt-2 italic">Sélectionnez le bénéficiaire de ce gain immédiat :</p>
+            <div class="text-center mb-10">
+                <div class="text-7xl mb-6">💰</div>
+                <div class="text-4xl font-black text-emerald-400 tracking-tighter drop-shadow-2xl">+$ ${reward.value.toLocaleString()}</div>
+                <p class="text-gray-500 text-xs mt-3 italic font-medium">Sélectionnez le bénéficiaire de ce gain immédiat :</p>
             </div>
-            <div class="space-y-3">${charsHtml}</div>
+            <div class="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">${charsHtml}</div>
         `,
         confirmText: null
     });
@@ -139,32 +146,67 @@ export const claimMoneyReward = async (value, charId) => {
         const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
         if (bank) {
             await state.supabase.from('bank_accounts').update({ bank_balance: (bank.bank_balance || 0) + value }).eq('character_id', charId);
-            await state.supabase.from('transactions').insert({ receiver_id: charId, amount: value, type: 'admin_adjustment', description: 'Gain Loterie TFRP' });
-            ui.showToast(`$${value.toLocaleString()} versés.`, "success");
+            await state.supabase.from('transactions').insert({ 
+                receiver_id: charId, 
+                amount: value, 
+                type: 'admin_adjustment', 
+                description: 'Gain Loterie TFRP (Lootbox)' 
+            });
+            ui.showToast(`$${value.toLocaleString()} versés avec succès.`, "success");
         }
     } catch(e) { ui.showToast("Erreur versement.", "error"); }
+    
     state.isSpinning = false; 
-    ui.forceCloseModal(); // Fermeture forcée
+    ui.forceCloseModal();
     render();
 };
 
 const showSecureScreenshotModal = (reward) => {
+    let timeLeft = 15;
+    
     ui.showModal({
         title: "RÉCOMPENSE D'EXCEPTION",
-        isClosable: false, // MODAL NON FERMABLE SANS VALIDATION
+        isClosable: false,
+        type: 'warning',
         content: `
             <div class="text-center">
-                <div class="text-7xl mb-6">🏆</div>
-                <div class="text-3xl font-black uppercase italic" style="color: ${reward.color}">${reward.label}</div>
-                <div class="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl mt-8">
-                    <p class="text-[11px] text-red-400 font-bold uppercase">PRENEZ UN SCREENSHOT COMPLET ET OUVREZ UN TICKET DISCORD POUR RÉCLAMER.</p>
+                <div class="text-8xl mb-6 animate-bounce">🏆</div>
+                <div class="text-3xl font-black uppercase italic tracking-tighter" style="color: ${reward.color}">${reward.label}</div>
+                <div class="bg-red-500/10 border border-red-500/20 p-6 rounded-[28px] mt-10">
+                    <p class="text-[11px] text-red-400 font-black uppercase leading-relaxed tracking-wide">
+                        ACTION REQUISE : Prenez une capture d'écran complète incluant ce message et votre identité.<br><br>
+                        Ouvrez un ticket sur le serveur Discord pour réclamer votre lot exceptionnel.
+                    </p>
                 </div>
             </div>
         `,
-        confirmText: "J'AI SCREENSHOT (FERMER)", 
-        onConfirm: () => { state.isSpinning = false; render(); },
-        type: 'warning'
+        confirmText: `Attente de validation (${timeLeft}s)`
     });
+
+    const btn = document.getElementById('modal-confirm');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-40', 'cursor-wait');
+        
+        const timer = setInterval(() => {
+            timeLeft--;
+            btn.textContent = `Attente de validation (${timeLeft}s)`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.textContent = "J'AI SCREENSHOT (FERMER)";
+                btn.classList.remove('opacity-40', 'cursor-wait');
+                btn.classList.add('bg-white', 'text-black');
+                
+                btn.onclick = () => {
+                    state.isSpinning = false;
+                    ui.forceCloseModal();
+                    render();
+                };
+            }
+        }, 1000);
+    }
 };
 
 export const openWheel = () => { state.currentView = 'wheel'; state.isSpinning = false; state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]); render(); };
@@ -172,5 +214,5 @@ export const closeWheel = () => { if (state.isSpinning) return; state.currentVie
 export const showProbabilities = () => {
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     const sorted = [...WHEEL_REWARDS].sort((a,b) => b.weight - a.weight);
-    ui.showModal({ title: "Algorithme de Probabilités", content: `<div class="bg-black/40 rounded-2xl border border-white/10 overflow-hidden max-h-96 overflow-y-auto">${sorted.map(r => `<div class="flex justify-between p-3 border-b border-white/5"><span class="text-xs font-bold text-white uppercase">${r.label}</span><span class="text-[10px] font-mono text-blue-400">${((r.weight/totalWeight)*100).toFixed(1)}%</span></div>`).join('')}</div>` });
+    ui.showModal({ title: "Algorithme de Probabilités", content: `<div class="bg-black/40 rounded-[24px] border border-white/10 overflow-hidden max-h-96 overflow-y-auto custom-scrollbar">${sorted.map(r => `<div class="flex justify-between items-center p-4 border-b border-white/5 hover:bg-white/5 transition-colors"><div class="flex items-center gap-3"><div class="w-2 h-2 rounded-full" style="background: ${r.color}"></div><span class="text-xs font-black text-white uppercase tracking-tight">${r.label}</span></div><span class="text-[10px] font-mono text-blue-400 font-bold">${((r.weight/totalWeight)*100).toFixed(1)}%</span></div>`).join('')}</div>` });
 };
