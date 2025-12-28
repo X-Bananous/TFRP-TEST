@@ -77,7 +77,6 @@ export const StaffView = () => {
         { id: 'logs', label: 'Logs', icon: 'scroll-text', perm: 'can_execute_commands' }
     ].filter(t => hasPermission(t.perm) || state.user.isFounder || t.id === 'citizens');
 
-    // Gestion de l'overflow des onglets (max 5 visibles en mode normal)
     const MAX_VISIBLE_TABS = 5;
     const visibleTabs = allTabs.slice(0, MAX_VISIBLE_TABS);
     const hiddenTabs = allTabs.slice(MAX_VISIBLE_TABS);
@@ -115,13 +114,16 @@ export const StaffView = () => {
                                 <button class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all whitespace-nowrap shrink-0 ${isCurrentInHidden ? 'bg-purple-900/40 text-purple-400 border border-purple-500/30' : 'text-gray-500 hover:text-white'}">
                                     <i data-lucide="more-horizontal" class="w-4 h-4"></i> Voir Plus
                                 </button>
-                                <div class="absolute right-0 top-full mt-2 w-48 glass-panel border border-white/10 rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all z-[100] flex flex-col p-2 overflow-hidden">
-                                    ${hiddenTabs.map(t => `
-                                        <button onclick="actions.setStaffTab('${t.id}')" 
-                                            class="w-full text-left px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${activeTabId === t.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
-                                            <i data-lucide="${t.icon}" class="w-3.5 h-3.5"></i> ${t.label}
-                                        </button>
-                                    `).join('')}
+                                <!-- Changement de mt-2 en pt-2 + suppression bg du conteneur parent pour créer un tunnel de hover -->
+                                <div class="absolute right-0 top-full pt-2 w-48 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all z-[100]">
+                                    <div class="glass-panel border border-white/10 rounded-2xl shadow-2xl flex flex-col p-2 overflow-hidden bg-[#0a0a0c]">
+                                        ${hiddenTabs.map(t => `
+                                            <button onclick="actions.setStaffTab('${t.id}')" 
+                                                class="w-full text-left px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${activeTabId === t.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                                                <i data-lucide="${t.icon}" class="w-3.5 h-3.5"></i> ${t.label}
+                                            </button>
+                                        `).join('')}
+                                    </div>
                                 </div>
                             </div>
                         ` : ''}

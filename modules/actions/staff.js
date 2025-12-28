@@ -91,11 +91,23 @@ export const searchUserForSanction = async (query) => {
     }
 };
 
-export const selectUserForSanction = (id, username, avatar_url) => {
+export const selectUserForSanction = async (id, username, avatar_url) => {
     state.activeSanctionTarget = { id, username, avatar_url };
     state.staffSanctionResults = [];
     state.staffSanctionSearchQuery = username;
-    render(); // Full render OK here as we move to the next phase (form display)
+    
+    // Charger l'historique spécifique de la cible
+    const { data } = await state.supabase.from('sanctions').select('*').eq('user_id', id).order('created_at', { ascending: false });
+    state.activeSanctionTargetHistory = data || [];
+    
+    render();
+};
+
+export const clearSanctionTarget = () => {
+    state.activeSanctionTarget = null;
+    state.activeSanctionTargetHistory = [];
+    state.staffSanctionSearchQuery = '';
+    render();
 };
 
 export const applySanctionStaff = async (e) => {
@@ -130,6 +142,7 @@ export const applySanctionStaff = async (e) => {
     if (!error) {
         ui.showToast(`Sanction ${type.toUpperCase()} appliquée.`, "success");
         state.activeSanctionTarget = null;
+        state.activeSanctionTargetHistory = [];
         state.staffSanctionSearchQuery = '';
         await services.fetchGlobalSanctions();
         render();
@@ -138,6 +151,25 @@ export const applySanctionStaff = async (e) => {
     }
     
     toggleBtnLoading(btn, false);
+};
+
+export const revokeSanction = async (sanctionId) => {
+    ui.showModal({
+        title: "Révoquer la Sanction",
+        content: "Cette action annulera définitivement la sanction. Confirmer ?",
+        confirmText: "Révoquer",
+        type: "danger",
+        onConfirm: async () => {
+            const { error } = await state.supabase.from('sanctions').delete().eq('id', sanctionId);
+            if (!error) {
+                ui.showToast("Sanction révoquée.", "info");
+                await services.fetchGlobalSanctions();
+                render();
+            } else {
+                ui.showToast("Échec de la révocation.", "error");
+            }
+        }
+    });
 };
 
 export const giveWheelTurn = async (userId) => {

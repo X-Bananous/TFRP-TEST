@@ -1,4 +1,3 @@
-
 import { state } from '../state.js';
 import { render } from '../utils.js';
 import { ui, toggleBtnLoading } from '../ui.js';
@@ -215,7 +214,7 @@ export const performPoliceSearch = async (targetId, targetName) => {
         character_id: state.activeCharacter.id, 
         author_id: `${state.activeCharacter.first_name} ${state.activeCharacter.last_name}`,
         title: "Fouille de Police",
-        description: `Contrôle et fouille réglementaire de ${targetName}.`,
+        description: `Controle et fouille reglementaire de ${targetName}.`,
         fine_amount: 0,
         jail_time: 0
     }, [{ id: targetId, name: targetName }]);
@@ -321,12 +320,12 @@ export const sealCase = async (reportId) => {
 
             if(!error) {
                 ui.showToast("Dossier scellé et archivé.", 'success');
-                // Mise à jour immédiate de l'état local
-                if (state.globalReports) {
-                    const r = state.globalReports.find(x => x.id === reportId);
-                    if(r) r.is_closed = true;
-                }
+                // Synchronisation forcée des états locaux
                 await services.fetchAllReports();
+                if (state.dossierTarget) {
+                    await services.fetchCharacterReports(state.dossierTarget.id);
+                    state.criminalRecordReports = state.policeReports;
+                }
                 render();
             } else {
                 console.error("Seal Error:", error);

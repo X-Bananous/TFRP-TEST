@@ -4,33 +4,53 @@ export const StaffSanctionsView = () => {
     const results = state.staffSanctionResults || [];
     const target = state.activeSanctionTarget;
     const globalSanctions = state.globalSanctions || [];
+    const targetHistory = state.activeSanctionTargetHistory || [];
 
     return `
-        <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20">
+        <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20 no-overflow-clipping">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
                 
                 <!-- LEFT: SEARCH & TARGET -->
                 <div class="lg:col-span-5 flex flex-col gap-6">
-                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative overflow-hidden">
+                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative">
                         <h3 class="font-black text-white text-lg uppercase italic tracking-tighter mb-6 flex items-center gap-3">
                             <i data-lucide="search" class="w-5 h-5 text-purple-400"></i> Rechercher Cible
                         </h3>
-                        <div class="relative z-20">
+                        <div class="relative z-[100]">
                             <input type="text" oninput="actions.searchUserForSanction(this.value)" value="${state.staffSanctionSearchQuery}" placeholder="Discord ID ou Pseudo..." class="glass-input w-full p-4 pl-12 rounded-2xl text-sm font-bold bg-black/40 border-white/10 uppercase" autocomplete="off">
                             <i data-lucide="user" class="w-5 h-5 absolute left-4 top-4 text-gray-600"></i>
                             
-                            <div id="sanction-search-results" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-50 shadow-2xl custom-scrollbar hidden animate-fade-in"></div>
+                            <div id="sanction-search-results" class="absolute top-full left-0 right-0 bg-[#151515] border border-white/10 rounded-2xl mt-2 max-h-56 overflow-y-auto z-[150] shadow-2xl custom-scrollbar hidden animate-fade-in"></div>
                         </div>
                     </div>
 
                     ${target ? `
+                        <!-- TARGET HISTORY (PRE-SANCTION CHECK) -->
+                        <div class="glass-panel p-6 rounded-[32px] border border-white/5 bg-[#0a0a0a] animate-fade-in">
+                            <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <i data-lucide="history" class="w-3.5 h-3.5"></i> Antécédents de ${target.username}
+                            </h4>
+                            <div class="max-h-40 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                                ${targetHistory.length === 0 ? '<p class="text-[9px] text-gray-700 italic uppercase font-black text-center py-4">Casier Vierge</p>' : targetHistory.map(s => `
+                                    <div class="p-2 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${s.type === 'ban' ? 'bg-red-600' : s.type === 'mute' ? 'bg-orange-600' : 'bg-yellow-600'} text-white">${s.type}</span>
+                                            <span class="text-[9px] text-gray-400 font-medium truncate max-w-[120px]">"${s.reason}"</span>
+                                        </div>
+                                        <span class="text-[8px] text-gray-600 font-mono">${new Date(s.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
                         <div class="glass-panel p-8 rounded-[40px] border border-purple-500/30 bg-purple-950/[0.02] shadow-xl animate-slide-up">
                             <div class="flex items-center gap-6 mb-8">
                                 <img src="${target.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-16 h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
-                                <div>
-                                    <div class="font-black text-white text-xl uppercase italic tracking-tighter">${target.username}</div>
-                                    <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest">Cible Identifiée</div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-black text-white text-xl uppercase italic tracking-tighter truncate">${target.username}</div>
+                                    <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest">Nouvelle Sanction</div>
                                 </div>
+                                <button onclick="actions.clearSanctionTarget()" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
                             </div>
                             <form onsubmit="actions.applySanctionStaff(event)" class="space-y-6">
                                 <div class="space-y-2">
@@ -74,7 +94,7 @@ export const StaffSanctionsView = () => {
                     `}
                 </div>
 
-                <!-- RIGHT: INFOS & RULES -->
+                <!-- RIGHT: REGISTRE DES SANCTIONS -->
                 <div class="lg:col-span-7 space-y-6">
                     <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl">
                         <h3 class="font-black text-white text-sm uppercase tracking-widest mb-6 flex items-center gap-3">
@@ -83,35 +103,36 @@ export const StaffSanctionsView = () => {
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="bg-yellow-500/5 p-4 rounded-2xl border border-yellow-500/20">
                                 <div class="font-black text-yellow-500 text-xs uppercase mb-2">WARNS</div>
-                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Avertissement formel. 3 warns = Ban automatique (configurable).</p>
+                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Avertissement formel. Documenté et archivé.</p>
                             </div>
                             <div class="bg-orange-500/5 p-4 rounded-2xl border border-orange-500/20">
                                 <div class="font-black text-orange-500 text-xs uppercase mb-2">MUTES</div>
-                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Coupure des communications Discord. Durée recommandée : 30m à 24h.</p>
+                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Coupure des communications Discord. Durée automatique.</p>
                             </div>
                             <div class="bg-red-500/5 p-4 rounded-2xl border border-red-500/20">
                                 <div class="font-black text-red-500 text-xs uppercase mb-2">BANS</div>
-                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Expulsion totale. Bloque l'accès en jeu, sur Discord et sur le panel.</p>
+                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Expulsion totale des infrastructures TFRP.</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col min-h-0 h-[500px] shadow-2xl overflow-hidden">
+                    <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col min-h-0 h-[600px] shadow-2xl overflow-hidden">
                          <div class="p-6 border-b border-white/5 bg-white/[0.02] shrink-0">
                              <h3 class="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3">
-                                <i data-lucide="history" class="w-5 h-5 text-blue-400"></i> Dernières Interventions Mondiales
+                                <i data-lucide="history" class="w-5 h-5 text-blue-400"></i> Registre National des Sanctions
                             </h3>
                          </div>
                         <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
                             ${globalSanctions.length === 0 ? `
                                 <div class="h-full flex flex-col items-center justify-center opacity-20 text-center py-20">
                                     <i data-lucide="shield-check" class="w-16 h-16 mb-4"></i>
-                                    <p class="text-xs font-black uppercase tracking-widest">Registre vierge pour le moment</p>
+                                    <p class="text-xs font-black uppercase tracking-widest">Registre vierge</p>
                                 </div>
                             ` : globalSanctions.map(s => {
                                 const tColor = s.type === 'warn' ? 'yellow' : s.type === 'mute' ? 'orange' : 'red';
+                                const canRevoke = state.user.isFounder || s.staff_id === state.user.id;
                                 return `
-                                    <div class="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-${tColor}-500/30 transition-all group">
+                                    <div class="p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-${tColor}-500/30 transition-all group relative">
                                         <div class="flex justify-between items-start mb-2">
                                             <div class="flex items-center gap-3">
                                                 <div class="w-8 h-8 rounded-lg bg-${tColor}-500/10 flex items-center justify-center text-${tColor}-400 border border-${tColor}-500/20 font-black text-[9px]">${s.type.toUpperCase()}</div>
@@ -120,6 +141,11 @@ export const StaffSanctionsView = () => {
                                                     <div class="text-[8px] text-gray-500 font-mono">Par: ${s.staff?.username || 'Système'} • ${new Date(s.created_at).toLocaleString()}</div>
                                                 </div>
                                             </div>
+                                            ${canRevoke ? `
+                                                <button onclick="actions.revokeSanction('${s.id}')" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all" title="Annuler Sanction">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            ` : ''}
                                         </div>
                                         <div class="text-[11px] text-gray-400 italic bg-black/40 p-2 rounded-xl border border-white/5">"${s.reason}"</div>
                                     </div>

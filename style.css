@@ -169,3 +169,8 @@ body {
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
+/* Fix Autocomplete Clipping */
+.no-overflow-clipping {
+    overflow: visible !important;
+}
