@@ -105,7 +105,7 @@ export async function getSSDComponents() {
 }
 
 /**
- * Envoi des notifications pour les nouveaux personnages acceptés (MP + Salon Log)
+ * Envoi des notifications pour les nouveaux personnages acceptés (MP + Salon Log + Rôles)
  */
 export async function sendVerificationDMs(client) {
   const newChars = await getNewValidations();
@@ -118,6 +118,7 @@ export async function sendVerificationDMs(client) {
     userMap[char.user_id].push(char);
   }
 
+  const mainGuild = await client.guilds.fetch(BOT_CONFIG.MAIN_SERVER_ID).catch(() => null);
   const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
 
   for (const userId of Object.keys(userMap)) {
@@ -145,6 +146,23 @@ export async function sendVerificationDMs(client) {
           { name: "Date", value: `<t:${timestamp}:f>`, inline: true }
         )
         .setFooter({ text: "TFRP • Services de l'Immigration" });
+
+      // GESTION DES RÔLES DISCORD
+      if (mainGuild) {
+          const member = await mainGuild.members.fetch(userId).catch(() => null);
+          if (member) {
+              // Retrait du rôle Non-Vérifié
+              if (member.roles.cache.has(BOT_CONFIG.UNVERIFIED_ROLE_ID)) {
+                  await member.roles.remove(BOT_CONFIG.UNVERIFIED_ROLE_ID).catch(e => console.error("[Rôles] Échec retrait unverified:", e.message));
+              }
+              // Ajout des rôles Citoyens
+              for (const roleId of BOT_CONFIG.VERIFIED_ROLE_IDS) {
+                  if (!member.roles.cache.has(roleId)) {
+                      await member.roles.add(roleId).catch(e => console.error("[Rôles] Échec ajout citoyen:", e.message));
+                  }
+              }
+          }
+      }
 
       // Envoi MP
       if (discordUser) {

@@ -27,6 +27,22 @@ export const sanctionnerCommand = {
     const duration = interaction.options.getInteger('duree');
     const showName = interaction.options.getBoolean('afficher_nom') || false;
 
+    // SÉCURITÉ 1 : AUTO-SANCTION
+    if (target.id === interaction.user.id) {
+      return interaction.reply({ content: "⚠️ Tentative d'auto-sanction détectée. Opération annulée.", ephemeral: true });
+    }
+
+    // SÉCURITÉ 2 : HIÉRARCHIE DES RÔLES
+    const memberTarget = await interaction.guild.members.fetch(target.id).catch(() => null);
+    if (memberTarget) {
+        const callerHighest = interaction.member.roles.highest.position;
+        const targetHighest = memberTarget.roles.highest.position;
+
+        if (targetHighest >= callerHighest && !staffProfile?.isFounder) {
+            return interaction.reply({ content: "❌ Impossible de sanctionner ce membre : son rang hiérarchique est égal ou supérieur au vôtre.", ephemeral: true });
+        }
+    }
+
     // Verification des permissions via profil Supabase
     const perms = staffProfile?.permissions || {};
     let hasPerm = false;
@@ -55,8 +71,7 @@ export const sanctionnerCommand = {
     // Actions Discord immédiates
     if (type === 'mute' && duration) {
       try {
-        const member = await interaction.guild.members.fetch(target.id);
-        await member.timeout(duration * 60000, reason);
+        if (memberTarget) await memberTarget.timeout(duration * 60000, reason);
       } catch (e) { console.error("Echec timeout", e); }
     }
 
