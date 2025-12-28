@@ -13,7 +13,8 @@ import {
 import { 
   updateCustomsStatus,
   performGlobalSync,
-  handleUnverified
+  handleUnverified,
+  sendVerificationDMs
 } from "./bot-services.js";
 
 // Import Command Logic
@@ -37,9 +38,10 @@ const client = new Client({
 });
 
 async function runScans() {
-  console.log("[Système] Lancement du scan SSD/Sync...");
+  console.log("[Système] Lancement du scan SSD/Sync/Notifs...");
   await performGlobalSync(client);
   await updateCustomsStatus(client);
+  await sendVerificationDMs(client);
 }
 
 client.once("ready", async () => {
@@ -61,8 +63,6 @@ client.once("ready", async () => {
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try { 
     console.log("[Système] Déploiement des commandes (Global uniquement pour éviter les doublons)...");
-    // On ne garde que les commandes Globales. 
-    // Note: La propagation globale peut prendre jusqu'à 1h, mais évite les doublons permanents.
     await rest.put(
       Routes.applicationCommands(client.user.id), 
       { body: commands }

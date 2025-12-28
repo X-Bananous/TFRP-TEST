@@ -1,4 +1,3 @@
-
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -11,57 +10,56 @@ import {
   getPendingCharactersCount, 
   supabase, 
   updateProfilePermissions,
-  getOldestPendingCharacter
+  getOldestPendingCharacter,
+  getNewValidations,
+  getProfile
 } from "./bot-db.js";
 
 /**
- * Calcul du statut SSD avec critères temporels et de volume
+ * Calcul du statut SSD avec critères de volume uniquement
  */
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
-  const oldestChar = await getOldestPendingCharacter();
   
   // Heure Paris (FR)
   const parisTime = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
   const hour = new Date(parisTime).getHours();
   
-  // Temps d'attente du plus vieux dossier
-  const oldestWaitMs = oldestChar ? (Date.now() - new Date(oldestChar.created_at).getTime()) : 0;
-  const isWaitHigh = oldestWaitMs > (10 * 60 * 1000); // 10 minutes
+  const nowTimestamp = Math.floor(Date.now() / 1000);
 
   let statusLabel = "Fluide"; 
   let statusEmoji = "🟢";
 
-  // LOGIQUE DE PRIORITÉ
+  // LOGIQUE DE VOLUME (Retrait de la vérification temporelle qui bloquait sur "Ralenti")
   if (hour >= 22 || hour < 8) {
     statusLabel = "Mode Nuit : Réponses peu probables"; 
     statusEmoji = "⚫";
   } else if (pendingCount > 50) {
     statusLabel = "Ralenti"; 
     statusEmoji = "🔴";
-  } else if (pendingCount > 25 || isWaitHigh) {
+  } else if (pendingCount > 25) {
     statusLabel = "Perturbé"; 
     statusEmoji = "🟠";
-  } else if (pendingCount <= 5 && pendingCount > 0) {
-    statusLabel = "Fast Checking";
-    statusEmoji = "⚪";
-  } else if (pendingCount === 0) {
-    statusLabel = "En attente de flux";
+  } else if (pendingCount > 0) {
+    statusLabel = "Fluide / Fast Checking";
     statusEmoji = "🟢";
+  } else {
+    statusLabel = "En attente de flux";
+    statusEmoji = "⚪";
   }
 
   const embed = new EmbedBuilder()
     .setTitle("Statut des Services de Douanes (SSD)")
     .setColor(BOT_CONFIG.EMBED_COLOR)
     .setDescription(`État actuel : ${statusEmoji} **${statusLabel}**\n\n` +
-      "⚫ **Mode Nuit / Interrompu** - Réponses peu probables ou maintenance.\n" +
-      "🔴 **Ralenti** - Délai de 48h ou plus (Sous-effectif ou >50 demandes).\n" +
-      "🟠 **Perturbé** - Délai de 24h à 48h (Attente >10m ou >25 demandes).\n" +
-      "🟢 **Fluide** - Délai inférieur à 24h (Réponse dans la journée).\n" +
-      "⚪ **Fast Checking** - Délai de 5 à 10 minutes (Douaniers mobilisés).")
+      "⚫ **Mode Nuit / Interrompu** - Réponses peu probables.\n" +
+      "🔴 **Ralenti** - Charge importante (>50 dossiers).\n" +
+      "🟠 **Perturbé** - Charge modérée (>25 dossiers).\n" +
+      "🟢 **Fluide** - Traitement normal ou rapide.\n" +
+      "⚪ **En attente** - Aucun dossier dans la file.\n\n" +
+      `*Dernière actualisation : <t:${nowTimestamp}:R>*`)
     .addFields(
-      { name: "Dossiers en attente", value: `**${pendingCount}** fiches citoyennes`, inline: true },
-      { name: "Attente max", value: oldestChar ? `~${Math.floor(oldestWaitMs/60000)} min` : "N/A", inline: true }
+      { name: "Dossiers en attente", value: `**${pendingCount}** fiches citoyennes`, inline: true }
     )
     .setTimestamp()
     .setFooter({ text: "Douanes TFRP • Système de Monitoring" });
@@ -71,6 +69,64 @@ export async function getSSDComponents() {
   );
 
   return { embeds: [embed], components: [row], emoji: statusEmoji };
+}
+
+/**
+ * Envoi des notifications MP pour les nouveaux personnages acceptés
+ */
+export async function sendVerificationDMs(client) {
+  const newChars = await getNewValidations();
+  if (newChars.length === 0) return;
+
+  // Grouper par utilisateur
+  const userMap = {};
+  for (const char of newChars) {
+    if (!userMap[char.user_id]) userMap[char.user_id] = [];
+    userMap[char.user_id].push(char);
+  }
+
+  for (const userId of Object.keys(userMap)) {
+    try {
+      const discordUser = await client.users.fetch(userId).catch(() => null);
+      if (!discordUser) continue;
+
+      const chars = userMap[userId];
+      const charIds = chars.map(c => c.id);
+      
+      // Récupérer le nom du staff (celui du premier perso du groupe, ils sont souvent validés par le même à l'instant T)
+      const verifierId = chars[0].verifiedby;
+      const staffProfile = verifierId ? await getProfile(verifierId) : null;
+      const staffName = staffProfile ? staffProfile.username : "Administration";
+
+      const embed = new EmbedBuilder()
+        .setTitle("🎉 Dossier d'Immigration Validé")
+        .setColor(0x00FF00)
+        .setDescription(`Bonne nouvelle <@${userId}>, vos titres de transport et d'identité sont prêts.`)
+        .addFields(
+          { 
+            name: "Personnage(s) accepté(s)", 
+            value: chars.map(c => `• **${c.first_name} ${c.last_name}** (${c.job || 'Sans emploi'})`).join('\n'), 
+            inline: false 
+          },
+          { name: "Vérificateur", value: staffName, inline: true },
+          { name: "Date", value: `<t:${Math.floor(Date.now() / 1000)}:f>`, inline: true }
+        )
+        .setFooter({ text: "TFRP • Services de l'Immigration" });
+
+      await discordUser.send({ embeds: [embed] }).catch(() => {
+        console.log(`[Système] Impossible d'envoyer le MP à ${userId} (DM fermés)`);
+      });
+
+      // Marquer comme notifié en base
+      await supabase
+        .from('characters')
+        .update({ is_notified: true })
+        .in('id', charIds);
+
+    } catch (e) {
+      console.error(`[Système] Erreur lors de la notification DM pour ${userId}:`, e);
+    }
+  }
 }
 
 /**

@@ -2,6 +2,8 @@ import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { createSanction, getProfile } from "../../bot-db.js";
 import { BOT_CONFIG } from "../../bot-config.js";
 
+const SANCTION_LOG_CHANNEL = "1445853902074281985";
+
 export const sanctionnerCommand = {
   data: new SlashCommandBuilder()
     .setName('sanctionner')
@@ -25,7 +27,7 @@ export const sanctionnerCommand = {
     const duration = interaction.options.getInteger('duree');
     const showName = interaction.options.getBoolean('afficher_nom') || false;
 
-    // Verification des permissions via profil Supabase (déjà sync avec Discord)
+    // Verification des permissions via profil Supabase
     const perms = staffProfile?.permissions || {};
     let hasPerm = false;
     if (type === 'warn' && perms.can_warn) hasPerm = true;
@@ -38,7 +40,7 @@ export const sanctionnerCommand = {
 
     const expires_at = duration ? new Date(Date.now() + duration * 60000).toISOString() : null;
 
-    const { error } = await createSanction({
+    const { data: sanction, error } = await createSanction({
       user_id: target.id,
       staff_id: interaction.user.id,
       type,
@@ -76,6 +78,24 @@ export const sanctionnerCommand = {
     dmEmbed.setFooter({ text: "Vous pouvez contester cette sanction une fois par an via votre profil sur le panel." });
 
     await target.send({ embeds: [dmEmbed] }).catch(() => {});
+
+    // Log public/admin
+    const logEmbed = new EmbedBuilder()
+      .setTitle("📋 Nouvelle Sanction")
+      .setColor(type === 'ban' ? 0xFF0000 : type === 'mute' ? 0xFFA500 : 0xFFFF00)
+      .addFields(
+        { name: "Cible", value: `<@${target.id}> (${target.username})`, inline: true },
+        { name: "Staff", value: `<@${interaction.user.id}>`, inline: true },
+        { name: "Type", value: type.toUpperCase(), inline: true },
+        { name: "Raison", value: reason, inline: false },
+        { name: "Fin", value: expires_at ? `<t:${Math.floor(new Date(expires_at).getTime() / 1000)}:R>` : "Définitif", inline: true }
+      )
+      .setTimestamp();
+
+    const logChannel = await interaction.client.channels.fetch(SANCTION_LOG_CHANNEL).catch(() => null);
+    if (logChannel) {
+      await logChannel.send({ embeds: [logEmbed] });
+    }
 
     await interaction.reply({ content: `Sanction **${type.toUpperCase()}** appliquée avec succès à <@${target.id}>.`, ephemeral: true });
   }
