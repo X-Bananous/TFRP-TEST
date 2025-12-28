@@ -2,14 +2,11 @@ import { state } from '../state.js';
 import { render, router } from '../utils.js';
 import { ui } from '../ui.js';
 
-export const SLOT_WIDTH = 160; // 150px item + 10px gap
+export const SLOT_WIDTH = 160; 
 
-// Audio Synthesis Engine for Wheel
 const SoundEngine = {
     ctx: null,
-    init() {
-        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    },
+    init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
     tick() {
         if (!this.ctx) return;
         const osc = this.ctx.createOscillator();
@@ -18,34 +15,23 @@ const SoundEngine = {
         osc.frequency.setValueAtTime(150, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.1);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.1);
     },
     success() {
         if (!this.ctx) return;
-        const now = this.ctx.currentTime;
         const playNote = (freq, start, duration) => {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.frequency.setValueAtTime(freq, now + start);
-            gain.gain.setValueAtTime(0.1, now + start);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now + start);
-            osc.stop(now + start + duration);
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + start);
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime + start);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + start); osc.stop(this.ctx.currentTime + start + duration);
         };
-        playNote(440, 0, 0.2); // A4
-        playNote(554, 0.1, 0.2); // C#5
-        playNote(659, 0.2, 0.4); // E5
+        playNote(440, 0, 0.2); playNote(554, 0.1, 0.2); playNote(659, 0.2, 0.4);
     }
 };
 
 export const WHEEL_REWARDS = [
-    // 💰 Argent (Total 83.5%)
     { label: '1 000 $', weight: 12, type: 'money', value: 1000, color: '#10b981', rarity: 'Commun' },
     { label: '5 000 $', weight: 10, type: 'money', value: 5000, color: '#10b981', rarity: 'Commun' },
     { label: '7 500 $', weight: 8, type: 'money', value: 7500, color: '#10b981', rarity: 'Commun' },
@@ -64,46 +50,32 @@ export const WHEEL_REWARDS = [
     { label: '200 000 $', weight: 2, type: 'money', value: 200000, color: '#fbbf24', rarity: 'Légendaire' },
     { label: '300 000 $', weight: 1, type: 'money', value: 300000, color: '#ef4444', rarity: 'Relique' },
     { label: '500 000 $', weight: 0.5, type: 'money', value: 500000, color: '#ef4444', rarity: 'Ancestral' },
-
-    // 👑 Rôles (Total 15%)
     { label: 'VIP Bronze', weight: 5, type: 'role', color: '#cd7f32', rarity: 'Premium' },
     { label: 'VIP Argent', weight: 4, type: 'role', color: '#c0c0c0', rarity: 'Premium' },
     { label: 'VIP Or', weight: 3, type: 'role', color: '#ffd700', rarity: 'Premium' },
     { label: 'VIP Platine', weight: 2, type: 'role', color: '#e5e4e2', rarity: 'Elite' },
     { label: 'Rôle Légende', weight: 1, type: 'role', color: '#a855f7', rarity: 'Divin' },
-
-    // ❓ Autre (Total 1.5%)
     { label: '???', weight: 1.5, type: 'special', color: '#f472b6', rarity: 'Unique' }
 ];
 
 export const spinWheel = async () => {
     SoundEngine.init();
-    const currentTurns = state.user.whell_turn || 0;
-    
-    if (state.isSpinning || currentTurns <= 0) return;
-    
-    if (state.characters.length === 0) {
-        ui.showToast("Vous devez posséder au moins un personnage pour recevoir vos gains.", "error");
-        return;
-    }
+    const turns = state.user.whell_turn || 0;
+    if (state.isSpinning || turns <= 0) return;
+    if (state.characters.length === 0) return ui.showToast("Dossier citoyen requis.", "error");
 
-    // 1. Déterminer le gagnant immédiatement et le stocker de façon immuable pour ce spin
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     let randomVal = Math.random() * totalWeight;
     let winner = WHEEL_REWARDS[0];
     for (const reward of WHEEL_REWARDS) {
         randomVal -= reward.weight;
-        if (randomVal <= 0) { 
-            winner = reward; 
-            break; 
-        }
+        if (randomVal <= 0) { winner = reward; break; }
     }
 
-    // SÉCURITÉ : Capture du gagnant dans une constante locale pour la durée du timeout
+    // CAPTURE FORCÉE DU GAGNANT
     const currentWinner = { ...winner };
-    state.lastWheelWinner = currentWinner; // Pour référence globale si besoin
+    state.lastWheelWinner = currentWinner;
 
-    // 2. Construire la liste de tirage (Index 80 est le gagnant)
     const stripItems = [];
     for (let i = 0; i < 100; i++) {
         if (i === 80) stripItems.push(currentWinner);
@@ -114,54 +86,23 @@ export const spinWheel = async () => {
     state.isSpinning = true;
     render();
 
-    // 3. Animation
     setTimeout(() => {
         const strip = document.getElementById('case-strip');
         if (strip) {
-            strip.style.transition = 'none';
-            strip.style.transform = 'translateX(0)';
-            strip.offsetHeight; // Reflow
-
-            strip.classList.remove('animate-lootbox-idle');
-            const randomOffset = Math.floor(Math.random() * 60) - 30;
-            const targetX = (80 * SLOT_WIDTH) + randomOffset;
-            
+            strip.style.transition = 'none'; strip.style.transform = 'translateX(0)'; strip.offsetHeight;
+            const targetX = (80 * SLOT_WIDTH) + Math.floor(Math.random() * 60) - 30;
             strip.style.transition = 'transform 8.5s cubic-bezier(0.12, 0, 0.05, 1)';
             strip.style.transform = `translateX(-${targetX}px)`;
-
-            // Tick sound intervals (simulated)
-            let lastTickIdx = 0;
-            const startTime = Date.now();
-            const tickInterval = setInterval(() => {
-                const elapsed = Date.now() - startTime;
-                if (elapsed > 8500) {
-                    clearInterval(tickInterval);
-                    return;
-                }
-                
-                const progress = elapsed / 8500;
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                const currentX = targetX * easeOut;
-                const currentIdx = Math.floor(currentX / SLOT_WIDTH);
-                
-                if (currentIdx > lastTickIdx) {
-                    SoundEngine.tick();
-                    lastTickIdx = currentIdx;
-                }
-            }, 16);
         }
     }, 50);
 
-    // 4. Attribution du gain (Utilisation forcée de currentWinner)
     setTimeout(async () => {
         SoundEngine.success();
-        
-        // Déduction de la clé
-        const newTurns = currentTurns - 1;
+        const newTurns = turns - 1;
         await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
         state.user.whell_turn = newTurns;
 
-        // On déclenche la réclamation avec l'objet gagnant capturé au début
+        // DÉCLENCHEMENT MODAL FORCÉE
         if (currentWinner.type === 'money') {
             showCharacterChoiceModal(currentWinner);
         } else {
@@ -173,145 +114,63 @@ export const spinWheel = async () => {
 
 const showCharacterChoiceModal = (reward) => {
     const charsHtml = state.characters.map(c => `
-        <button onclick="actions.claimMoneyReward(${reward.value}, '${c.id}')" 
-            class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-emerald-600/20 hover:border-emerald-500/50 transition-all text-left flex items-center justify-between group">
-            <div>
-                <div class="font-black text-white uppercase italic group-hover:text-emerald-400">${c.first_name} ${c.last_name}</div>
-                <div class="text-[9px] text-gray-500 uppercase font-bold tracking-widest mt-1">ID Citoyen : #${c.id.substring(0,8).toUpperCase()}</div>
-            </div>
-            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-700 group-hover:text-emerald-500"></i>
-        </button>
-    `).join('');
+        <button onclick="actions.claimMoneyReward(${reward.value}, '${c.id}')" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-emerald-600/20 transition-all text-left flex items-center justify-between group">
+            <div><div class="font-black text-white uppercase italic group-hover:text-emerald-400">${c.first_name} ${c.last_name}</div></div>
+            <i data-lucide="chevron-right" class="w-5 h-5 text-gray-700"></i>
+        </button>`).join('');
 
     ui.showModal({
         title: "ATTRIBUER LE GAIN",
+        isClosable: false, // MODAL NON FERMABLE SANS ACTION
         content: `
             <div class="text-center mb-8">
                 <div class="text-6xl mb-4">💰</div>
                 <div class="text-3xl font-black text-emerald-400">+$ ${reward.value.toLocaleString()}</div>
-                <p class="text-gray-400 text-xs mt-2 italic font-medium">Sélectionnez le bénéficiaire de ce virement immédiat :</p>
+                <p class="text-gray-400 text-xs mt-2 italic">Sélectionnez le bénéficiaire de ce gain immédiat :</p>
             </div>
-            <div class="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                ${charsHtml}
-            </div>
+            <div class="space-y-3">${charsHtml}</div>
         `,
-        confirmText: null,
-        onCancel: () => { state.isSpinning = false; render(); }
+        confirmText: null
     });
 };
 
 export const claimMoneyReward = async (value, charId) => {
-    const char = state.characters.find(c => c.id === charId);
-    if (!char) return;
-
     try {
         const { data: bank } = await state.supabase.from('bank_accounts').select('bank_balance').eq('character_id', charId).single();
         if (bank) {
-            const newBalance = (bank.bank_balance || 0) + value;
-            await state.supabase.from('bank_accounts').update({ bank_balance: newBalance }).eq('character_id', charId);
-            
-            await state.supabase.from('transactions').insert({
-                receiver_id: charId, 
-                amount: value, 
-                type: 'admin_adjustment', 
-                description: 'Gain Loterie Nationale TFRP'
-            });
-
-            ui.showToast(`$${value.toLocaleString()} ont été versés à ${char.first_name}.`, "success");
+            await state.supabase.from('bank_accounts').update({ bank_balance: (bank.bank_balance || 0) + value }).eq('character_id', charId);
+            await state.supabase.from('transactions').insert({ receiver_id: charId, amount: value, type: 'admin_adjustment', description: 'Gain Loterie TFRP' });
+            ui.showToast(`$${value.toLocaleString()} versés.`, "success");
         }
-    } catch(e) {
-        console.error("Reward claim error:", e);
-        ui.showToast("Erreur lors du virement bancaire.", "error");
-    }
-    state.isSpinning = false;
-    ui.closeModal();
+    } catch(e) { ui.showToast("Erreur versement.", "error"); }
+    state.isSpinning = false; 
+    ui.forceCloseModal(); // Fermeture forcée
     render();
 };
 
 const showSecureScreenshotModal = (reward) => {
-    let timeLeft = 15;
-    
     ui.showModal({
         title: "RÉCOMPENSE D'EXCEPTION",
+        isClosable: false, // MODAL NON FERMABLE SANS VALIDATION
         content: `
             <div class="text-center">
-                <div class="text-7xl mb-6 animate-bounce">🏆</div>
-                <div class="text-3xl font-black uppercase italic tracking-tighter" style="color: ${reward.color}">${reward.label}</div>
+                <div class="text-7xl mb-6">🏆</div>
+                <div class="text-3xl font-black uppercase italic" style="color: ${reward.color}">${reward.label}</div>
                 <div class="bg-red-500/10 border border-red-500/20 p-5 rounded-2xl mt-8">
-                    <p class="text-[11px] text-red-400 font-bold uppercase leading-relaxed">
-                        ACTION REQUISE : Prenez une capture d'écran complète incluant ce message et votre identité Discord.<br>
-                        Ouvrez un ticket sur le serveur Discord pour réclamer votre lot.
-                    </p>
-                </div>
-                <div class="mt-6 text-[10px] text-gray-600 font-mono uppercase tracking-widest flex items-center justify-center gap-2">
-                    <i data-lucide="shield-alert" class="w-3 h-3"></i> Protection Anti-Fraude Active
+                    <p class="text-[11px] text-red-400 font-bold uppercase">PRENEZ UN SCREENSHOT COMPLET ET OUVREZ UN TICKET DISCORD POUR RÉCLAMER.</p>
                 </div>
             </div>
         `,
-        confirmText: `Attente de validation (${timeLeft}s)`,
+        confirmText: "J'AI SCREENSHOT (FERMER)", 
         onConfirm: () => { state.isSpinning = false; render(); },
-        onCancel: () => { state.isSpinning = false; render(); },
         type: 'warning'
     });
-
-    const btn = document.getElementById('modal-confirm');
-    if (btn) {
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-wait');
-        
-        const timer = setInterval(() => {
-            timeLeft--;
-            btn.textContent = `Attente de validation (${timeLeft}s)`;
-            
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                btn.disabled = false;
-                btn.textContent = "COMPRIS, J'AI SCREENSHOT";
-                btn.classList.remove('opacity-50', 'cursor-wait');
-            }
-        }, 1000);
-    }
 };
 
-export const openWheel = () => {
-    state.currentView = 'wheel';
-    state.isSpinning = false;
-    state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]);
-    render();
-};
-
-export const closeWheel = () => {
-    if (state.isSpinning) return;
-    state.currentView = 'select';
-    render();
-};
-
+export const openWheel = () => { state.currentView = 'wheel'; state.isSpinning = false; state.currentWheelItems = Array(20).fill(0).map(() => WHEEL_REWARDS[Math.floor(Math.random() * WHEEL_REWARDS.length)]); render(); };
+export const closeWheel = () => { if (state.isSpinning) return; state.currentView = 'select'; render(); };
 export const showProbabilities = () => {
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     const sorted = [...WHEEL_REWARDS].sort((a,b) => b.weight - a.weight);
-    
-    ui.showModal({
-        title: "Algorithme de Probabilités",
-        content: `
-            <div class="bg-black/40 rounded-2xl border border-white/10 overflow-hidden max-h-96 overflow-y-auto custom-scrollbar">
-                <div class="p-3 bg-white/5 border-b border-white/10 flex justify-between text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                    <span>Récompense potentielle</span>
-                    <span>Taux de drop</span>
-                </div>
-                ${sorted.map(r => `
-                    <div class="flex justify-between items-center p-3 border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full" style="background-color: ${r.color}"></div>
-                            <span class="text-xs font-bold text-white uppercase">${r.label}</span>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-[10px] font-mono text-blue-400 font-black">${((r.weight/totalWeight)*100).toFixed(1)}%</div>
-                            <div class="text-[7px] text-gray-600 uppercase font-black tracking-widest">${r.rarity}</div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            <p class="mt-4 text-[9px] text-gray-500 italic text-center uppercase tracking-widest font-bold">Certification Système v4.6 • Tirage Aléatoire Pondéré</p>
-        `
-    });
+    ui.showModal({ title: "Algorithme de Probabilités", content: `<div class="bg-black/40 rounded-2xl border border-white/10 overflow-hidden max-h-96 overflow-y-auto">${sorted.map(r => `<div class="flex justify-between p-3 border-b border-white/5"><span class="text-xs font-bold text-white uppercase">${r.label}</span><span class="text-[10px] font-mono text-blue-400">${((r.weight/totalWeight)*100).toFixed(1)}%</span></div>`).join('')}</div>` });
 };

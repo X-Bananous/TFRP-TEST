@@ -10,11 +10,10 @@ export const startBarExam = () => {
         questions: shuffled.slice(0, 15),
         currentIndex: 0,
         score: 0,
-        timeLeft: 30, // Passage à 30 secondes
+        timeLeft: 30, 
         timer: null
     };
     
-    // Bloquer la sortie accidentelle
     window.onbeforeunload = () => "Examen en cours. Quitter entraînera un échec immédiat.";
     
     startExamTimer();
@@ -24,12 +23,11 @@ export const startBarExam = () => {
 const startExamTimer = () => {
     if (state.activeExam.timer) clearInterval(state.activeExam.timer);
     
-    state.activeExam.timeLeft = 30; // Reset à 30 secondes
+    state.activeExam.timeLeft = 30; 
     state.activeExam.timer = setInterval(() => {
         state.activeExam.timeLeft--;
         
         if (state.activeExam.timeLeft <= 0) {
-            // Temps écoulé : Réponse fausse et on passe à la suivante
             answerExamQuestion(-1);
         } else {
             const timerEl = document.getElementById('exam-timer-bar');
@@ -89,7 +87,6 @@ const finishBarExam = async (forcedFailure = false) => {
 
         if (error) throw error;
 
-        // Mise à jour locale
         char.bar_passed = passed;
         char.last_bar_attempt = now;
 
@@ -113,7 +110,6 @@ const finishBarExam = async (forcedFailure = false) => {
     render();
 };
 
-// Hook de sécurité pour le changement de vue interne
 export const checkExamAborted = async () => {
     if (state.activeExam) {
         await finishBarExam(true);
@@ -234,7 +230,7 @@ export const searchVehicles = (query) => {
 };
 
 export const setServicesTab = async (tab) => {
-    await checkExamAborted(); // Sanctionner si on change d'onglet durant l'examen
+    await checkExamAborted(); 
     state.activeServicesTab = tab;
     state.isPanelLoading = true;
     if (tab !== 'reports') state.editingReport = null; 
@@ -313,7 +309,7 @@ export const sealCase = async (reportId) => {
         `,
         confirmText: "Sceller l'affaire",
         onConfirm: async () => {
-            // FIX CRITIQUE : Mise à jour forcée de is_closed
+            // MISE À JOUR BOOLÉENNE STRICTE
             const { error } = await state.supabase
                 .from('police_reports')
                 .update({ is_closed: true })
@@ -322,22 +318,17 @@ export const sealCase = async (reportId) => {
             if(!error) {
                 ui.showToast("Dossier scellé et archivé.", 'success');
                 
-                // Rafraîchir le state local immédiatement pour éviter l'actualisation page
-                if (state.globalReports) {
-                    const reportIdx = state.globalReports.findIndex(r => r.id === reportId);
-                    if (reportIdx !== -1) {
-                        state.globalReports[reportIdx].is_closed = true;
-                    }
-                }
-                
-                if (state.policeReports) {
-                    const reportIdx = state.policeReports.findIndex(r => r.id === reportId);
-                    if (reportIdx !== -1) {
-                        state.policeReports[reportIdx].is_closed = true;
-                    }
-                }
+                // SYNCHRONISATION DU STATE LOCAL IMMÉDIATE
+                const syncLocal = (list) => {
+                    const idx = list.findIndex(r => r.id === reportId);
+                    if (idx !== -1) list[idx].is_closed = true;
+                };
 
-                // Synchronisation secondaire
+                if (state.globalReports) syncLocal(state.globalReports);
+                if (state.policeReports) syncLocal(state.policeReports);
+                if (state.criminalRecordReports) syncLocal(state.criminalRecordReports);
+
+                // Rafraîchissement complet
                 await services.fetchAllReports();
                 if (state.dossierTarget) {
                     await services.fetchCharacterReports(state.dossierTarget.id);

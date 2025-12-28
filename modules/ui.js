@@ -1,4 +1,3 @@
-
 import { state } from './state.js';
 
 // --- BUTTON LOADER HELPER ---
@@ -67,10 +66,13 @@ const createToastContainer = () => {
     return div;
 };
 
-// --- GENERIC MODAL SYSTEM (REFECTED) ---
+// --- GENERIC MODAL SYSTEM ---
 export const closeModal = () => {
     const modal = document.getElementById('global-modal');
     if(modal) {
+        // Sécurité : On ne ferme pas si la modal est marquée comme non-closable
+        if (modal.dataset.closable === 'false') return;
+
         modal.classList.add('opacity-0');
         const panel = modal.querySelector('.glass-panel');
         if(panel) {
@@ -82,17 +84,27 @@ export const closeModal = () => {
     state.ui.modal.isOpen = false;
 };
 
+// Fonction forcée pour les récompenses
+export const forceCloseModal = () => {
+    const modal = document.getElementById('global-modal');
+    if(modal) {
+        modal.dataset.closable = 'true';
+        closeModal();
+    }
+};
+
 /**
  * showModal
  * @param {string} title - Titre du modal
  * @param {string} content - Contenu HTML ou texte
- * @param {string} confirmText - Texte du bouton de confirmation (null pour masquer)
+ * @param {string} confirmText - Texte du bouton de confirmation
  * @param {string} cancelText - Texte du bouton d'annulation
  * @param {function} onConfirm - Callback de confirmation
  * @param {function} onCancel - Callback d'annulation
  * @param {string} type - 'default', 'danger', 'success', 'warning'
+ * @param {boolean} isClosable - Permet de forcer l'affichage sans fermeture possible
  */
-export const showModal = ({ title, content, confirmText = 'OK', cancelText = 'Annuler', onConfirm, onCancel, type = 'default' }) => {
+export const showModal = ({ title, content, confirmText = 'OK', cancelText = 'Annuler', onConfirm, onCancel, type = 'default', isClosable = true }) => {
     const existing = document.getElementById('global-modal');
     if(existing) existing.remove();
 
@@ -107,8 +119,8 @@ export const showModal = ({ title, content, confirmText = 'OK', cancelText = 'An
     const isConfirmOnly = !onConfirm && !onCancel;
 
     const html = `
-        <div id="global-modal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-enter" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);">
-            <div class="absolute inset-0" onclick="ui.closeModal()"></div>
+        <div id="global-modal" data-closable="${isClosable}" class="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-enter" style="background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);">
+            <div class="absolute inset-0" onclick="${isClosable ? 'ui.closeModal()' : ''}"></div>
             
             <div class="glass-panel w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl modal-enter relative z-10 flex flex-col border ${theme.border}">
                 
@@ -124,9 +136,11 @@ export const showModal = ({ title, content, confirmText = 'OK', cancelText = 'An
                             <h3 class="text-2xl font-bold text-white mb-1 tracking-tight leading-tight">${title}</h3>
                             <div class="text-xs font-bold uppercase tracking-widest ${theme.color} opacity-80">Notification Système</div>
                         </div>
-                        <button onclick="ui.closeModal()" class="text-gray-500 hover:text-white transition-colors p-1">
-                            <i data-lucide="x" class="w-6 h-6"></i>
-                        </button>
+                        ${isClosable ? `
+                            <button onclick="ui.closeModal()" class="text-gray-500 hover:text-white transition-colors p-1">
+                                <i data-lucide="x" class="w-6 h-6"></i>
+                            </button>
+                        ` : ''}
                     </div>
 
                     <div class="text-gray-300 text-sm leading-relaxed max-h-[50vh] overflow-y-auto custom-scrollbar pr-2 mb-8 font-medium">
@@ -134,7 +148,7 @@ export const showModal = ({ title, content, confirmText = 'OK', cancelText = 'An
                     </div>
 
                     <div class="flex flex-col sm:flex-row justify-end gap-3 pt-2">
-                        ${(onConfirm || cancelText) && !isConfirmOnly ? `
+                        ${(onConfirm || cancelText) && !isConfirmOnly && isClosable ? `
                             <button id="modal-cancel" class="glass-btn-secondary px-8 py-3.5 rounded-2xl text-sm font-bold hover:bg-white/10 transition-all">
                                 ${cancelText}
                             </button>
@@ -160,38 +174,40 @@ export const showModal = ({ title, content, confirmText = 'OK', cancelText = 'An
     document.body.insertAdjacentHTML('beforeend', html);
     if(window.lucide) lucide.createIcons();
 
-    // Event Listeners
     const confirmBtn = document.getElementById('modal-confirm');
     if (confirmBtn) {
         confirmBtn.onclick = () => {
             if (onConfirm) onConfirm();
+            // On bypass la sécurité pour fermer via le bouton de confirmation interne
+            const modal = document.getElementById('global-modal');
+            if(modal) modal.dataset.closable = 'true';
             closeModal();
         };
     }
 
     const cancelBtn = document.getElementById('modal-cancel');
-    if (cancelBtn) {
+    if (cancelBtn && isClosable) {
         cancelBtn.onclick = () => {
             if (onCancel) onCancel();
             closeModal();
         };
     }
 
-    // Escape key support
     const handleEsc = (e) => {
-        if(e.key === 'Escape') {
+        if(e.key === 'Escape' && isClosable) {
             closeModal();
             document.removeEventListener('keydown', handleEsc);
         }
     };
-    document.addEventListener('keydown', handleEsc);
+    if (isClosable) document.addEventListener('keydown', handleEsc);
 };
 
 export const ui = {
     toggleBtnLoading,
     showToast,
     showModal,
-    closeModal
+    closeModal,
+    forceCloseModal
 };
 
 window.ui = ui;

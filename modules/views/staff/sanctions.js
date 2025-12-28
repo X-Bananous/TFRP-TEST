@@ -8,11 +8,11 @@ export const StaffSanctionsView = () => {
 
     return `
         <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20 no-overflow-clipping">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0 no-overflow-clipping">
                 
                 <!-- LEFT: SEARCH & TARGET -->
-                <div class="lg:col-span-5 flex flex-col gap-6">
-                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative">
+                <div class="lg:col-span-5 flex flex-col gap-6 no-overflow-clipping">
+                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative no-overflow-clipping">
                         <h3 class="font-black text-white text-lg uppercase italic tracking-tighter mb-6 flex items-center gap-3">
                             <i data-lucide="search" class="w-5 h-5 text-purple-400"></i> Rechercher Cible
                         </h3>
@@ -25,7 +25,7 @@ export const StaffSanctionsView = () => {
                     </div>
 
                     ${target ? `
-                        <!-- TARGET HISTORY (PRE-SANCTION CHECK) -->
+                        <!-- TARGET HISTORY -->
                         <div class="glass-panel p-6 rounded-[32px] border border-white/5 bg-[#0a0a0a] animate-fade-in">
                             <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <i data-lucide="history" class="w-3.5 h-3.5"></i> Antécédents de ${target.username}
@@ -48,13 +48,13 @@ export const StaffSanctionsView = () => {
                                 <img src="${target.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-16 h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
                                 <div class="flex-1 min-w-0">
                                     <div class="font-black text-white text-xl uppercase italic tracking-tighter truncate">${target.username}</div>
-                                    <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest">Nouvelle Sanction</div>
+                                    <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest">Émission Sanction</div>
                                 </div>
                                 <button onclick="actions.clearSanctionTarget()" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
                             </div>
                             <form onsubmit="actions.applySanctionStaff(event)" class="space-y-6">
                                 <div class="space-y-2">
-                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Nature de la Sanction</label>
+                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Nature du Signalement</label>
                                     <div class="grid grid-cols-3 gap-2">
                                         <label class="cursor-pointer">
                                             <input type="radio" name="type" value="warn" checked class="peer sr-only">
@@ -72,12 +72,12 @@ export const StaffSanctionsView = () => {
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Raison (Narration Administrative)</label>
-                                    <textarea name="reason" rows="3" placeholder="Description précise de l'infraction..." class="glass-input w-full p-4 rounded-2xl text-xs italic bg-black/40 border-white/10 focus:bg-black/60" required></textarea>
+                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Raison Officielle</label>
+                                    <textarea name="reason" rows="3" placeholder="Motif précis..." class="glass-input w-full p-4 rounded-2xl text-xs italic bg-black/40 border-white/10" required></textarea>
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Durée (minutes - 0 pour permanent)</label>
+                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Durée (minutes - 0 = permanent)</label>
                                     <input type="number" name="duration" value="0" min="0" class="glass-input w-full p-3 rounded-2xl text-sm font-mono font-bold bg-black/40 border-white/10 text-white">
                                 </div>
 
@@ -89,34 +89,14 @@ export const StaffSanctionsView = () => {
                     ` : `
                         <div class="glass-panel p-12 rounded-[40px] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center opacity-40">
                             <i data-lucide="user-plus" class="w-16 h-16 text-gray-700 mb-4"></i>
-                            <p class="text-xs font-black uppercase tracking-widest">En attente de cible</p>
+                            <p class="text-xs font-black uppercase tracking-widest">Sélectionner une cible pour sanctionner</p>
                         </div>
                     `}
                 </div>
 
-                <!-- RIGHT: REGISTRE DES SANCTIONS -->
-                <div class="lg:col-span-7 space-y-6">
-                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl">
-                        <h3 class="font-black text-white text-sm uppercase tracking-widest mb-6 flex items-center gap-3">
-                            <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i> Protocole Disciplinaire TFRP
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-yellow-500/5 p-4 rounded-2xl border border-yellow-500/20">
-                                <div class="font-black text-yellow-500 text-xs uppercase mb-2">WARNS</div>
-                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Avertissement formel. Documenté et archivé.</p>
-                            </div>
-                            <div class="bg-orange-500/5 p-4 rounded-2xl border border-orange-500/20">
-                                <div class="font-black text-orange-500 text-xs uppercase mb-2">MUTES</div>
-                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Coupure des communications Discord. Durée automatique.</p>
-                            </div>
-                            <div class="bg-red-500/5 p-4 rounded-2xl border border-red-500/20">
-                                <div class="font-black text-red-500 text-xs uppercase mb-2">BANS</div>
-                                <p class="text-[10px] text-gray-500 leading-relaxed font-medium">Expulsion totale des infrastructures TFRP.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col min-h-0 h-[600px] shadow-2xl overflow-hidden">
+                <!-- RIGHT: REGISTRE -->
+                <div class="lg:col-span-7 flex flex-col h-full min-h-0 overflow-hidden">
+                    <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl overflow-hidden relative">
                          <div class="p-6 border-b border-white/5 bg-white/[0.02] shrink-0">
                              <h3 class="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3">
                                 <i data-lucide="history" class="w-5 h-5 text-blue-400"></i> Registre National des Sanctions
