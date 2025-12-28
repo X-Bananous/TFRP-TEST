@@ -13,6 +13,21 @@ export async function getPendingCharactersCount() {
   return error ? 0 : (count || 0);
 }
 
+export async function getTotalCharactersCount() {
+  const { count, error } = await supabase
+    .from("characters")
+    .select("*", { count: 'exact', head: true });
+  return error ? 0 : (count || 0);
+}
+
+export async function getAcceptedCharactersCount() {
+  const { count, error } = await supabase
+    .from("characters")
+    .select("*", { count: 'exact', head: true })
+    .eq("status", "accepted");
+  return error ? 0 : (count || 0);
+}
+
 export async function getOldestPendingCharacter() {
   const { data } = await supabase
     .from("characters")
@@ -29,7 +44,7 @@ export async function getNewValidations() {
     .from("characters")
     .select("*")
     .eq("status", "accepted")
-    .or('is_notified.is.null,is_notified.eq.false');
+    .eq('is_notified', false);
   return data || [];
 }
 

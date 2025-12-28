@@ -3,7 +3,8 @@ import {
   GatewayIntentBits,
   REST,
   Routes,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  ActivityType
 } from "discord.js";
 import { BOT_CONFIG } from "./bot-config.js";
 import { 
@@ -14,7 +15,8 @@ import {
   updateCustomsStatus,
   performGlobalSync,
   handleUnverified,
-  sendVerificationDMs
+  sendVerificationDMs,
+  getSSDComponents
 } from "./bot-services.js";
 
 // Import Command Logic
@@ -36,6 +38,21 @@ const client = new Client({
     GatewayIntentBits.DirectMessages
   ]
 });
+
+let currentStatusIndex = 0;
+async function updateBotStatus() {
+  const ssd = await getSSDComponents();
+  const statuses = [
+    { name: `${ssd.emoji} Douanes : ${ssd.stats.pendingCount} en attente`, type: ActivityType.Watching },
+    { name: `📁 Dossiers : ${ssd.stats.totalCount} total`, type: ActivityType.Listening },
+    { name: `✅ Citoyens : ${ssd.stats.acceptedCount} validés`, type: ActivityType.Playing }
+  ];
+
+  const status = statuses[currentStatusIndex];
+  client.user.setActivity(status.name, { type: status.type });
+  
+  currentStatusIndex = (currentStatusIndex + 1) % statuses.length;
+}
 
 async function runScans() {
   console.log("[Système] Lancement du scan SSD/Sync/Notifs...");
@@ -74,6 +91,9 @@ client.once("ready", async () => {
 
   runScans();
   setInterval(runScans, 60000); 
+  
+  // Cycle de statut toutes les 10 secondes
+  setInterval(updateBotStatus, 10000);
 });
 
 client.on("interactionCreate", async interaction => {

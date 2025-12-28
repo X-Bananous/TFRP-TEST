@@ -63,7 +63,7 @@ export const sanctionnerCommand = {
     // Notification DM
     const dmEmbed = new EmbedBuilder()
       .setTitle("⚠️ Notification de Sanction")
-      .setColor(type === 'ban' ? 0xFF0000 : type === 'mute' ? 0xFFA500 : 0xFFFF00)
+      .setColor(BOT_CONFIG.EMBED_COLOR)
       .setDescription(`Vous avez reçu une sanction administrative sur **Team French Roleplay**.`)
       .addFields(
         { name: "Type", value: type.toUpperCase(), inline: true },
@@ -82,7 +82,7 @@ export const sanctionnerCommand = {
     // Log public/admin
     const logEmbed = new EmbedBuilder()
       .setTitle("📋 Nouvelle Sanction")
-      .setColor(type === 'ban' ? 0xFF0000 : type === 'mute' ? 0xFFA500 : 0xFFFF00)
+      .setColor(BOT_CONFIG.EMBED_COLOR)
       .addFields(
         { name: "Cible", value: `<@${target.id}> (${target.username})`, inline: true },
         { name: "Staff", value: `<@${interaction.user.id}>`, inline: true },

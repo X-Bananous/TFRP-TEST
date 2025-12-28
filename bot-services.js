@@ -8,9 +8,10 @@ import {
 import { BOT_CONFIG } from "./bot-config.js";
 import { 
   getPendingCharactersCount, 
+  getTotalCharactersCount,
+  getAcceptedCharactersCount,
   supabase, 
   updateProfilePermissions,
-  getOldestPendingCharacter,
   getNewValidations,
   getProfile
 } from "./bot-db.js";
@@ -20,6 +21,8 @@ import {
  */
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
+  const totalCount = await getTotalCharactersCount();
+  const acceptedCount = await getAcceptedCharactersCount();
   
   // Heure Paris (FR)
   const parisTime = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
@@ -30,7 +33,6 @@ export async function getSSDComponents() {
   let statusLabel = "Fluide"; 
   let statusEmoji = "🟢";
 
-  // LOGIQUE DE VOLUME (Retrait de la vérification temporelle qui bloquait sur "Ralenti")
   if (hour >= 22 || hour < 8) {
     statusLabel = "Mode Nuit : Réponses peu probables"; 
     statusEmoji = "⚫";
@@ -59,7 +61,9 @@ export async function getSSDComponents() {
       "⚪ **En attente** - Aucun dossier dans la file.\n\n" +
       `*Dernière actualisation : <t:${nowTimestamp}:R>*`)
     .addFields(
-      { name: "Dossiers en attente", value: `**${pendingCount}** fiches citoyennes`, inline: true }
+      { name: "File d'attente", value: `**${pendingCount}** fiches`, inline: true },
+      { name: "Total Dossiers", value: `**${totalCount}** fiches`, inline: true },
+      { name: "Citoyens Validés", value: `**${acceptedCount}** fiches`, inline: true }
     )
     .setTimestamp()
     .setFooter({ text: "Douanes TFRP • Système de Monitoring" });
@@ -68,11 +72,11 @@ export async function getSSDComponents() {
     new ButtonBuilder().setCustomId('btn_reload_ssd').setLabel('Actualiser').setStyle(ButtonStyle.Secondary)
   );
 
-  return { embeds: [embed], components: [row], emoji: statusEmoji };
+  return { embeds: [embed], components: [row], emoji: statusEmoji, stats: { pendingCount, totalCount, acceptedCount } };
 }
 
 /**
- * Envoi des notifications MP pour les nouveaux personnages acceptés
+ * Envoi des notifications pour les nouveaux personnages acceptés (MP + Salon Log)
  */
 export async function sendVerificationDMs(client) {
   const newChars = await getNewValidations();
@@ -85,22 +89,22 @@ export async function sendVerificationDMs(client) {
     userMap[char.user_id].push(char);
   }
 
+  const logChannel = await client.channels.fetch(BOT_CONFIG.LOG_CHANNEL_ID).catch(() => null);
+
   for (const userId of Object.keys(userMap)) {
     try {
       const discordUser = await client.users.fetch(userId).catch(() => null);
-      if (!discordUser) continue;
-
       const chars = userMap[userId];
       const charIds = chars.map(c => c.id);
       
-      // Récupérer le nom du staff (celui du premier perso du groupe, ils sont souvent validés par le même à l'instant T)
       const verifierId = chars[0].verifiedby;
       const staffProfile = verifierId ? await getProfile(verifierId) : null;
       const staffName = staffProfile ? staffProfile.username : "Administration";
+      const timestamp = Math.floor(Date.now() / 1000);
 
       const embed = new EmbedBuilder()
         .setTitle("🎉 Dossier d'Immigration Validé")
-        .setColor(0x00FF00)
+        .setColor(BOT_CONFIG.EMBED_COLOR)
         .setDescription(`Bonne nouvelle <@${userId}>, vos titres de transport et d'identité sont prêts.`)
         .addFields(
           { 
@@ -109,13 +113,21 @@ export async function sendVerificationDMs(client) {
             inline: false 
           },
           { name: "Vérificateur", value: staffName, inline: true },
-          { name: "Date", value: `<t:${Math.floor(Date.now() / 1000)}:f>`, inline: true }
+          { name: "Date", value: `<t:${timestamp}:f>`, inline: true }
         )
         .setFooter({ text: "TFRP • Services de l'Immigration" });
 
-      await discordUser.send({ embeds: [embed] }).catch(() => {
-        console.log(`[Système] Impossible d'envoyer le MP à ${userId} (DM fermés)`);
-      });
+      // Envoi MP
+      if (discordUser) {
+        await discordUser.send({ embeds: [embed] }).catch(() => {
+            console.log(`[Système] Impossible d'envoyer le MP à ${userId} (DM fermés)`);
+        });
+      }
+
+      // Envoi Salon Log
+      if (logChannel) {
+        await logChannel.send({ content: `Notification de validation pour <@${userId}>`, embeds: [embed] });
+      }
 
       // Marquer comme notifié en base
       await supabase
@@ -124,7 +136,7 @@ export async function sendVerificationDMs(client) {
         .in('id', charIds);
 
     } catch (e) {
-      console.error(`[Système] Erreur lors de la notification DM pour ${userId}:`, e);
+      console.error(`[Système] Erreur lors de la notification pour ${userId}:`, e);
     }
   }
 }
@@ -172,27 +184,23 @@ export async function performGlobalSync(client) {
 }
 
 /**
- * Mise à jour du statut d'activité du bot
+ * Mise à jour du statut d'activité du bot (Alternance gérée dans index.js)
  */
 export async function updateCustomsStatus(client) {
   const components = await getSSDComponents();
-  const pendingCount = await getPendingCharactersCount();
   
-  client.user.setActivity({ 
-    name: `${components.emoji} Douanes : ${pendingCount}`, 
-    type: ActivityType.Watching 
-  });
-
   try {
     const channel = await client.channels.fetch(BOT_CONFIG.CUSTOMS_CHANNEL_ID);
     if (!channel) return;
     const messages = await channel.messages.fetch({ limit: 10 });
     const botMsg = messages.find(m => m.author.id === client.user.id && m.embeds[0]?.title?.includes("Douanes"));
     
-    const { emoji, ...payload } = components;
+    const { emoji, stats, ...payload } = components;
     if (botMsg) await botMsg.edit(payload);
     else await channel.send(payload);
   } catch (e) {}
+  
+  return components;
 }
 
 export async function handleUnverified(client, userId) {
