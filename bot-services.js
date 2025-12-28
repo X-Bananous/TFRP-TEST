@@ -16,8 +16,26 @@ import {
   getProfile
 } from "./bot-db.js";
 
+// État local pour la surcharge manuelle (Reset au redémarrage du bot)
+let manualSSDOverride = null;
+
 /**
- * Calcul du statut SSD avec critères de volume uniquement
+ * Configure manuellement le statut du SSD
+ * @param {string|null} status - 'fluide', 'perturbe', 'ralenti', 'nuit' ou null pour auto
+ */
+export function setManualSSD(status) {
+  manualSSDOverride = status;
+}
+
+/**
+ * Récupère le statut manuel actuel
+ */
+export function getManualSSD() {
+  return manualSSDOverride;
+}
+
+/**
+ * Calcul du statut SSD avec critères de volume ou override manuel
  */
 export async function getSSDComponents() {
   const pendingCount = await getPendingCharactersCount();
@@ -33,21 +51,32 @@ export async function getSSDComponents() {
   let statusLabel = "Fluide"; 
   let statusEmoji = "🟢";
 
-  if (hour >= 22 || hour < 8) {
-    statusLabel = "Mode Nuit : Réponses peu probables"; 
-    statusEmoji = "⚫";
-  } else if (pendingCount > 50) {
-    statusLabel = "Ralenti"; 
-    statusEmoji = "🔴";
-  } else if (pendingCount > 25) {
-    statusLabel = "Perturbé"; 
-    statusEmoji = "🟠";
-  } else if (pendingCount > 0) {
-    statusLabel = "Fluide / Fast Checking";
-    statusEmoji = "🟢";
+  // LOGIQUE DE DÉCISION (Priorité à la surcharge manuelle)
+  if (manualSSDOverride) {
+    switch(manualSSDOverride) {
+      case 'fluide': statusLabel = "Fluide (Manuel)"; statusEmoji = "🟢"; break;
+      case 'perturbe': statusLabel = "Perturbé (Manuel)"; statusEmoji = "🟠"; break;
+      case 'ralenti': statusLabel = "Ralenti (Manuel)"; statusEmoji = "🔴"; break;
+      case 'nuit': statusLabel = "Mode Nuit (Manuel)"; statusEmoji = "⚫"; break;
+    }
   } else {
-    statusLabel = "En attente de flux";
-    statusEmoji = "⚪";
+    // Logique automatique
+    if (hour >= 22 || hour < 8) {
+      statusLabel = "Mode Nuit : Réponses peu probables"; 
+      statusEmoji = "⚫";
+    } else if (pendingCount > 50) {
+      statusLabel = "Ralenti"; 
+      statusEmoji = "🔴";
+    } else if (pendingCount > 25) {
+      statusLabel = "Perturbé"; 
+      statusEmoji = "🟠";
+    } else if (pendingCount > 0) {
+      statusLabel = "Fluide / Fast Checking";
+      statusEmoji = "🟢";
+    } else {
+      statusLabel = "En attente de flux";
+      statusEmoji = "⚪";
+    }
   }
 
   const embed = new EmbedBuilder()

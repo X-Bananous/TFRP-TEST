@@ -1,4 +1,3 @@
-
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { BOT_CONFIG } from "../../bot-config.js";
 import { getProfile } from "../../bot-db.js";
@@ -17,16 +16,22 @@ export const aideCommand = {
       .setColor(BOT_CONFIG.EMBED_COLOR)
       .setDescription("Voici les commandes auxquelles vous avez accès sur ce terminal.")
       .addFields(
-        { name: "👤 Citoyen", value: "`/personnages` : Voir vos dossiers\n`/verification` : Synchroniser vos rôles\n`/panel` : Lien vers le site web", inline: false },
-        { name: "🛂 Douanes", value: "`/status` : Voir l'état des services", inline: false }
+        { name: "👤 Citoyen", value: "`/personnages` : Voir vos dossiers\n`/verification` : Synchroniser vos rôles\n`/panel` : Lien vers le site web\n`/sanctions` : Voir votre casier", inline: false },
+        { name: "🛂 Douanes", value: "`/status` : Voir l'état actuel des services", inline: false }
       )
       .setTimestamp()
       .setFooter({ text: "TFRP Support Technique" });
 
-    if (perms.can_use_say || perms.can_use_dm || perms.can_approve_characters) {
+    if (perms.can_use_say || perms.can_use_dm || perms.can_approve_characters || perms.can_warn) {
+      let staffCmds = "`/say` : Faire parler le bot\n`/dm` : Envoyer un message privé\n`/sanctionner` : Appliquer une sanction";
+      
+      if (perms.can_approve_characters) {
+        staffCmds += "\n`/ssd` : Déployer le terminal SSD\n`/ssd_config` : Forcer le statut SSD";
+      }
+
       embed.addFields({ 
         name: "🛡️ Administration (Staff)", 
-        value: "`/ssd` : Déployer le terminal SSD\n`/say` : Faire parler le bot\n`/dm` : Envoyer un message privé", 
+        value: staffCmds, 
         inline: false 
       });
     }

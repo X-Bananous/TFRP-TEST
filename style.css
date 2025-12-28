@@ -66,6 +66,21 @@ body {
     100% { left: 100%; }
 }
 
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 40s linear infinite;
+}
+
+.animate-marquee:hover {
+    animation-play-state: paused;
+}
+
 .animate-loading-bar {
     position: absolute;
     height: 100%;

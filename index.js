@@ -29,6 +29,7 @@ import { aideCommand } from "./bot/commands/aide.js";
 import { panelCommand } from "./bot/commands/panel.js";
 import { sanctionsCommand } from "./bot/commands/sanctions.js";
 import { sanctionnerCommand } from "./bot/commands/sanctionner.js";
+import { ssdConfigCommand } from "./bot/commands/ssd_config.js";
 
 const client = new Client({
   intents: [
@@ -74,7 +75,8 @@ client.once("ready", async () => {
     aideCommand.data.toJSON(),
     panelCommand.data.toJSON(),
     sanctionsCommand.data.toJSON(),
-    sanctionnerCommand.data.toJSON()
+    sanctionnerCommand.data.toJSON(),
+    ssdConfigCommand.data.toJSON()
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -109,6 +111,7 @@ client.on("interactionCreate", async interaction => {
     if (commandName === "panel") return panelCommand.execute(interaction);
     if (commandName === "sanctions") return sanctionsCommand.execute(interaction);
     if (commandName === "sanctionner") return sanctionnerCommand.execute(interaction);
+    if (commandName === "ssd_config") return ssdConfigCommand.execute(interaction, client);
   }
 
   if (interaction.isButton()) {
