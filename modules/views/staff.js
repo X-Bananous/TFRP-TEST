@@ -19,7 +19,7 @@ const refreshBanner = `
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
             </div>
-            <span><span class="font-bold">Protocol Terminal</span> • Unified Control v4.6</span>
+            <span><span class="font-bold">Protocol Terminal</span> • Unified Control v4.6.5</span>
         </div>
         <button onclick="actions.refreshCurrentView()" id="refresh-data-btn" class="text-[10px] font-black uppercase tracking-widest text-purple-400 hover:text-white flex items-center gap-2 transition-colors cursor-pointer whitespace-nowrap">
             <i data-lucide="refresh-cw" class="w-3 h-3"></i> Synchroniser Monde
@@ -52,8 +52,7 @@ export const StaffView = () => {
 
     const isOnDuty = state.onDutyStaff?.some(s => s.id === state.user.id);
     const activeTabId = state.activeStaffTab || 'citizens';
-    let content = '';
-
+    
     const tabMap = {
         citizens: StaffCitizensView,
         economy: StaffEconomyView,
@@ -65,9 +64,9 @@ export const StaffView = () => {
         sanctions: StaffSanctionsView
     };
 
-    content = (tabMap[activeTabId] || StaffCitizensView)();
+    const content = (tabMap[activeTabId] || StaffCitizensView)();
 
-    const tabs = [
+    const allTabs = [
         { id: 'citizens', label: 'Citoyens', icon: 'users', perm: 'can_manage_characters' },
         { id: 'economy', label: 'Éco', icon: 'coins', perm: 'can_manage_economy' },
         { id: 'illegal', label: 'Illégal', icon: 'skull', perm: 'can_manage_illegal' },
@@ -77,6 +76,19 @@ export const StaffView = () => {
         { id: 'sessions', label: 'Sessions', icon: 'server', perm: 'can_launch_session' },
         { id: 'logs', label: 'Logs', icon: 'scroll-text', perm: 'can_execute_commands' }
     ].filter(t => hasPermission(t.perm) || state.user.isFounder || t.id === 'citizens');
+
+    // Gestion de l'overflow des onglets (max 5 visibles en mode normal)
+    const MAX_VISIBLE_TABS = 5;
+    const visibleTabs = allTabs.slice(0, MAX_VISIBLE_TABS);
+    const hiddenTabs = allTabs.slice(MAX_VISIBLE_TABS);
+    const isCurrentInHidden = hiddenTabs.some(t => t.id === activeTabId);
+
+    const renderTab = (t) => `
+        <button onclick="actions.setStaffTab('${t.id}')" 
+            class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all whitespace-nowrap shrink-0 ${activeTabId === t.id ? 'bg-purple-600 text-white shadow-xl shadow-purple-900/30 border-purple-500/30 border' : 'text-gray-500 hover:text-white hover:bg-white/5'}">
+            <i data-lucide="${t.icon}" class="w-4 h-4"></i> ${t.label}
+        </button>
+    `;
 
     return `
         <div class="h-full flex flex-col bg-[#050505] overflow-hidden animate-fade-in relative">
@@ -89,18 +101,31 @@ export const StaffView = () => {
                         Console Staff
                     </h2>
                     <div class="flex items-center gap-3 mt-1">
-                         <span class="text-[10px] text-purple-500/60 font-black uppercase tracking-widest">Protocol OS v4.6.4</span>
+                         <span class="text-[10px] text-purple-500/60 font-black uppercase tracking-widest">Protocol OS v4.6.5</span>
                          <span class="w-1.5 h-1.5 bg-gray-800 rounded-full"></span>
                          <span class="text-[10px] text-gray-600 font-black uppercase tracking-widest">${isOnDuty ? 'En Service Actif' : 'Mode Consultation'}</span>
                     </div>
                 </div>
-                <div class="flex flex-nowrap gap-2 bg-white/5 p-1.5 rounded-2xl overflow-x-auto max-w-full no-scrollbar border border-white/5 shadow-inner">
-                    ${tabs.map(t => `
-                        <button onclick="actions.setStaffTab('${t.id}')" 
-                            class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all whitespace-nowrap shrink-0 ${activeTabId === t.id ? 'bg-purple-600 text-white shadow-xl shadow-purple-900/30 border-purple-500/30 border' : 'text-gray-500 hover:text-white hover:bg-white/5'}">
-                            <i data-lucide="${t.icon}" class="w-4 h-4"></i> ${t.label}
-                        </button>
-                    `).join('')}
+                <div class="flex flex-nowrap items-center gap-2 bg-white/5 p-1.5 rounded-2xl max-w-full border border-white/5 shadow-inner">
+                    <div class="flex gap-2 items-center">
+                        ${visibleTabs.map(t => renderTab(t)).join('')}
+                        
+                        ${hiddenTabs.length > 0 ? `
+                            <div class="relative group h-full flex items-center">
+                                <button class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all whitespace-nowrap shrink-0 ${isCurrentInHidden ? 'bg-purple-900/40 text-purple-400 border border-purple-500/30' : 'text-gray-500 hover:text-white'}">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4"></i> Voir Plus
+                                </button>
+                                <div class="absolute right-0 top-full mt-2 w-48 glass-panel border border-white/10 rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all z-[100] flex flex-col p-2 overflow-hidden">
+                                    ${hiddenTabs.map(t => `
+                                        <button onclick="actions.setStaffTab('${t.id}')" 
+                                            class="w-full text-left px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${activeTabId === t.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}">
+                                            <i data-lucide="${t.icon}" class="w-3.5 h-3.5"></i> ${t.label}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
                     
                     <div class="w-px h-6 bg-white/10 mx-2 self-center"></div>
                     

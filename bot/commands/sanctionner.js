@@ -14,7 +14,8 @@ export const sanctionnerCommand = {
         { name: 'Ban (Serveur/Panel/Jeu)', value: 'ban' }
       ))
     .addStringOption(opt => opt.setName('raison').setDescription('Motif précis de la sanction').setRequired(true))
-    .addIntegerOption(opt => opt.setName('duree').setDescription('Durée en minutes (Laisser vide pour permanent/warn)')),
+    .addIntegerOption(opt => opt.setName('duree').setDescription('Durée en minutes (Laisser vide pour permanent/warn)'))
+    .addBooleanOption(opt => opt.setName('afficher_nom').setDescription('Afficher votre nom au joueur dans le MP ? (Défaut: Non)')),
 
   async execute(interaction) {
     const staffProfile = await getProfile(interaction.user.id);
@@ -22,6 +23,7 @@ export const sanctionnerCommand = {
     const target = interaction.options.getUser('cible');
     const reason = interaction.options.getString('raison');
     const duration = interaction.options.getInteger('duree');
+    const showName = interaction.options.getBoolean('afficher_nom') || false;
 
     // Verification des permissions via profil Supabase (déjà sync avec Discord)
     const perms = staffProfile?.permissions || {};
@@ -30,7 +32,7 @@ export const sanctionnerCommand = {
     if (type === 'mute' && perms.can_mute) hasPerm = true;
     if (type === 'ban' && perms.can_ban) hasPerm = true;
 
-    if (!hasPerm) {
+    if (!hasPerm && !staffProfile?.isFounder) {
       return interaction.reply({ content: "Vous n'avez pas l'accréditation nécessaire pour ce type de sanction.", ephemeral: true });
     }
 
@@ -56,10 +58,6 @@ export const sanctionnerCommand = {
       } catch (e) { console.error("Echec timeout", e); }
     }
 
-    if (type === 'ban') {
-       // Logic ban Discord & ERLC via API (v5 services)
-    }
-
     // Notification DM
     const dmEmbed = new EmbedBuilder()
       .setTitle("⚠️ Notification de Sanction")
@@ -69,8 +67,13 @@ export const sanctionnerCommand = {
         { name: "Type", value: type.toUpperCase(), inline: true },
         { name: "Durée", value: duration ? `${duration} minutes` : "Permanente", inline: true },
         { name: "Raison", value: reason }
-      )
-      .setFooter({ text: "Vous pouvez contester cette sanction une fois par an via votre profil sur le panel." });
+      );
+
+    if (showName) {
+      dmEmbed.addFields({ name: "Émis par", value: interaction.user.username, inline: true });
+    }
+
+    dmEmbed.setFooter({ text: "Vous pouvez contester cette sanction une fois par an via votre profil sur le panel." });
 
     await target.send({ embeds: [dmEmbed] }).catch(() => {});
 

@@ -43,7 +43,7 @@ async function runScans() {
 }
 
 client.once("ready", async () => {
-  console.log(`Bot TFRP v6.4 opérationnel : ${client.user.tag}`);
+  console.log(`Bot TFRP v6.5 opérationnel : ${client.user.tag}`);
 
   const commands = [
     personnagesCommand.data.toJSON(),
@@ -60,11 +60,9 @@ client.once("ready", async () => {
 
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
   try { 
-    console.log("[Système] Déploiement des commandes sur le serveur...");
-    await rest.put(
-      Routes.applicationGuildCommands(client.user.id, BOT_CONFIG.MAIN_SERVER_ID), 
-      { body: commands }
-    );
+    console.log("[Système] Déploiement des commandes (Global uniquement pour éviter les doublons)...");
+    // On ne garde que les commandes Globales. 
+    // Note: La propagation globale peut prendre jusqu'à 1h, mais évite les doublons permanents.
     await rest.put(
       Routes.applicationCommands(client.user.id), 
       { body: commands }
