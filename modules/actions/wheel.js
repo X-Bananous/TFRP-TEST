@@ -87,7 +87,7 @@ export const spinWheel = async () => {
         return;
     }
 
-    // 1. Déterminer le gagnant immédiatement
+    // 1. Déterminer le gagnant immédiatement et le stocker de façon immuable pour ce spin
     const totalWeight = WHEEL_REWARDS.reduce((acc, r) => acc + r.weight, 0);
     let randomVal = Math.random() * totalWeight;
     let winner = WHEEL_REWARDS[0];
@@ -99,8 +99,9 @@ export const spinWheel = async () => {
         }
     }
 
-    // Capture locale du gagnant pour éviter les bugs de closure
+    // SÉCURITÉ : Capture du gagnant dans une constante locale pour la durée du timeout
     const currentWinner = { ...winner };
+    state.lastWheelWinner = currentWinner; // Pour référence globale si besoin
 
     // 2. Construire la liste de tirage (Index 80 est le gagnant)
     const stripItems = [];
@@ -138,9 +139,7 @@ export const spinWheel = async () => {
                     return;
                 }
                 
-                // Calcul de l'index approximatif actuel
                 const progress = elapsed / 8500;
-                // Formule simple pour ralentir les ticks avec le temps
                 const easeOut = 1 - Math.pow(1 - progress, 3);
                 const currentX = targetX * easeOut;
                 const currentIdx = Math.floor(currentX / SLOT_WIDTH);
@@ -153,13 +152,16 @@ export const spinWheel = async () => {
         }
     }, 50);
 
-    // 4. Attribution
+    // 4. Attribution du gain (Utilisation forcée de currentWinner)
     setTimeout(async () => {
         SoundEngine.success();
+        
+        // Déduction de la clé
         const newTurns = currentTurns - 1;
         await state.supabase.from('profiles').update({ whell_turn: newTurns }).eq('id', state.user.id);
         state.user.whell_turn = newTurns;
 
+        // On déclenche la réclamation avec l'objet gagnant capturé au début
         if (currentWinner.type === 'money') {
             showCharacterChoiceModal(currentWinner);
         } else {

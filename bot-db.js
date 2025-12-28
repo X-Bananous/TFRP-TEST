@@ -5,6 +5,21 @@ export const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
+export async function addWheelKey(userId, amount = 1) {
+  // Récupérer le profil actuel ou le créer s'il n'existe pas
+  const { data: profile } = await supabase.from('profiles').select('whell_turn').eq('id', userId).maybeSingle();
+  
+  const currentTurns = profile?.whell_turn || 0;
+  const newTurns = currentTurns + amount;
+
+  return await supabase.from('profiles').upsert({ 
+    id: userId, 
+    whell_turn: newTurns,
+    isnotified_wheel: false,
+    updated_at: new Date()
+  }, { onConflict: 'id' });
+}
+
 export async function getPendingCharactersCount() {
   const { count, error } = await supabase
     .from("characters")
@@ -69,7 +84,7 @@ export async function getProfile(profileId) {
 }
 
 export async function updateProfilePermissions(profileId, permissions) {
-  return await supabase.from("profiles").update({ permissions }).eq("id", profileId);
+  return await supabase.from("profiles").update({ permissions }).eq('id', profileId);
 }
 
 // SANCTIONS DB LOGIC

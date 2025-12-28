@@ -313,6 +313,7 @@ export const sealCase = async (reportId) => {
         `,
         confirmText: "Sceller l'affaire",
         onConfirm: async () => {
+            // FIX CRITIQUE : Mise à jour forcée de is_closed
             const { error } = await state.supabase
                 .from('police_reports')
                 .update({ is_closed: true })
@@ -320,7 +321,23 @@ export const sealCase = async (reportId) => {
 
             if(!error) {
                 ui.showToast("Dossier scellé et archivé.", 'success');
-                // Synchronisation forcée des états locaux
+                
+                // Rafraîchir le state local immédiatement pour éviter l'actualisation page
+                if (state.globalReports) {
+                    const reportIdx = state.globalReports.findIndex(r => r.id === reportId);
+                    if (reportIdx !== -1) {
+                        state.globalReports[reportIdx].is_closed = true;
+                    }
+                }
+                
+                if (state.policeReports) {
+                    const reportIdx = state.policeReports.findIndex(r => r.id === reportId);
+                    if (reportIdx !== -1) {
+                        state.policeReports[reportIdx].is_closed = true;
+                    }
+                }
+
+                // Synchronisation secondaire
                 await services.fetchAllReports();
                 if (state.dossierTarget) {
                     await services.fetchCharacterReports(state.dossierTarget.id);
