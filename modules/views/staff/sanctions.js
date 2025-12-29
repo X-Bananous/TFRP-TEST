@@ -7,14 +7,14 @@ export const StaffSanctionsView = () => {
     const targetHistory = state.activeSanctionTargetHistory || [];
 
     return `
-        <div class="h-full flex flex-col gap-8 animate-fade-in overflow-y-auto custom-scrollbar pr-2 pb-20">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-0">
+        <div class="h-full flex flex-col gap-6 md:gap-8 animate-fade-in overflow-y-auto md:overflow-hidden custom-scrollbar pr-0 md:pr-2 pb-20 md:pb-0">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 min-h-0 h-full">
                 
-                <!-- LEFT: SEARCH & TARGET -->
-                <div class="lg:col-span-5 flex flex-col gap-6">
-                    <!-- On garde le no-overflow-clipping UNIQUEMENT sur le conteneur du dropdown pour éviter les coupures -->
-                    <div class="glass-panel p-8 rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative no-overflow-clipping">
-                        <h3 class="font-black text-white text-lg uppercase italic tracking-tighter mb-6 flex items-center gap-3">
+                <!-- LEFT: SEARCH & TARGET (Scrollable on mobile) -->
+                <div class="lg:col-span-5 flex flex-col gap-6 h-fit md:h-full md:overflow-y-auto custom-scrollbar">
+                    
+                    <div class="glass-panel p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative no-overflow-clipping">
+                        <h3 class="font-black text-white text-base md:text-lg uppercase italic tracking-tighter mb-6 flex items-center gap-3">
                             <i data-lucide="search" class="w-5 h-5 text-purple-400"></i> Rechercher Cible
                         </h3>
                         <div class="relative z-[100]">
@@ -36,7 +36,7 @@ export const StaffSanctionsView = () => {
                                     <div class="p-2 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center">
                                         <div class="flex items-center gap-2">
                                             <span class="text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${s.type === 'ban' ? 'bg-red-600' : s.type === 'mute' ? 'bg-orange-600' : 'bg-yellow-600'} text-white">${s.type}</span>
-                                            <span class="text-[9px] text-gray-400 font-medium truncate max-w-[120px]">"${s.reason}"</span>
+                                            <span class="text-[9px] text-gray-400 font-medium truncate max-w-[100px] md:max-w-[120px]">"${s.reason}"</span>
                                         </div>
                                         <span class="text-[8px] text-gray-600 font-mono">${new Date(s.created_at).toLocaleDateString()}</span>
                                     </div>
@@ -44,14 +44,14 @@ export const StaffSanctionsView = () => {
                             </div>
                         </div>
 
-                        <div class="glass-panel p-8 rounded-[40px] border border-purple-500/30 bg-purple-950/[0.02] shadow-xl animate-slide-up">
-                            <div class="flex items-center gap-6 mb-8">
-                                <img src="${target.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-16 h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
+                        <div class="glass-panel p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-purple-500/30 bg-purple-950/[0.02] shadow-xl animate-slide-up">
+                            <div class="flex items-center gap-4 md:gap-6 mb-8">
+                                <img src="${target.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-12 h-12 md:w-16 md:h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-black text-white text-xl uppercase italic tracking-tighter truncate">${target.username}</div>
+                                    <div class="font-black text-white text-lg md:text-xl uppercase italic tracking-tighter truncate">${target.username}</div>
                                     <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest">Émission Sanction</div>
                                 </div>
-                                <button onclick="actions.clearSanctionTarget()" class="text-gray-600 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
+                                <button onclick="actions.clearSanctionTarget()" class="text-gray-600 hover:text-white transition-colors p-2"><i data-lucide="x" class="w-6 h-6"></i></button>
                             </div>
                             <form onsubmit="actions.applySanctionStaff(event)" class="space-y-6">
                                 <div class="space-y-2">
@@ -59,15 +59,15 @@ export const StaffSanctionsView = () => {
                                     <div class="grid grid-cols-3 gap-2">
                                         <label class="cursor-pointer">
                                             <input type="radio" name="type" value="warn" checked class="peer sr-only">
-                                            <div class="py-3 text-center rounded-xl bg-white/5 text-gray-500 peer-checked:bg-yellow-600/20 peer-checked:text-yellow-400 peer-checked:border peer-checked:border-yellow-500/50 transition-all font-black text-[10px] uppercase">WARN</div>
+                                            <div class="py-3 text-center rounded-xl bg-white/5 text-gray-500 peer-checked:bg-yellow-600/20 peer-checked:text-yellow-400 peer-checked:border peer-checked:border-yellow-500/50 transition-all font-black text-[9px] md:text-[10px] uppercase">WARN</div>
                                         </label>
                                         <label class="cursor-pointer">
                                             <input type="radio" name="type" value="mute" class="peer sr-only">
-                                            <div class="py-3 text-center rounded-xl bg-white/5 text-gray-500 peer-checked:bg-orange-600/20 peer-checked:text-orange-400 peer-checked:border peer-checked:border-orange-500/50 transition-all font-black text-[10px] uppercase">MUTE</div>
+                                            <div class="py-3 text-center rounded-xl bg-white/5 text-gray-500 peer-checked:bg-orange-600/20 peer-checked:text-orange-400 peer-checked:border peer-checked:border-orange-500/50 transition-all font-black text-[9px] md:text-[10px] uppercase">MUTE</div>
                                         </label>
                                         <label class="cursor-pointer">
                                             <input type="radio" name="type" value="ban" class="peer sr-only">
-                                            <div class="py-3 text-center rounded-xl bg-white/5 text-gray-500 peer-checked:bg-red-600/20 peer-checked:text-red-400 peer-checked:border peer-checked:border-red-500/50 transition-all font-black text-[10px] uppercase">BAN</div>
+                                            <div class="py-3 text-center rounded-xl bg-white/5 text-gray-500 peer-checked:bg-red-600/20 peer-checked:text-red-400 peer-checked:border peer-checked:border-red-500/50 transition-all font-black text-[9px] md:text-[10px] uppercase">BAN</div>
                                         </label>
                                     </div>
                                 </div>
@@ -78,32 +78,32 @@ export const StaffSanctionsView = () => {
                                 </div>
 
                                 <div class="space-y-2">
-                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Durée (minutes - 0 = permanent)</label>
+                                    <label class="text-[9px] text-gray-600 font-black uppercase tracking-widest ml-1">Durée (minutes)</label>
                                     <input type="number" name="duration" value="0" min="0" class="glass-input w-full p-3 rounded-2xl text-sm font-mono font-bold bg-black/40 border-white/10 text-white">
                                 </div>
 
-                                <button type="submit" class="glass-btn w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.3em] bg-red-600 hover:bg-red-500 shadow-xl shadow-red-900/30 transition-all transform active:scale-95">
+                                <button type="submit" class="glass-btn w-full py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-[0.3em] bg-red-600 hover:bg-red-500 shadow-xl shadow-red-900/30 transition-all transform active:scale-95">
                                     APPLIQUER LA PUNITION
                                 </button>
                             </form>
                         </div>
                     ` : `
-                        <div class="glass-panel p-12 rounded-[40px] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center opacity-40">
-                            <i data-lucide="user-plus" class="w-16 h-16 text-gray-700 mb-4"></i>
-                            <p class="text-xs font-black uppercase tracking-widest">Sélectionner une cible pour sanctionner</p>
+                        <div class="glass-panel p-10 md:p-12 rounded-[32px] md:rounded-[40px] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center opacity-40">
+                            <i data-lucide="user-plus" class="w-12 md:w-16 h-12 md:h-16 text-gray-700 mb-4"></i>
+                            <p class="text-[10px] md:text-xs font-black uppercase tracking-widest">Sélectionner une cible pour sanctionner</p>
                         </div>
                     `}
                 </div>
 
-                <!-- RIGHT: REGISTRE -->
-                <div class="lg:col-span-7 flex flex-col min-h-0">
-                    <div class="glass-panel rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl overflow-hidden relative">
+                <!-- RIGHT: REGISTRE (Flexible height) -->
+                <div class="lg:col-span-7 flex flex-col h-[500px] md:h-full min-h-0">
+                    <div class="glass-panel rounded-[32px] md:rounded-[40px] border border-white/5 bg-[#0a0a0a] flex flex-col h-full shadow-2xl overflow-hidden relative">
                          <div class="p-6 border-b border-white/5 bg-white/[0.02] shrink-0">
-                             <h3 class="font-black text-white text-sm uppercase tracking-widest flex items-center gap-3">
+                             <h3 class="font-black text-white text-xs md:text-sm uppercase tracking-widest flex items-center gap-3">
                                 <i data-lucide="history" class="w-5 h-5 text-blue-400"></i> Registre National des Sanctions
                             </h3>
                          </div>
-                        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-4">
                             ${globalSanctions.length === 0 ? `
                                 <div class="h-full flex flex-col items-center justify-center opacity-20 text-center py-20">
                                     <i data-lucide="shield-check" class="w-16 h-16 mb-4"></i>
@@ -123,12 +123,12 @@ export const StaffSanctionsView = () => {
                                                 </div>
                                             </div>
                                             ${canRevoke ? `
-                                                <button onclick="actions.revokeSanction('${s.id}')" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all" title="Annuler Sanction">
+                                                <button onclick="actions.revokeSanction('${s.id}')" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg md:opacity-0 group-hover:opacity-100 transition-all" title="Annuler Sanction">
                                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                 </button>
                                             ` : ''}
                                         </div>
-                                        <div class="text-[11px] text-gray-400 italic bg-black/40 p-2 rounded-xl border border-white/5">"${s.reason}"</div>
+                                        <div class="text-[10px] md:text-[11px] text-gray-400 italic bg-black/40 p-3 rounded-xl border border-white/5">"${s.reason}"</div>
                                     </div>
                                 `;
                             }).join('')}
