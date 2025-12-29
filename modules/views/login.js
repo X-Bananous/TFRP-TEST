@@ -32,9 +32,9 @@ export const LoginView = () => {
         const color = { online: 'bg-emerald-500', idle: 'bg-amber-500', dnd: 'bg-red-500', offline: 'bg-zinc-600' }[status];
         return `
             <div class="glass-panel w-64 md:w-72 p-3 md:p-4 rounded-2xl md:rounded-3xl flex items-center gap-4 md:gap-5 border border-white/5 bg-white/[0.01] shrink-0 hover:border-blue-500/20 transition-all">
-                <div class="relative w-12 h-12 md:w-14 md:h-14 shrink-0">
+                <div class="relative w-12 h-12 md:w-14 h-14 shrink-0">
                     <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-xl md:rounded-2xl object-cover border border-white/10 shadow-lg">
-                    <div class="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 rounded-full ${color} border-2 border-black"></div>
+                    <div class="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 h-4 rounded-full ${color} border-2 border-black"></div>
                 </div>
                 <div class="min-w-0">
                     <div class="font-black text-white text-xs md:text-sm truncate uppercase italic tracking-tight">${s.username}</div>
@@ -183,6 +183,56 @@ export const LoginView = () => {
                         <a href="${CONFIG.INVITE_URL}" target="_blank" class="text-[9px] md:text-[10px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors">Support</a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    `;
+};
+
+export const AccessDeniedView = () => `
+    <div class="flex-1 flex items-center justify-center p-6 bg-[#050505] text-center h-full">
+        <div class="glass-panel max-w-md p-10 rounded-[40px] border-red-500/20 shadow-2xl relative overflow-hidden">
+            <div class="w-20 h-20 bg-red-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 text-red-500 border border-red-500/20">
+                <i data-lucide="shield-alert" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white mb-4 uppercase italic tracking-tighter">Accès Refusé</h2>
+            <p class="text-gray-400 mb-10 leading-relaxed font-medium text-sm">Votre identité Discord n'est pas répertoriée sur le serveur officiel Team French RolePlay.</p>
+            <div class="flex flex-col gap-4">
+                <a href="${CONFIG.INVITE_URL}" target="_blank" class="glass-btn w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-red-600 hover:bg-red-500">Rejoindre le Discord</a>
+                <button onclick="actions.logout()" class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] hover:text-white transition-colors">Déconnexion</button>
+            </div>
+        </div>
+    </div>
+`;
+
+export const DeletionPendingView = () => {
+    const u = state.user;
+    const deletionDate = u.deletion_requested_at ? new Date(u.deletion_requested_at) : null;
+    let timeRemainingStr = "Calcul...";
+    if (deletionDate) {
+        const expiry = new Date(deletionDate.getTime() + (3 * 24 * 60 * 60 * 1000));
+        const diff = expiry - new Date();
+        if (diff > 0) {
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            timeRemainingStr = `${d}j ${h}h`;
+        } else { timeRemainingStr = "Imminente"; }
+    }
+
+    return `
+    <div class="flex-1 flex items-center justify-center p-6 bg-[#050505] text-center h-full">
+        <div class="glass-panel max-w-md p-10 rounded-[40px] border-orange-500/30 shadow-2xl">
+            <div class="w-20 h-20 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 text-orange-500 border border-orange-500/20">
+                <i data-lucide="trash-2" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">Purge Active</h2>
+            <p class="text-gray-400 mb-8 text-sm font-medium leading-relaxed">Votre dossier sera définitivement effacé du cluster TFRP dans :</p>
+            <div class="bg-black/40 p-6 rounded-[24px] border border-orange-500/30 mb-10">
+                <div class="text-4xl font-mono font-black text-white tracking-tighter">${timeRemainingStr}</div>
+            </div>
+            <div class="flex flex-col gap-4">
+                <button onclick="actions.cancelDataDeletion()" class="glass-btn w-full py-4 rounded-2xl font-black text-xs uppercase bg-white text-black">ANNULER LA PROCÉDURE</button>
+                <button onclick="actions.logout()" class="text-[10px] font-black text-gray-600 uppercase hover:text-white transition-colors">Sortie temporaire</button>
             </div>
         </div>
     </div>

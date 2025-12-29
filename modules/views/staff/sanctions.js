@@ -13,7 +13,7 @@ export const StaffSanctionsView = () => {
                 <!-- LEFT: SEARCH & TARGET (Scrollable on mobile) -->
                 <div class="lg:col-span-5 flex flex-col gap-6 h-fit md:h-full md:overflow-y-auto custom-scrollbar">
                     
-                    <div class="glass-panel p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative no-overflow-clipping">
+                    <div class="glass-panel p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-white/5 bg-[#0a0a0a] shadow-2xl relative no-overflow-clipping shrink-0">
                         <h3 class="font-black text-white text-base md:text-lg uppercase italic tracking-tighter mb-6 flex items-center gap-3">
                             <i data-lucide="search" class="w-5 h-5 text-purple-400"></i> Rechercher Cible
                         </h3>
@@ -27,7 +27,7 @@ export const StaffSanctionsView = () => {
 
                     ${target ? `
                         <!-- TARGET HISTORY -->
-                        <div class="glass-panel p-6 rounded-[32px] border border-white/5 bg-[#0a0a0a] animate-fade-in">
+                        <div class="glass-panel p-6 rounded-[32px] border border-white/5 bg-[#0a0a0a] animate-fade-in shrink-0">
                             <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <i data-lucide="history" class="w-3.5 h-3.5"></i> Antécédents de ${target.username}
                             </h4>
@@ -44,7 +44,7 @@ export const StaffSanctionsView = () => {
                             </div>
                         </div>
 
-                        <div class="glass-panel p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-purple-500/30 bg-purple-950/[0.02] shadow-xl animate-slide-up">
+                        <div class="glass-panel p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-purple-500/30 bg-purple-950/[0.02] shadow-xl animate-slide-up shrink-0">
                             <div class="flex items-center gap-4 md:gap-6 mb-8">
                                 <img src="${target.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-12 h-12 md:w-16 md:h-16 rounded-2xl border-2 border-purple-500/50 shadow-2xl">
                                 <div class="flex-1 min-w-0">
@@ -88,7 +88,7 @@ export const StaffSanctionsView = () => {
                             </form>
                         </div>
                     ` : `
-                        <div class="glass-panel p-10 md:p-12 rounded-[32px] md:rounded-[40px] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center opacity-40">
+                        <div class="glass-panel p-10 md:p-12 rounded-[32px] md:rounded-[40px] border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center text-center opacity-40 shrink-0">
                             <i data-lucide="user-plus" class="w-12 md:w-16 h-12 md:h-16 text-gray-700 mb-4"></i>
                             <p class="text-[10px] md:text-xs font-black uppercase tracking-widest">Sélectionner une cible pour sanctionner</p>
                         </div>

@@ -68,7 +68,7 @@ export const CharacterSelectView = () => {
         }
 
         return `
-            <div class="glass-panel group p-6 md:p-8 rounded-[40px] md:rounded-[48px] w-full max-w-md relative overflow-hidden flex flex-col h-[480px] md:h-[460px] border border-white/5 hover:border-blue-500/30 transition-all duration-500 shadow-2xl bg-gradient-to-br from-[#0c0c0e] via-black to-black">
+            <div class="glass-panel group p-6 md:p-8 rounded-[40px] md:rounded-[48px] w-full max-w-md relative overflow-hidden flex flex-col h-[480px] md:h-[460px] border border-white/5 hover:border-blue-500/30 transition-all duration-500 shadow-2xl bg-gradient-to-br from-[#0c0c0e] via-black to-black mx-auto">
                 <div class="absolute -right-10 -top-10 w-48 h-48 bg-blue-500/5 rounded-full blur-[80px] group-hover:bg-blue-500/10 transition-all duration-700"></div>
                 
                 <div class="flex justify-between items-start mb-10 relative z-10">
@@ -111,7 +111,7 @@ export const CharacterSelectView = () => {
     }).join('');
 
     const founderHtml = isFounder ? `
-        <div class="glass-panel group p-6 md:p-8 rounded-[40px] md:rounded-[48px] w-full max-w-md relative overflow-hidden flex flex-col h-[480px] md:h-[460px] border border-purple-500/30 hover:border-purple-500/60 transition-all duration-500 shadow-2xl bg-gradient-to-br from-purple-900/20 via-black to-black">
+        <div class="glass-panel group p-6 md:p-8 rounded-[40px] md:rounded-[48px] w-full max-w-md relative overflow-hidden flex flex-col h-[480px] md:h-[460px] border border-purple-500/30 hover:border-purple-500/60 transition-all duration-500 shadow-2xl bg-gradient-to-br from-purple-900/20 via-black to-black mx-auto">
             <div class="absolute -right-10 -top-10 w-48 h-48 bg-purple-500/10 rounded-full blur-[80px] group-hover:bg-purple-500/20 transition-all duration-700"></div>
             
             <div class="flex justify-between items-start mb-10 relative z-10">
@@ -180,7 +180,7 @@ export const CharacterSelectView = () => {
                     ${founderHtml}
                     ${charsHtml}
                     ${state.characters.length < CONFIG.MAX_CHARS ? `
-                        <button onclick="actions.goToCreate()" class="group w-full max-w-md h-[480px] md:h-[460px] rounded-[40px] md:rounded-[48px] border-2 border-dashed border-white/10 hover:border-blue-500/40 hover:bg-blue-500/[0.02] flex flex-col items-center justify-center transition-all duration-500 relative overflow-hidden">
+                        <button onclick="actions.goToCreate()" class="group w-full max-w-md h-[480px] md:h-[460px] rounded-[40px] md:rounded-[48px] border-2 border-dashed border-white/10 hover:border-blue-500/40 hover:bg-blue-500/[0.02] flex flex-col items-center justify-center transition-all duration-500 relative overflow-hidden mx-auto">
                             <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.03),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             <div class="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-white/5 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all border border-white/5 group-hover:border-blue-400 shadow-2xl">
                                 <i data-lucide="plus" class="w-10 h-10"></i>

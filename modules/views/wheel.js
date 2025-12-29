@@ -91,7 +91,6 @@ export const WheelView = () => {
             </div>
         </div>
 
-        <!-- FOOTER INFO MOBILE HIDE -->
         <div class="fixed bottom-6 left-6 md:bottom-10 md:left-10 opacity-30 flex items-center gap-4 hidden sm:flex">
             <i data-lucide="shield-check" class="w-6 h-6 text-blue-500"></i>
             <div class="text-[8px] md:text-[9px] text-gray-500 font-mono uppercase tracking-[0.3em] leading-relaxed">
