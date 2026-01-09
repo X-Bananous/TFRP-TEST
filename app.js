@@ -396,35 +396,40 @@ const handleAuthenticatedSession = async (session) => {
         if (!supabaseUser) throw new Error("Supabase user not found");
 
         const discordUser = supabaseUser.user_metadata;
+        // CRUCIAL : On récupère l'ID Discord Snowflake (provider_id) et non le UUID Supabase
+        const discordId = discordUser.provider_id || discordUser.sub;
+        
+        if (!discordId) throw new Error("Impossible de résoudre l'ID Discord.");
+
         updateLoadStatus(`Vérification des droits de ${discordUser.full_name || discordUser.username}...`);
         
-        // Profiles upsert
+        // Profiles upsert avec l'ID Discord correct
         await state.supabase.from('profiles').upsert({ 
-            id: supabaseUser.id, 
+            id: discordId, 
             username: discordUser.full_name || discordUser.username, 
             avatar_url: discordUser.avatar_url, 
             updated_at: new Date() 
         });
 
-        const { data: profile } = await state.supabase.from('profiles').select('*').eq('id', supabaseUser.id).maybeSingle();
+        const { data: profile } = await state.supabase.from('profiles').select('*').eq('id', discordId).maybeSingle();
         
         // CHECK BANS
         let isBanned = false;
         try {
-            const { data: bans } = await state.supabase.from('sanctions').select('id').eq('user_id', supabaseUser.id).eq('type', 'ban').or('expires_at.is.null,expires_at.gt.now()');
+            const { data: bans } = await state.supabase.from('sanctions').select('id').eq('user_id', discordId).eq('type', 'ban').or('expires_at.is.null,expires_at.gt.now()');
             isBanned = bans && bans.length > 0;
         } catch(e) {}
 
         state.user = { 
-            id: supabaseUser.id, 
+            id: discordId, 
             username: discordUser.full_name || discordUser.username, 
             avatar: discordUser.avatar_url, 
             permissions: profile?.permissions || {}, 
             deletion_requested_at: profile?.deletion_requested_at || null, 
             whell_turn: profile?.whell_turn || 0,
-            isFounder: state.adminIds.includes(supabaseUser.id), 
+            isFounder: state.adminIds.includes(discordId), 
             isBanned: isBanned,
-            guilds: [] // Guilds will be checked by Discord API if needed for restriction
+            guilds: [] 
         };
         
         appEl.classList.add('opacity-0', 'pointer-events-none');
