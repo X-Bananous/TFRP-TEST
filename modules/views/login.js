@@ -189,7 +189,7 @@ export const LoginView = () => {
                 <div class="mt-40 pt-16 border-t border-white/5 w-full max-w-6xl flex flex-col md:flex-row justify-between items-center gap-8">
                     <div class="text-center md:text-left">
                         <div class="text-xs font-black text-gray-400 uppercase tracking-widest">&copy; 2025 Team French RolePlay</div>
-                        <div class="text-[9px] text-gray-700 uppercase font-bold tracking-[0.2em] mt-1">Plateforme Développée par Bananous • Version 5.0.0 Stable</div>
+                        <div class="text-[9px] text-gray-700 uppercase font-bold tracking-[0.2em] mt-1">Plateforme Développée par MatMat • Version 5.0.0 Stable</div>
                     </div>
                     <div class="flex gap-8">
                         <button onclick="router('terms')" class="text-[10px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors">CGU</button>
