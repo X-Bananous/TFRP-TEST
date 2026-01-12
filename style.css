@@ -1,176 +1,134 @@
 /* Reset & Fonts */
 :root {
-    --glass-bg: rgba(12, 12, 14, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-highlight: rgba(255, 255, 255, 0.05);
-    --apple-blue: #0A84FF;
-    --apple-blue-hover: #0077ED;
+    --bg-main: #000000;
+    --bg-card: #0A0A0A;
+    --accent: #0062FF;
+    --accent-glow: rgba(0, 98, 255, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --text-muted: #888888;
+    --gov-blue: #000091;
+    --gov-red: #E1000F;
 }
 
 body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: #000;
-    color: #F5F5F7;
+    background-color: var(--bg-main);
+    color: #FFFFFF;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
-/* Intro Cinematic System */
-.intro-text {
-    opacity: 0 !important;
-    transform: scale(0.9) translateY(20px);
-    filter: blur(20px);
-    transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), 
-                transform 2s cubic-bezier(0.16, 1, 0.3, 1), 
-                filter 1.5s ease-out;
-    pointer-events: none;
+/* Style Institutionnel */
+.gov-border-top {
+    border-top: 4px solid var(--gov-blue);
 }
 
-.intro-text.active {
-    opacity: 1 !important;
-    transform: scale(1) translateY(0);
-    filter: blur(0px);
+.gov-card {
+    background: #ffffff;
+    color: #161616;
+    border: 1px solid #e5e5e5;
+    transition: all 0.2s ease;
 }
 
-#intro-screen {
-    background: radial-gradient(circle at center, #0a0a0a 0%, #000 100%);
-    overflow: hidden;
+.gov-card:hover {
+    background: #f6f6f6;
+    border-color: var(--gov-blue);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 0px;
-    background: transparent;
+.dark .gov-card {
+    background: #1a1a1a;
+    color: #ffffff;
+    border-color: #333;
 }
-.custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
+
+.dark .gov-card:hover {
+    background: #252525;
+    border-color: var(--accent);
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+
+/* Glassmorphism subtil Melony */
+.melony-glass {
+    background: rgba(10, 10, 10, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+}
+
+.melony-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.melony-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
 }
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.98); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+.animate-melony {
+    animation: fadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-@keyframes loading-bar {
-    0% { left: -100%; }
-    100% { left: 100%; }
+/* Scrollbar Melony style */
+::-webkit-scrollbar {
+    width: 4px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+    background: #222;
+    border-radius: 10px;
 }
 
-@keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+/* Gradients textuels */
+.text-gradient {
+    background: linear-gradient(180deg, #FFFFFF 0%, #AAAAAA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.animate-marquee {
-    display: flex;
-    flex-wrap: nowrap;
-    width: max-content;
-    animation: marquee 30s linear infinite;
+/* Responsivité du marquee */
+.marquee-container {
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
 }
 
-.animate-marquee:hover {
-    animation-play-state: paused;
-}
-
-.animate-loading-bar {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-    animation: loading-bar 1.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
-.animate-lootbox-idle {
-    animation: lootbox-idle 40s linear infinite;
-}
-
-@keyframes lootbox-idle {
-    from { transform: translateX(0); }
-    to { transform: translateX(-1600px); }
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-
-/* Glassmorphism */
-.glass-panel {
-    background: var(--glass-bg);
-    backdrop-filter: saturate(180%) blur(40px);
-    -webkit-backdrop-filter: saturate(180%) blur(40px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
-
-.glass-input {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--glass-border);
-    color: white;
-    transition: all 0.2s;
-    backdrop-filter: blur(10px);
-}
-
-.glass-input:focus {
-    background: rgba(0, 0, 0, 0.5);
-    border-color: var(--apple-blue);
-    outline: none;
-}
-
-.glass-btn {
-    background: var(--apple-blue);
-    color: white;
-    border: none;
+/* Boutons Melony */
+.btn-melony-primary {
+    background: #FFFFFF;
+    color: #000000;
+    font-weight: 700;
     transition: all 0.2s ease;
 }
 
-.glass-btn:hover:not(:disabled) {
-    background: var(--apple-blue-hover);
+.btn-melony-primary:hover {
+    background: #DDDDDD;
     transform: scale(1.02);
 }
 
-.glass-btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+.btn-melony-discord {
+    background: #5865F2;
+    color: #FFFFFF;
+    font-weight: 700;
 }
 
-/* Toast Container */
-#toast-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.animate-toast {
-    animation: slideUp 0.3s ease-out forwards;
-}
-
-.cursor-wait { cursor: wait !important; }
-
-.text-glow {
-    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-}
-
+/* Masquer la scrollbar pour certains éléments */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
 
-/* Fix Autocomplete Clipping */
-.no-overflow-clipping {
-    overflow: visible !important;
+/* Logo Gouvernement Simulation */
+.gov-logo-block {
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #fff;
+    padding-left: 12px;
+    line-height: 1;
 }

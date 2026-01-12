@@ -3,182 +3,192 @@ import { state } from '../state.js';
 import { router } from '../utils.js';
 
 export const LoginView = () => {
-    const EXCLUDED_ID = '1449442051904245812';
-    const validStaff = state.landingStaff.filter(s => s.id !== EXCLUDED_ID);
+    const validStaff = state.landingStaff.filter(s => s.id !== '1449442051904245812');
     const founders = validStaff.filter(s => state.adminIds.includes(s.id));
     const others = validStaff.filter(s => !state.adminIds.includes(s.id));
     const staffCarouselItems = others.length > 0 ? [...others, ...others, ...others] : [];
 
+    // Live Data
+    const tva = state.economyConfig?.tva_tax || 0;
+    const activeHeists = state.globalActiveHeists?.length || 0;
+    const population = state.erlcData?.currentPlayers || 0;
+    const maxPop = state.erlcData?.maxPlayers || 42;
+
     const renderFounderCard = (s) => {
         const status = state.discordStatuses[s.id] || 'offline';
-        const color = { online: 'bg-emerald-500', idle: 'bg-amber-500', dnd: 'bg-red-500', offline: 'bg-zinc-600' }[status];
+        const statusColor = { online: 'bg-green-500', idle: 'bg-yellow-500', dnd: 'bg-red-500', offline: 'bg-zinc-600' }[status];
         return `
-            <div class="glass-panel p-8 rounded-[40px] flex flex-col items-center border border-amber-500/20 bg-amber-500/[0.03] relative overflow-hidden group w-64 hover:border-amber-500/40 transition-all duration-500 shadow-2xl">
-                <div class="absolute inset-0 bg-gradient-to-b from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <div class="w-24 h-24 rounded-[32px] border-2 border-amber-500/30 p-1.5 mb-6 relative z-10 shadow-[0_0_40px_rgba(245,158,11,0.15)] group-hover:scale-105 transition-transform duration-500">
-                    <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-[26px] object-cover">
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${color} border-4 border-[#050505]" title="Discord Status"></div>
+            <div class="melony-card p-6 md:p-8 rounded-[32px] flex flex-col items-center w-full sm:w-64">
+                <div class="relative mb-4">
+                    <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-20 h-20 rounded-[24px] object-cover border border-white/5 shadow-2xl">
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${statusColor} border-4 border-[#0A0A0A]"></div>
                 </div>
-                <div class="text-center w-full relative z-10">
-                    <div class="font-black text-white text-xl truncate tracking-tight uppercase italic">${s.username}</div>
-                    <div class="text-[9px] text-amber-400 font-black uppercase tracking-[0.2em] mt-2 bg-amber-500/10 px-4 py-1.5 rounded-full border border-amber-500/20 inline-block">Fondation</div>
+                <div class="text-center">
+                    <div class="font-bold text-white text-lg uppercase tracking-tight">${s.username}</div>
+                    <div class="text-[9px] text-blue-500 font-black uppercase tracking-[0.2em] mt-1 bg-blue-500/10 px-3 py-1 rounded-full">Cabinet Municipal</div>
                 </div>
             </div>
         `;
     };
 
-    const renderStaffCard = (s) => {
-        const status = state.discordStatuses[s.id] || 'offline';
-        const color = { online: 'bg-emerald-500', idle: 'bg-amber-500', dnd: 'bg-red-500', offline: 'bg-zinc-600' }[status];
-        return `
-            <div class="glass-panel w-72 p-4 rounded-3xl flex items-center gap-5 border border-white/5 bg-white/[0.01] shrink-0 hover:border-blue-500/20 transition-all">
-                <div class="relative w-14 h-14 shrink-0">
-                    <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-full h-full rounded-2xl object-cover border border-white/10 shadow-lg">
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${color} border-2 border-black"></div>
-                </div>
-                <div class="min-w-0">
-                    <div class="font-black text-white text-sm truncate uppercase italic tracking-tight">${s.username}</div>
-                    <div class="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-black mt-0.5">Administration</div>
-                </div>
+    const renderStaffCard = (s) => (
+        `<div class="melony-card p-4 rounded-2xl flex items-center gap-4 shrink-0 w-64">
+            <img src="${s.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" class="w-10 h-10 rounded-xl object-cover border border-white/5">
+            <div class="min-w-0">
+                <div class="font-bold text-white text-xs truncate uppercase tracking-tight">${s.username}</div>
+                <div class="text-[8px] text-gray-500 uppercase tracking-widest">Administration</div>
             </div>
-        `;
-    };
+        </div>`
+    );
 
     return `
-    <div class="flex-1 flex flex-col relative overflow-hidden h-full w-full bg-[#030303] text-white">
-        <!-- Background FX -->
-        <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_rgba(59,130,246,0.12),transparent_70%)] pointer-events-none"></div>
-        <div class="absolute -top-40 -right-40 w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-indigo-500/5 rounded-full blur-[150px] pointer-events-none"></div>
+    <div class="min-h-screen flex flex-col bg-black text-white selection:bg-blue-600">
+        <!-- Overlay de fond Melony -->
+        <div class="fixed inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-600/5 blur-[120px] rounded-full"></div>
+        </div>
 
-        <!-- Navigation Bar -->
-        <nav class="relative z-20 w-full px-10 py-8 flex justify-between items-center animate-fade-in">
+        <!-- Header Officiel -->
+        <header class="w-full bg-white text-black py-4 px-6 md:px-12 flex justify-between items-center z-[100] border-b-4 border-[#000091]">
             <div class="flex items-center gap-4">
-                <span class="font-black text-2xl tracking-tighter text-white uppercase italic">TFRP <span class="text-blue-500">Panel</span></span>
-            </div>
-            
-            <div class="hidden md:flex items-center gap-8">
-                <div class="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/5 shadow-inner">
-                    <div class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </div>
-                    <span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Réseau Live</span>
+                <div class="gov-logo-block border-l-2 border-black pl-3 py-1">
+                    <span class="text-[10px] font-black uppercase tracking-tighter">République de</span>
+                    <span class="text-lg font-black uppercase tracking-tighter leading-none">Los Angeles</span>
                 </div>
-                <div class="flex items-center gap-4">
-                    <a href="${CONFIG.INVITE_URL}" target="_blank" class="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-indigo-900/20 flex items-center gap-2">
-                        Rejoindre Discord <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                    </a>
-                    ${state.user ? `
-                        <button onclick="actions.logout()" class="px-6 py-2 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-red-600 hover:text-white transition-all">
-                            Déconnexion
-                        </button>
-                    ` : ''}
+                <div class="hidden md:block w-px h-10 bg-gray-200 mx-2"></div>
+                <div class="hidden md:block">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-500">Liberté • Égalité • Roleplay</span>
                 </div>
             </div>
-        </nav>
+            <div class="flex items-center gap-4">
+                 ${state.user ? `
+                    <button onclick="actions.logout()" class="text-[10px] font-black uppercase tracking-widest text-red-600 hover:underline">Déconnexion</button>
+                ` : `
+                    <button onclick="actions.login()" class="px-5 py-2 rounded-lg bg-[#000091] text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg">Se connecter</button>
+                `}
+            </div>
+        </header>
 
-        <!-- Main Scrollable Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10 px-6">
-            <div class="flex flex-col items-center pt-16 pb-32">
+        <!-- Barre de Statut Live -->
+        <div class="w-full bg-[#f6f6f6] dark:bg-[#121212] border-b border-gray-200 dark:border-white/5 py-3 px-6 md:px-12 flex flex-wrap items-center justify-center gap-6 md:gap-12 z-[90]">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Population : <span class="text-black dark:text-white">${population}/${maxPop}</span></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i data-lucide="percent" class="w-3.5 h-3.5 text-blue-600"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">TVA Municipale : <span class="text-black dark:text-white">${tva}%</span></span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-3.5 h-3.5 ${activeHeists > 0 ? 'text-red-500 animate-bounce' : 'text-gray-400'}"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Braquages : <span class="text-black dark:text-white">${activeHeists > 0 ? `${activeHeists} EN COURS` : 'RAS'}</span></span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 px-6 pb-20 relative z-10 pt-16">
+            <div class="max-w-6xl mx-auto flex flex-col items-center text-center">
                 
-                <!-- Hero Section -->
-                <div class="text-center max-w-5xl mx-auto mb-32 animate-slide-up">
-                    <div class="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-xl mb-10 shadow-2xl">
-                        <i data-lucide="globe" class="w-4 h-4 text-blue-400"></i>
-                        <span class="text-[10px] font-black text-blue-100 tracking-[0.4em] uppercase">Los Angeles • Division Roleplay</span>
-                    </div>
-                    
-                    <h1 class="text-7xl md:text-9xl font-black tracking-tighter text-white mb-8 leading-[0.85] uppercase italic">
-                        TEAM FRENCH<br>
-                        <span class="text-transparent bg-clip-text bg-gradient-to-b from-blue-400 via-blue-600 to-indigo-800 drop-shadow-2xl">ROLEPLAY</span>
+                <!-- Hero Section Officielle -->
+                <div class="animate-melony" style="animation-delay: 0.1s">
+                    <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-[0.9] uppercase italic text-gradient mb-8">
+                        PORTAIL<br>GOUVERNEMENTAL
                     </h1>
-                    
-                    <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-16 leading-relaxed font-medium italic opacity-80">
-                        La plateforme de persistance n°1. Gérez votre existence, votre patrimoine et votre casier judiciaire en quelques clics.
+                    <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
+                        Bienvenue sur la plateforme officielle de la municipalité de Los Angeles. Gérez votre identité numérique, vos actifs financiers et vos relations administratives.
                     </p>
                     
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-6">
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16">
                         ${state.isLoggingIn ? `
-                            <button disabled class="h-20 px-16 rounded-[28px] bg-white/5 border border-white/10 flex items-center gap-6 text-white/50 cursor-wait">
-                                <div class="loader-spinner w-6 h-6 border-2"></div>
-                                <span class="font-black uppercase tracking-[0.3em]">Ouverture de session...</span>
+                            <button disabled class="w-full sm:w-auto h-16 px-12 rounded-2xl melony-glass text-white/50 flex items-center gap-4 cursor-wait">
+                                <div class="loader-spinner w-5 h-5 border-2"></div>
+                                <span class="text-xs font-black uppercase tracking-widest">Identification...</span>
                             </button>
                         ` : state.user ? `
-                            <div class="flex flex-col items-center gap-6">
-                                <div class="flex items-center gap-4 bg-blue-500/10 border border-blue-500/20 p-2 pr-8 rounded-full backdrop-blur-2xl shadow-2xl">
-                                    <img src="${state.user.avatar}" class="w-10 h-10 rounded-full border border-blue-400/30">
-                                    <div class="text-left">
-                                        <div class="text-[9px] text-blue-400 font-black uppercase tracking-widest">Identifié en tant que</div>
-                                        <div class="text-sm font-black text-white uppercase italic tracking-tight">${state.user.username}</div>
-                                    </div>
-                                </div>
-                                <div class="flex gap-4">
-                                    <button onclick="router('select')" class="group relative h-20 px-16 rounded-[28px] bg-white text-black font-black text-xl flex items-center gap-4 hover:scale-105 transition-all shadow-[0_0_60px_rgba(255,255,255,0.15)] uppercase italic tracking-tighter">
-                                        Accéder au Terminal
-                                        <i data-lucide="arrow-right" class="w-6 h-6 group-hover:translate-x-2 transition-transform"></i>
-                                    </button>
-                                    <button onclick="actions.logout()" class="h-20 px-8 rounded-[28px] bg-red-600/10 text-red-500 border border-red-500/20 font-black flex items-center justify-center hover:bg-red-600 hover:text-white transition-all">
-                                        <i data-lucide="log-out" class="w-6 h-6"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        ` : `
-                            <button onclick="actions.login()" class="group relative h-24 px-16 rounded-[32px] bg-white text-black font-black text-2xl flex items-center gap-6 hover:scale-105 transition-all shadow-[0_0_80px_rgba(255,255,255,0.2)] uppercase italic tracking-tighter">
-                                <i data-lucide="log-in" class="w-8 h-8"></i>
-                                Se connecter
+                            <button onclick="router('select')" class="w-full sm:w-auto h-16 px-12 rounded-2xl btn-melony-primary flex items-center justify-center gap-3 shadow-[0_20px_40px_rgba(255,255,255,0.1)]">
+                                <span class="text-xs font-black uppercase tracking-widest">Accéder au Terminal Civil</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
                             </button>
-                            <a href="${CONFIG.INVITE_URL}" target="_blank" class="h-24 px-16 rounded-[32px] bg-white/5 border border-white/10 text-white font-black text-2xl flex items-center gap-6 hover:bg-white/10 transition-all uppercase italic tracking-tighter">
-                                <i data-lucide="discord" class="w-8 h-8"></i>
-                                Rejoindre Discord
+                        ` : `
+                            <button onclick="actions.login()" class="w-full sm:w-auto h-16 px-12 rounded-2xl btn-melony-primary flex items-center justify-center gap-3 shadow-[0_20px_40px_rgba(255,255,255,0.1)]">
+                                <i data-lucide="log-in" class="w-5 h-5"></i>
+                                <span class="text-xs font-black uppercase tracking-widest">Espace Citoyen</span>
+                            </button>
+                            <a href="${CONFIG.INVITE_URL}" target="_blank" class="w-full sm:w-auto h-16 px-12 rounded-2xl melony-glass flex items-center justify-center gap-3 text-white border border-white/10 hover:bg-white/5 transition-all">
+                                <i data-lucide="discord" class="w-5 h-5"></i>
+                                <span class="text-xs font-black uppercase tracking-widest">Rejoindre le Discord</span>
                             </a>
                         `}
                     </div>
                 </div>
 
+                <!-- Liens de Règlement / Documents Officiels -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-32 animate-melony" style="animation-delay: 0.2s">
+                    <a href="https://discord.com/channels/1279455759414857759/1445853998774226964" target="_blank" class="gov-card p-8 rounded-2xl text-left flex flex-col justify-between h-56 shadow-xl border-l-4 border-l-blue-800">
+                        <div>
+                            <i data-lucide="scroll" class="w-8 h-8 text-blue-800 mb-4"></i>
+                            <h3 class="text-xl font-black uppercase tracking-tight mb-2">Règlement Roleplay</h3>
+                            <p class="text-xs opacity-70 font-medium">Consultez la charte de conduite et les lois en vigueur dans la cité de Los Angeles.</p>
+                        </div>
+                        <div class="text-[10px] font-black uppercase text-blue-800 flex items-center gap-2">Consulter <i data-lucide="external-link" class="w-3 h-3"></i></div>
+                    </a>
+                    <a href="https://discord.com/channels/1279455759414857759/1280129294412021813" target="_blank" class="gov-card p-8 rounded-2xl text-left flex flex-col justify-between h-56 shadow-xl border-l-4 border-l-gray-400">
+                        <div>
+                            <i data-lucide="message-square" class="w-8 h-8 text-gray-500 mb-4"></i>
+                            <h3 class="text-xl font-black uppercase tracking-tight mb-2">Règlement Discord</h3>
+                            <p class="text-xs opacity-70 font-medium">Cadre d'utilisation des services de communication et d'échanges communautaires.</p>
+                        </div>
+                        <div class="text-[10px] font-black uppercase text-gray-600 flex items-center gap-2">Lire le document <i data-lucide="external-link" class="w-3 h-3"></i></div>
+                    </a>
+                    <a href="https://discord.com/channels/1279455759414857759/1445853905144516628" target="_blank" class="gov-card p-8 rounded-2xl text-left flex flex-col justify-between h-56 shadow-xl border-l-4 border-l-red-700">
+                        <div>
+                            <i data-lucide="file-check" class="w-8 h-8 text-red-700 mb-4"></i>
+                            <h3 class="text-xl font-black uppercase tracking-tight mb-2">Recensement</h3>
+                            <p class="text-xs opacity-70 font-medium">Immigrer en ville : procédure de validation et d'enregistrement des nouveaux citoyens.</p>
+                        </div>
+                        <div class="text-[10px] font-black uppercase text-red-700 flex items-center gap-2">Débuter l'immigration <i data-lucide="external-link" class="w-3 h-3"></i></div>
+                    </a>
+                </div>
+
                 <!-- Features Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl w-full mb-40">
-                    <div class="glass-panel p-10 rounded-[40px] border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-blue-500/30 transition-all text-left shadow-2xl group">
-                        <div class="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 mb-8 border border-blue-500/10 group-hover:scale-110 transition-transform shadow-xl">
-                            <i data-lucide="database" class="w-8 h-8"></i>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-12 animate-melony" style="animation-delay: 0.3s">
+                    <div class="melony-card p-10 rounded-[40px] text-left">
+                        <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 mb-6 border border-blue-500/20">
+                            <i data-lucide="database" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="text-2xl font-black text-white mb-4 uppercase italic tracking-tight">Cloud Sync</h3>
-                        <p class="text-sm text-gray-500 leading-relaxed font-medium uppercase tracking-wide">Vos actifs financiers et votre inventaire sont synchronisés instantanément entre le jeu et le panel.</p>
+                        <h3 class="text-xl font-black uppercase italic tracking-tight mb-3">Sync Persistante</h3>
+                        <p class="text-sm text-gray-500 font-medium leading-relaxed">Vos données bancaires et inventaires sont protégés par le Secret d'État.</p>
                     </div>
-                    <div class="glass-panel p-10 rounded-[40px] border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-purple-500/30 transition-all text-left shadow-2xl group">
-                        <div class="w-16 h-16 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 mb-8 border border-purple-500/10 group-hover:scale-110 transition-transform shadow-xl">
-                            <i data-lucide="building-2" class="w-8 h-8"></i>
+                    <div class="melony-card p-10 rounded-[40px] text-left">
+                        <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500 mb-6 border border-purple-500/20">
+                            <i data-lucide="building-2" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="text-2xl font-black text-white mb-4 uppercase italic tracking-tight">Business Panel</h3>
-                        <p class="text-sm text-gray-500 leading-relaxed font-medium uppercase tracking-wide">Fondez des corporations, recrutez du staff et gérez vos stocks avec des outils professionnels.</p>
+                        <h3 class="text-xl font-black uppercase italic tracking-tight mb-3">Libre Entreprise</h3>
+                        <p class="text-sm text-gray-500 font-medium leading-relaxed">Déposez vos statuts et dynamisez l'économie locale sous licence officielle.</p>
                     </div>
-                    <div class="glass-panel p-10 rounded-[40px] border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-red-500/30 transition-all text-left shadow-2xl group">
-                        <div class="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-400 mb-8 border border-red-500/10 group-hover:scale-110 transition-transform shadow-xl">
-                            <i data-lucide="shield-check" class="w-8 h-8"></i>
+                    <div class="melony-card p-10 rounded-[40px] text-left">
+                        <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 border border-emerald-500/20">
+                            <i data-lucide="shield-check" class="w-6 h-6"></i>
                         </div>
-                        <h3 class="text-2xl font-black text-white mb-4 uppercase italic tracking-tight">CAD Intégré</h3>
-                        <p class="text-sm text-gray-500 leading-relaxed font-medium uppercase tracking-wide">Forces de l'ordre et magistrats disposent d'un terminal de gestion des rapports et casiers judiciaires.</p>
+                        <h3 class="text-xl font-black uppercase italic tracking-tight mb-3">Service Public</h3>
+                        <p class="text-sm text-gray-500 font-medium leading-relaxed">Des outils certifiés pour les agents de police, de santé et les magistrats.</p>
                     </div>
                 </div>
 
-                <!-- Staff & Direction -->
-                <div class="w-full max-w-7xl mx-auto px-4">
-                    <div class="text-center mb-20">
-                        <div class="text-[10px] font-black text-blue-500 uppercase tracking-[0.4em] mb-4">Membres Fondateurs</div>
-                        <h3 class="text-4xl font-black text-white uppercase italic tracking-tighter">Direction du Projet</h3>
+                <!-- Staff Section -->
+                <div class="w-full mt-40 animate-melony" style="animation-delay: 0.5s">
+                    <div class="mb-12">
+                        <h2 class="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-2">Conseil Municipal</h2>
+                        <div class="w-12 h-1 bg-[#000091] mx-auto rounded-full"></div>
                     </div>
                     
-                    <div class="flex flex-wrap justify-center gap-10 mb-24">
+                    <div class="flex flex-wrap justify-center gap-6 mb-20">
                         ${founders.map(f => renderFounderCard(f)).join('')}
                     </div>
                     
                     ${others.length > 0 ? `
-                        <div class="relative w-full overflow-hidden py-10">
-                            <!-- Gradient Fades for Marquee -->
-                            <div class="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none"></div>
-                            <div class="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none"></div>
-                            
-                            <div class="animate-marquee flex gap-8">
+                        <div class="relative w-full overflow-hidden marquee-container py-10">
+                            <div class="animate-marquee flex gap-6">
                                 ${staffCarouselItems.map(s => renderStaffCard(s)).join('')}
                             </div>
                         </div>
@@ -186,35 +196,34 @@ export const LoginView = () => {
                 </div>
 
                 <!-- Footer -->
-                <div class="mt-40 pt-16 border-t border-white/5 w-full max-w-6xl flex flex-col md:flex-row justify-between items-center gap-8">
+                <footer class="mt-40 pt-10 border-t border-white/5 w-full flex flex-col md:flex-row justify-between items-center gap-8">
                     <div class="text-center md:text-left">
-                        <div class="text-xs font-black text-gray-400 uppercase tracking-widest">&copy; 2025 Team French RolePlay</div>
-                        <div class="text-[9px] text-gray-700 uppercase font-bold tracking-[0.2em] mt-1">Plateforme Développée par MatMat • Version 5.0.0 Stable</div>
+                        <div class="text-[10px] font-black text-gray-600 uppercase tracking-widest">&copy; 2025 TEAM FRENCH ROLEPLAY</div>
+                        <div class="text-[9px] text-gray-800 uppercase font-bold tracking-widest mt-1">Design Institutionnel • Plateforme v5.5 Stable</div>
                     </div>
                     <div class="flex gap-8">
-                        <button onclick="router('terms')" class="text-[10px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors">CGU</button>
-                        <button onclick="router('privacy')" class="text-[10px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors">Confidentialité</button>
-                        <a href="${CONFIG.INVITE_URL}" target="_blank" class="text-[10px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors">Support Technique</a>
+                        <button onclick="router('terms')" class="text-[9px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors">Conditions</button>
+                        <button onclick="router('privacy')" class="text-[9px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors">Vie Privée</button>
+                        <a href="${CONFIG.INVITE_URL}" target="_blank" class="text-[9px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-400 transition-colors">Support</a>
                     </div>
-                </div>
+                </footer>
             </div>
-        </div>
+        </main>
     </div>
     `;
 };
 
 export const AccessDeniedView = () => `
-    <div class="flex-1 flex items-center justify-center p-8 bg-[#050505] text-center animate-fade-in h-full">
-        <div class="glass-panel max-w-lg p-12 rounded-[48px] border-red-500/20 shadow-[0_0_100px_rgba(239,68,68,0.1)] relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-b from-red-500/5 to-transparent"></div>
-            <div class="w-24 h-24 bg-red-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 text-red-500 border border-red-500/20 shadow-2xl relative z-10">
-                <i data-lucide="shield-alert" class="w-12 h-12"></i>
+    <div class="min-h-screen flex items-center justify-center p-6 bg-black text-center animate-melony">
+        <div class="melony-card max-w-md p-10 rounded-[40px] border-red-500/20 shadow-2xl">
+            <div class="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-500 border border-red-500/20">
+                <i data-lucide="shield-alert" class="w-8 h-8"></i>
             </div>
-            <h2 class="text-4xl font-black text-white mb-4 uppercase italic tracking-tighter relative z-10">Accès Refusé</h2>
-            <p class="text-gray-400 mb-10 leading-relaxed font-medium relative z-10">Votre identité Discord n'est pas répertoriée sur le serveur officiel Team French RolePlay. L'accès au Panel est strictement réservé aux membres de la communauté.</p>
-            <div class="flex flex-col gap-4 relative z-10">
-                <a href="${CONFIG.INVITE_URL}" target="_blank" class="glass-btn w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest italic bg-red-600 hover:bg-red-500 shadow-xl shadow-red-900/40">Rejoindre le Discord Officiel</a>
-                <button onclick="actions.logout()" class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] hover:text-white transition-colors">Déconnexion</button>
+            <h2 class="text-3xl font-black text-white mb-4 uppercase italic tracking-tighter">Accès Refusé</h2>
+            <p class="text-gray-500 mb-10 text-sm leading-relaxed font-medium">Votre identité Discord n'est pas répertoriée sur notre serveur officiel. Rejoignez-nous pour accéder au panel.</p>
+            <div class="flex flex-col gap-3">
+                <a href="${CONFIG.INVITE_URL}" target="_blank" class="w-full py-4 rounded-2xl bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500 transition-all shadow-xl shadow-red-900/20">Rejoindre Discord</a>
+                <button onclick="actions.logout()" class="text-[9px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors py-2">Retour au Terminal</button>
             </div>
         </div>
     </div>
@@ -223,7 +232,7 @@ export const AccessDeniedView = () => `
 export const DeletionPendingView = () => {
     const u = state.user;
     const deletionDate = u.deletion_requested_at ? new Date(u.deletion_requested_at) : null;
-    let timeRemainingStr = "Calcul en cours...";
+    let timeRemainingStr = "Calcul...";
     if (deletionDate) {
         const expiry = new Date(deletionDate.getTime() + (3 * 24 * 60 * 60 * 1000));
         const diff = expiry - new Date();
@@ -235,21 +244,19 @@ export const DeletionPendingView = () => {
     }
 
     return `
-    <div class="flex-1 flex items-center justify-center p-8 bg-[#050505] text-center animate-fade-in h-full">
-        <div class="glass-panel max-w-lg p-12 rounded-[48px] border-orange-500/30 shadow-[0_0_100px_rgba(249,115,22,0.1)] relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-b from-orange-500/5 to-transparent"></div>
-            <div class="w-24 h-24 bg-orange-600/10 rounded-3xl flex items-center justify-center mx-auto mb-8 text-orange-500 border border-orange-500/20 shadow-2xl relative z-10">
-                <i data-lucide="trash-2" class="w-12 h-12"></i>
+    <div class="min-h-screen flex items-center justify-center p-6 bg-black text-center animate-melony">
+        <div class="melony-card max-w-md p-10 rounded-[40px] border-orange-500/20 shadow-2xl">
+            <div class="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-orange-500 border border-orange-500/20">
+                <i data-lucide="trash-2" class="w-8 h-8"></i>
             </div>
-            <h2 class="text-4xl font-black text-white mb-2 uppercase italic tracking-tighter relative z-10">Purge en Cours</h2>
-            <p class="text-orange-400 text-xs font-black uppercase tracking-widest mb-8 relative z-10">Compte marqué pour suppression</p>
-            <p class="text-gray-400 mb-10 leading-relaxed font-medium relative z-10">L'accès à votre compte est restreint durant la phase finale de destruction des données. Vos informations seront définitivement effacées du cluster TFRP dans :</p>
-            <div class="bg-black/40 p-8 rounded-[32px] border border-orange-500/30 mb-10 relative z-10">
-                <div class="text-5xl font-mono font-black text-white tracking-tighter">${timeRemainingStr}</div>
+            <h2 class="text-3xl font-black text-white mb-2 uppercase italic tracking-tighter">Purge en Cours</h2>
+            <p class="text-gray-500 mb-10 text-sm leading-relaxed font-medium">Votre compte est marqué pour suppression définitive dans :</p>
+            <div class="bg-white/5 p-8 rounded-3xl border border-white/5 mb-10">
+                <div class="text-4xl font-mono font-black text-white tracking-tighter">${timeRemainingStr}</div>
             </div>
-            <div class="flex flex-col gap-4 relative z-10">
-                <button onclick="actions.cancelDataDeletion()" class="glass-btn w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest italic bg-white text-black hover:scale-105 transition-all shadow-xl shadow-white/5">ANNULER LA PROCÉDURE</button>
-                <button onclick="actions.logout()" class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] hover:text-white transition-colors">Déconnexion temporaire</button>
+            <div class="flex flex-col gap-3">
+                <button onclick="actions.cancelDataDeletion()" class="w-full py-4 rounded-2xl bg-white text-black font-black text-[10px] uppercase tracking-[0.2em] shadow-xl">ANNULER LA PROCÉDURE</button>
+                <button onclick="actions.logout()" class="text-[9px] font-black text-gray-600 uppercase tracking-widest hover:text-white transition-colors py-2">Déconnexion temporaire</button>
             </div>
         </div>
     </div>
